@@ -17,6 +17,22 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // DemoSeeder is often invoked directly (first-boot auto-seed in the
+        // Docker entrypoint, manual `db:seed --class=DemoSeeder`, etc.)
+        // rather than through DatabaseSeeder. Call the prerequisite
+        // seeders here so running DemoSeeder standalone always works:
+        // without roles the user() helper's syncRoles() call blows up with
+        // "There is no role named `super_admin` for guard `web`", and
+        // without the fee/document/licence tables the generated
+        // applications can't resolve their checklists or quotes.
+        $this->call([
+            RoleSeeder::class,
+            DocumentRuleSeeder::class,
+            FeeTableSeeder::class,
+            LicenceFeeBandSeeder::class,
+            LicenceFeeRateSeeder::class,
+        ]);
+
         // Placeholder branding for a generic licensing company. The real
         // licensing company reconfigures these values via the Admin
         // console (Branding settings) before go-live; nothing in this
