@@ -13,6 +13,7 @@ use App\Enums\VehicleCategory;
 use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\BusinessClient;
+use App\Models\FleetVehicle;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -81,12 +82,60 @@ class ApplicationForm extends Component
         if ($application === null) {
             $this->authorize('create', Application::class);
 
+            $prefillId = request()->integer('prefill_fleet_vehicle');
+
+            if ($prefillId > 0) {
+                $this->createDraftFromFleetVehicle($prefillId);
+            }
+
             return;
         }
 
         $this->authorize('update', $application);
         $this->application = $application->load(['vehicle', 'documents.documentType', 'parties']);
         $this->fillFromApplication();
+    }
+
+    /**
+     * Build a licence-renewal draft from a {@see FleetVehicle} record so a
+     * fleet user clicking a renewal link in the monthly email lands straight
+     * on the edit page with the register number, VIN, make and category
+     * already filled in. The draft is only created the first time the link is
+     * opened.
+     */
+    private function createDraftFromFleetVehicle(int $vehicleId): void
+    {
+        $user = auth()->user();
+
+        if ($user === null) {
+            return;
+        }
+
+        $vehicle = FleetVehicle::query()
+            ->where('client_account_id', $user->client_account_id)
+            ->whereNull('retired_at')
+            ->find($vehicleId);
+
+        if ($vehicle === null) {
+            return;
+        }
+
+        try {
+            $saved = app(SaveApplicationDraft::class)->handle($user, [
+                'request_type' => RequestType::LicenceRenewal->value,
+                'vehicle_category' => $vehicle->vehicle_category?->value,
+                'vin' => $vehicle->vin,
+                'vehicle_register_number' => $vehicle->vehicle_register_number,
+                'make' => $vehicle->make,
+                'model' => $vehicle->model,
+            ]);
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->redirectRoute('applications.edit', $saved);
     }
 
     public function updated(string $name): void

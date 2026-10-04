@@ -38,6 +38,10 @@ class DocumentRuleSeeder extends Seeder
             ['weighbridge_certificate', 'data_change', 'commercial', null, 'vehicle', 'required', 20],
             ['cof', 'new_registration', 'commercial', null, 'vehicle', 'required', 30],
             ['cof', 'data_change', 'commercial', null, 'vehicle', 'required', 30],
+            // A commercial licence renewal requires a current certificate of
+            // fitness — that is the whole reason discs get withheld when the
+            // roadworthy is outstanding.
+            ['cof', 'licence_renewal', 'commercial', null, 'vehicle', 'required', 30],
             ['body_builder_certificate', 'new_registration', 'commercial', null, 'vehicle', 'required', 40],
             ['body_builder_certificate', 'data_change', 'commercial', null, 'vehicle', 'required', 40],
             ['brn_certificate', 'new_registration', null, 'business', 'owner', 'required', 50],

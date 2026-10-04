@@ -9,6 +9,9 @@ use App\Livewire\Portal\ApplicationShow;
 use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
+use App\Livewire\Portal\FleetReviewConfirm;
+use App\Livewire\Portal\FleetReviewQueue;
+use App\Livewire\Portal\FleetVehicleIndex;
 use App\Livewire\Portal\LicenceCostEstimator;
 use App\Livewire\Portal\PaymentQueue;
 use App\Livewire\Portal\QuoteBuilder;
@@ -56,6 +59,10 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/account', AccountSettings::class)->name('account.settings');
     Route::get('/team', TeamIndex::class)->name('team.index');
     Route::get('/estimate', LicenceCostEstimator::class)->name('estimate.index');
+
+    Route::get('/fleet-vehicles', FleetVehicleIndex::class)->name('fleet.vehicles.index');
+    Route::get('/fleet-vehicles/review', FleetReviewQueue::class)->name('fleet.review.queue');
+    Route::get('/fleet-vehicles/review/{document}', FleetReviewConfirm::class)->name('fleet.review.show');
 
     Route::get('/documents/versions/{version}', DocumentDownloadController::class)->name('documents.download');
     Route::get('/deliverables/{deliverable}', DeliverableDownloadController::class)->name('deliverables.download');

@@ -32,8 +32,11 @@
     $quotesCount = null;
     $reviewQueueCount = null;
     $paymentsCount = null;
+    $fleetVehiclesCount = null;
+    $fleetReviewPendingCount = null;
     $quotesEnabled = \App\Services\FeatureFlags::quotesEnabled();
     $paymentTrackingRequired = \App\Services\FeatureFlags::paymentTrackingRequired();
+    $isFleetClient = $isClient && $user?->clientAccount?->type === \App\Enums\ClientAccountType::FleetOperator;
 
     if ($isClient && $user?->client_account_id !== null) {
         $applicationsCount = \App\Models\Application::query()
@@ -68,6 +71,18 @@
         $paymentsCount = $paymentTrackingRequired
             ? \App\Models\Payment::query()->whereNull('verified_at')->count()
             : 0;
+
+        $fleetReviewPendingCount = \App\Models\FleetVehicleDocument::query()
+            ->whereNull('confirmed_at')
+            ->count();
+    }
+
+    if ($isFleetClient) {
+        $fleetVehiclesCount = \App\Models\FleetVehicle::query()
+            ->where('client_account_id', $user->client_account_id)
+            ->whereNull('retired_at')
+            ->confirmed()
+            ->count();
     }
 
     $isCurrent = fn (string $pattern): bool => request()->routeIs($pattern);
@@ -153,6 +168,16 @@
             <x-portal.sidebar-link :href="route('estimate.index')" :active="$isCurrent('estimate.*')">
                 Licence cost estimate
             </x-portal.sidebar-link>
+            @if ($isFleetClient)
+                <x-portal.sidebar-link
+                    :href="route('fleet.vehicles.index')"
+                    :active="$isCurrent('fleet.vehicles.*')"
+                    :count="$fleetVehiclesCount"
+                    countTone="mono"
+                >
+                    Fleet vehicles
+                </x-portal.sidebar-link>
+            @endif
             @if ($user?->hasRole('client_admin'))
                 <x-portal.sidebar-link :href="route('team.index')" :active="$isCurrent('team.*')">
                     Team
@@ -175,6 +200,16 @@
                     :countTone="$paymentsCount > 0 ? 'warning' : 'mono'"
                 >
                     Payments
+                </x-portal.sidebar-link>
+            @endif
+            @if ($user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']))
+                <x-portal.sidebar-link
+                    :href="route('fleet.review.queue')"
+                    :active="$isCurrent('fleet.review.*')"
+                    :count="$fleetReviewPendingCount"
+                    :countTone="$fleetReviewPendingCount > 0 ? 'warning' : 'mono'"
+                >
+                    Fleet licence review
                 </x-portal.sidebar-link>
             @endif
             @if ($isAdmin)

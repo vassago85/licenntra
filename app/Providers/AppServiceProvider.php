@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Logging\RedactSouthAfricanIdNumbers;
 use App\Models\SystemSetting;
+use App\Services\LicenceOcr\LicenceOcrReader;
+use App\Services\LicenceOcr\TesseractLicenceOcrReader;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -21,7 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Default to Tesseract on the server; tests swap in FakeLicenceOcrReader.
+        $this->app->bind(LicenceOcrReader::class, TesseractLicenceOcrReader::class);
     }
 
     /**

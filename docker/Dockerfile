@@ -79,6 +79,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
         tzdata \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        poppler-utils \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_pgsql \
