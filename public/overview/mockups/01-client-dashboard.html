@@ -5,428 +5,444 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Licentra — Client dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#F2F3F0}
-a{color:#1F47B8}a:hover{color:#15327F}
-th{font-weight:500;font-size:12px;color:#4A525C;text-align:left;padding:10px 12px;border-bottom:1px solid #D9DCD6;white-space:nowrap;background:#F8F9F6}
-td{padding:12px;border-bottom:1px solid #E6E8E3;vertical-align:top;font-size:13px}
+  :root {
+    --paper: #F2F3F0;
+    --ink: #14181D;
+    --muted: #4A525C;
+    --line: #D9DCD6;
+    --brand: #1F47B8;
+    --brand-wash: #EEF1FA;
+    --red: #B3261E;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { color: #15327F; }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  .topstrip { display: flex; align-items: center; height: 36px; padding: 0 20px; background: var(--ink); color: #fff; font-size: 13px; }
+  .topstrip a { color: #fff; }
+  .topstrip .sep { opacity: .72; margin: 0 8px; }
+
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 36px); }
+
+  aside.sidebar {
+    background: #fff; border-right: 1px solid var(--line);
+    padding: 20px 16px; display: flex; flex-direction: column; gap: 24px;
+  }
+  .sidebar-brand { padding: 0 8px; display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-brand .name { font-weight: 700; font-size: 16px; letter-spacing: 0.14em; color: var(--brand); text-transform: uppercase; }
+  .sidebar-brand .sub { font-size: 12px; color: var(--muted); }
+
+  .sidebar-account { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-account .eyebrow { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sidebar-account .n { font-weight: 600; font-size: 14px; }
+  .sidebar-account .r { font-size: 12px; color: var(--muted); }
+
+  nav.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-link {
+    display: flex; justify-content: space-between; align-items: center;
+    min-height: 36px; padding: 0 10px; border-radius: 6px;
+    font-size: 14px; color: var(--ink); text-decoration: none;
+  }
+  .nav-link:hover { background: var(--paper); color: var(--ink); }
+  .nav-link.active { background: var(--brand-wash); color: var(--brand); font-weight: 600; }
+  .nav-count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  .sidebar-footer { margin-top: auto; padding: 16px 8px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-footer .email { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .sidebar-footer a { color: var(--ink); font-weight: 500; }
+
+  main.main { padding: 24px 28px 40px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+  .pagehead { display: flex; align-items: start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .pagehead h1 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.2; }
+  .pagehead-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pagehead-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .search {
+    width: 280px; max-width: 100%; height: 36px; box-sizing: border-box;
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 0 12px; font: inherit; font-size: 13px; background: #fff;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 36px; padding: 0 14px; border-radius: 6px;
+    background: var(--brand); color: #fff; font-weight: 600; font-size: 13px;
+    border: 0; text-decoration: none; cursor: pointer;
+  }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .tile {
+    background: #fff; border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+    position: relative; overflow: hidden;
+  }
+  .tile.needs-action::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--red); }
+  .tile-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .tile-value { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1; }
+  .tile-sub { font-size: 12px; color: var(--muted); }
+
+  .content { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+  @media (max-width: 1180px) { .content { grid-template-columns: 1fr; } }
+
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    height: 28px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); font-size: 12px;
+    display: inline-flex; align-items: center; cursor: pointer; text-decoration: none;
+  }
+  .chip:hover { border-color: var(--ink); }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .table-wrap { overflow-x: auto; }
+  table.data { width: 100%; min-width: 920px; border-collapse: collapse; font-size: 13px; }
+  table.data thead th { text-align: left; font-weight: 500; font-size: 11px; color: var(--muted); padding: 8px 12px; white-space: nowrap; }
+  table.data tbody tr { border-top: 1px solid var(--line); }
+  table.data tbody td { padding: 12px; vertical-align: top; }
+  .ref { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; }
+  .vin { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .cell-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .pill.success { background: #D1FAE5; color: #065F46; }
+  .pill.warning { background: #FEF3C7; color: #78350F; }
+  .pill.danger  { background: #FEE4E2; color: #7A1419; }
+  .pill.info    { background: #DBEAFE; color: #1E3A8A; }
+  .pill.neutral { background: #F3F4F6; color: #4B5563; }
+
+  .dfx { display: flex; gap: 3px; }
+  .dfx span { display: inline-block; width: 14px; height: 6px; border-radius: 1px; background: var(--line); }
+  .dfx span.on { background: #065F46; }
+  .dfx span.pending { background: #1F47B8; }
+  .dfx-label { margin-top: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .rail { display: flex; flex-direction: column; gap: 16px; }
+  .rail .item { padding: 12px 14px; border-top: 1px solid var(--line); }
+  .rail .item:first-child { border-top: 0; }
+  .rail .item-head { display: flex; align-items: center; justify-content: space-between; }
+  .rail .item-ref { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .rail .item-tag { font-size: 11px; font-weight: 500; }
+  .rail .item-tag.danger  { color: #7A1419; }
+  .rail .item-tag.warning { color: #78350F; }
+  .rail .item-tag.neutral { color: var(--muted); }
+  .rail .item-body { font-size: 13px; margin-top: 4px; }
+  .rail .item-cta { color: var(--brand); font-size: 13px; font-weight: 500; margin-top: 4px; display: inline-block; }
+  .rail .retention-business { font-weight: 500; font-size: 13px; }
+  .rail .retention-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .paginate { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .pager { display: flex; gap: 4px; }
+  .pager-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font-size: 12px; background: #fff; }
+  .pager-btn.current { background: var(--ink); color: #fff; border-color: var(--ink); }
 </style>
 </head>
-<body><a href="/" style="display:flex;align-items:center;height:36px;padding:0 20px;background:#14181D;color:#FFFFFF;font-family:'IBM Plex Sans','Segoe UI',sans-serif;font-size:13px;text-decoration:none">Licentra <span style="opacity:.72;margin-left:8px">· Back to overview</span></a>
-<div style="font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; color: #14181D; background: #F2F3F0; display: flex; flex-wrap: wrap; align-items: stretch">
+<body>
 
-  <nav aria-label="Main" style="flex: 1 1 232px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #D9DCD6; padding: 20px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
-    <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
-      <div style="font-weight: 700; font-size: 18px; letter-spacing: 0.14em; color: #1F47B8">NORTHLINE</div>
-      <div style="font-size: 12px; color: #4A525C">Client portal</div>
+<div class="topstrip">
+  <a href="../index.html">Licentra</a><span class="sep">·</span><a href="../index.html">Back to overview</a>
+</div>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="name">Example Licensing</span>
+      <span class="sub">Client portal</span>
     </div>
-    <div style="border: 1px solid #D9DCD6; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
-      <div style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.08em">Client account</div>
-      <div style="font-weight: 600; font-size: 14px">Highveld Commercial Centurion</div>
-      <div style="font-size: 12px; color: #4A525C">Dealer · Thandi M. (Admin)</div>
+    <div class="sidebar-account">
+      <span class="eyebrow">Client account</span>
+      <span class="n">Highveld Commercial Centurion</span>
+      <span class="r">Dealer · Thandi Mokoena (Admin)</span>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 2px">
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; background: #EEF1FA; color: #1F47B8; font-weight: 600; font-size: 14px; text-decoration: none">Dashboard</a>
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Applications</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C">42</span></a>
-      <a href="02-new-application.html" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">New application</a>
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Business clients</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C">12</span></a>
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Quotes</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6E4B00; background: #FAEFD4; padding: 1px 7px; border-radius: 10px">1</span></a>
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">Reports</a>
-      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">Users</a>
-    </div>
-    <div style="margin-top: auto; padding: 0 8px; font-size: 12px; color: #4A525C; display: flex; flex-direction: column; gap: 4px">
-      <div>Support: [SUPPORT EMAIL]</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link active" href="#">Dashboard</a>
+      <a class="nav-link" href="#"><span>Applications</span><span class="nav-count">18</span></a>
+      <a class="nav-link" href="02-new-application.html">New application</a>
+      <a class="nav-link" href="#"><span>Business clients</span><span class="nav-count">4</span></a>
+      <a class="nav-link" href="#">Licence cost estimate</a>
+      <a class="nav-link" href="#">Team</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="email">thandi.mokoena@highveld.test</div>
+      <a href="#">Account settings</a>
+      <a href="#">Sign out</a>
       <div>Powered by Licentra</div>
     </div>
-  </nav>
+  </aside>
 
-  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+  <main class="main">
 
-    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
-      <div style="display: flex; flex-direction: column; gap: 2px">
-        <h1 style="margin: 0; font-size: 22px; font-weight: 600">Dashboard</h1>
-        <div style="font-size: 13px; color: #4A525C">Sunday 4 October 2026 · 42 open applications</div>
+    <div class="pagehead">
+      <div>
+        <h1>Dashboard</h1>
+        <div class="pagehead-sub">Sunday 4 October 2026 · 18 open applications</div>
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
-        <label for="q" style="position: absolute; left: -9999px">Search</label>
-        <input id="q" type="search" placeholder="Reference, VIN, register no, owner" style="width: 300px; max-width: 100%; height: 40px; box-sizing: border-box; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF">
-        <a href="02-new-application.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 6px; background: #1F47B8; color: #FFFFFF; font-weight: 600; font-size: 14px; text-decoration: none">New application</a>
+      <div class="pagehead-actions">
+        <input class="search" type="search" placeholder="Reference, VIN, NaTIS no, owner">
+        <a class="btn-primary" href="02-new-application.html">New application</a>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
-      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 3px 0 #B3261E">
-        <div style="font-size: 13px; color: #4A525C">Needs your action</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">5</div>
-        <div style="font-size: 12px; color: #4A525C">2 rejected documents · 1 quote · 2 drafts</div>
+    <div class="tiles">
+      <div class="tile needs-action">
+        <span class="tile-label">Needs your action</span>
+        <span class="tile-value">4</span>
+        <span class="tile-sub">1 rejected document · 1 quote · 2 drafts</span>
       </div>
-      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
-        <div style="font-size: 13px; color: #4A525C">With Northline</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">27</div>
-        <div style="font-size: 12px; color: #4A525C">14 in review · 6 at the authority · 7 payment</div>
+      <div class="tile">
+        <span class="tile-label">With Example Licensing</span>
+        <span class="tile-value">13</span>
+        <span class="tile-sub">4 in review · 3 at the authority · 6 payment</span>
       </div>
-      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
-        <div style="font-size: 13px; color: #4A525C">Datafix</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">9</div>
-        <div style="font-size: 12px; color: #4A525C">6 waiting on documents · 3 in progress</div>
+      <div class="tile">
+        <span class="tile-label">Datafix</span>
+        <span class="tile-value">7</span>
+        <span class="tile-sub">2 waiting on documents · 5 in progress</span>
       </div>
-      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
-        <div style="font-size: 13px; color: #4A525C">Ready for collection</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">3</div>
-        <div style="font-size: 12px; color: #4A525C">2 with licence disc · 1 registration only</div>
+      <div class="tile">
+        <span class="tile-label">Ready for collection</span>
+        <span class="tile-value">2</span>
+        <span class="tile-sub">1 with licence disc · 1 registration only</span>
       </div>
     </div>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+    <div class="content">
 
-      <section style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Applications</h2>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px">
-            <button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #14181D; background: #14181D; color: #FFFFFF; font: inherit; font-size: 13px">All open</button>
-            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Needs action</button>
-            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Commercial</button>
-            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Passenger</button>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Applications</h2>
+          <div class="chips">
+            <a class="chip active">All open</a>
+            <a class="chip">Needs action</a>
+            <a class="chip">Commercial</a>
+            <a class="chip">Passenger</a>
+            <a class="chip">Completed (2)</a>
           </div>
         </div>
-        <div style="overflow-x: auto">
-          <table style="width: 100%; border-collapse: collapse; min-width: 980px">
+        <div class="table-wrap">
+          <table class="data">
             <thead>
               <tr>
                 <th>Reference</th>
                 <th>Vehicle / VIN</th>
-                <th>Register no</th>
+                <th>NaTIS no</th>
                 <th>Owner</th>
                 <th>Service</th>
                 <th>Stage</th>
                 <th>Datafix</th>
                 <th>Docs</th>
-                <th>Updated</th>
               </tr>
             </thead>
             <tbody>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004812</a></td>
-                  <td>
-                    <div style="font-weight: 500">Hino 500 1627</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>JHH</span><span>GD8JLA</span><span>7K104512</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">TLX914G</td>
-                  <td>
-                    <div>Ridgeline Haulage (Pty) Ltd</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">Document review</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px"></div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">3 of 4 accepted</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">6 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">2 h ago</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004809</a></td>
-                  <td>
-                    <div style="font-weight: 500">Isuzu FTR 850 AMT</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>ADM</span><span>FTR34H</span><span>9L208833</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">KMV227B</td>
-                  <td>
-                    <div>Mokoena Cold Chain CC</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FBE5E2; color: #9E2419">Changes requested</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">COF rejected</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">2 of 4 accepted</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">5 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">5 h ago</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004805</a></td>
-                  <td>
-                    <div style="font-weight: 500">Mercedes-Benz Actros 2645</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>WDB</span><span>963403</span><span>3L871240</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">PRD508F</td>
-                  <td>
-                    <div>Bushveld Aggregates (Pty) Ltd</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">Datafix in progress</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px"></div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">In progress</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">Yesterday</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004801</a></td>
-                  <td>
-                    <div style="font-weight: 500">UD Croner PKE 250</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>JNC</span><span>PK2502</span><span>6U330917</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">WTB771H</td>
-                  <td>
-                    <div>Ridgeline Haulage (Pty) Ltd</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FAEFD4; color: #6E4B00">Quote sent</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Same-day runner</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Ready</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">Yesterday</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004798</a></td>
-                  <td>
-                    <div style="font-weight: 500">Volkswagen Polo Vivo 1.4</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>AAV</span><span>ZZZ6RZ</span><span>RU051882</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">GHX402C</td>
-                  <td>
-                    <div>N. Dlamini</div>
-                    <div style="font-size: 12px; color: #4A525C">Individual</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FAEFD4; color: #6E4B00">Payment pending</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Invoice sent 2 Oct</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Not required</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">3 / 3</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">2 Oct</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004790</a></td>
-                  <td>
-                    <div style="font-weight: 500">Iveco Tector 15-250</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>ZCF</span><span>A1EM12</span><span>0D612204</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">LNB339K</td>
-                  <td>
-                    <div>Mokoena Cold Chain CC</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">At the authority</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Submitted 1 Oct</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Completed</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">1 Oct</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004781</a></td>
-                  <td>
-                    <div style="font-weight: 500">Toyota Corolla Cross 1.8</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>AHT</span><span>KB3FS6</span><span>0P190455</span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">YDM816T</td>
-                  <td>
-                    <div>P. van Wyk</div>
-                    <div style="font-size: 12px; color: #4A525C">Individual</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E2F1E6; color: #1C6535">Ready for collection</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Registration certificate</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Not required</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">3 / 3</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">30 Sep</td>
-                </tr>
-              
-                <tr>
-                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004779</a></td>
-                  <td>
-                    <div style="font-weight: 500">Hino 300 816</div>
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>—</span><span></span><span></span></div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">SRC120D</td>
-                  <td>
-                    <div>Bushveld Aggregates (Pty) Ltd</div>
-                    <div style="font-size: 12px; color: #4A525C">Business</div>
-                  </td>
-                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
-                  <td>
-                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #ECEEEA; color: #454D56">Draft</span>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">VIN missing</div>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 3px" aria-hidden="true">
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
-                      
-                    </div>
-                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">0 of 4 accepted</div>
-                  </td>
-                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">2 / 7</td>
-                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">29 Sep</td>
-                </tr>
-              
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00016</a></td>
+                <td><div>Volvo 500 1627</div><div class="vin">62UUBUCTFMT03E93Z</div></td>
+                <td class="ref">TLX115G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill success">Approved</span></td>
+                <td><div class="dfx"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div><div class="dfx-label">Completed</div></td>
+                <td class="ref">7 / 7</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00015</a></td>
+                <td><div>Mercedes-Benz 500 1627</div><div class="vin">8Y2BAW81ZLVWBY85V</div></td>
+                <td class="ref">TLX114G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill info">Authority query</span></td>
+                <td><div class="dfx"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div><div class="dfx-label">Completed</div></td>
+                <td class="ref">9 / 8</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00013</a></td>
+                <td><div>Hino 500 1627</div><div class="vin">CPJC800H0JZMUZ69L</div></td>
+                <td class="ref">TLX112G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register only</td>
+                <td><span class="pill info">Datafix in progress</span></td>
+                <td><div class="dfx"><span class="pending"></span><span class="pending"></span><span class="pending"></span><span class="pending"></span></div><div class="dfx-label">Ready</div></td>
+                <td class="ref">9 / 9</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00006</a></td>
+                <td><div>FAW 500 1627</div><div class="vin">TV8Z1E57LBDTHKZPS</div></td>
+                <td class="ref">TLX105G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill info">Document review</span></td>
+                <td><div class="dfx"><span class="pending"></span><span class="pending"></span><span class="pending"></span><span class="pending"></span></div><div class="dfx-label">Ready</div></td>
+                <td class="ref">7 / 7</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00010</a></td>
+                <td><div>Volvo 500 1627</div><div class="vin">JB9X56M8JF59JH3F8</div></td>
+                <td class="ref">TLX109G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill warning">Payment pending</span><div class="cell-sub">Invoice awaiting payment</div></td>
+                <td><div class="dfx"><span class="pending"></span><span class="pending"></span><span class="pending"></span><span class="pending"></span></div><div class="dfx-label">Ready</div></td>
+                <td class="ref">7 / 7</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00011</a></td>
+                <td><div>Scania Corolla</div><div class="vin">GF1D64501G3DA04DC</div></td>
+                <td class="ref">TLX110G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill warning">Payment pending</span><div class="cell-sub">Invoice awaiting payment</div></td>
+                <td><div class="dfx"><span></span><span></span><span></span><span></span></div><div class="dfx-label">Not required</div></td>
+                <td class="ref">6 / 6</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00012</a></td>
+                <td><div>FAW 500 1627</div><div class="vin">EKTW72WSHH1H2G5BG</div></td>
+                <td class="ref">TLX111G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill success">Payment verified</span></td>
+                <td><div class="dfx"><span class="pending"></span><span class="pending"></span><span class="pending"></span><span class="pending"></span></div><div class="dfx-label">Ready</div></td>
+                <td class="ref">7 / 7</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00009</a></td>
+                <td><div>Mercedes-Benz 500 1627</div><div class="vin">L7HE48HG2E75T12H4</div></td>
+                <td class="ref">TLX108G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register only</td>
+                <td><span class="pill success">Quote accepted</span></td>
+                <td><div class="dfx"><span></span><span></span><span></span><span></span></div><div class="dfx-label">Not required</div></td>
+                <td class="ref">1 / —</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00007</a></td>
+                <td><div>Hino 500 1627</div><div class="vin">RZ0F2C9Z3CBX920MW</div></td>
+                <td class="ref">TLX106G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register only</td>
+                <td><span class="pill warning">Quote required</span></td>
+                <td><div class="dfx"><span></span><span></span><span></span><span></span></div><div class="dfx-label">Not required</div></td>
+                <td class="ref">1 / —</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00008</a></td>
+                <td><div>UD Corolla</div><div class="vin">N3SY3ADRKD911J1K0</div></td>
+                <td class="ref">TLX107G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register only</td>
+                <td><span class="pill warning">Quote sent</span><div class="cell-sub">14 Oct</div></td>
+                <td><div class="dfx"><span></span><span></span><span></span><span></span></div><div class="dfx-label">Not required</div></td>
+                <td class="ref">1 / —</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00017</a></td>
+                <td><div>Scania Corolla</div><div class="vin">46KACSGJYNR4VXA13</div></td>
+                <td class="ref">TLX116G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register only</td>
+                <td><span class="pill success">Ready for collection</span></td>
+                <td><div class="dfx"><span></span><span></span><span></span><span></span></div><div class="dfx-label">Not required</div></td>
+                <td class="ref">6 / 6</td>
+              </tr>
+              <tr>
+                <td><a class="ref" href="#">EXL-2026-00018</a></td>
+                <td><div>FAW 500 1627</div><div class="vin">2ABTDPLAEPN8LDBZ7</div></td>
+                <td class="ref">TLX117G</td>
+                <td><div>Ridgeline Haulage</div><div class="cell-sub">Business</div></td>
+                <td>Register &amp; license</td>
+                <td><span class="pill success">Ready for collection</span></td>
+                <td><div class="dfx"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div><div class="dfx-label">Completed</div></td>
+                <td class="ref">7 / 7</td>
+              </tr>
             </tbody>
           </table>
         </div>
+        <div class="paginate">
+          <span>Showing 1 to 12 of 18 results</span>
+          <div class="pager">
+            <a class="pager-btn">‹</a>
+            <a class="pager-btn current">1</a>
+            <a class="pager-btn">2</a>
+            <a class="pager-btn">›</a>
+          </div>
+        </div>
       </section>
 
-      <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
-        <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">Needs your action</h2>
-          <div style="display: flex; flex-direction: column">
-            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
-              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004809</span><span style="font-size: 12px; color: #9E2419; font-weight: 500">Rejected</span></div>
-              <div style="font-size: 13px">COF is illegible. Upload a clearer scan.</div>
-              <a href="#" style="font-size: 13px; font-weight: 500">Replace document</a>
+      <aside class="rail">
+        <section class="panel">
+          <div class="panel-head"><h2>Needs your action</h2></div>
+          <div class="item">
+            <div class="item-head">
+              <span class="item-ref">EXL-2026-00003</span>
+              <span class="item-tag danger">Rejected</span>
             </div>
-            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
-              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004801</span><span style="font-size: 12px; color: #6E4B00; font-weight: 500">Quote</span></div>
-              <div style="font-size: 13px">Same-day runner. Expires 7 Oct.</div>
-              <a href="#" style="font-size: 13px; font-weight: 500">Review quote</a>
+            <p class="item-body" style="margin: 4px 0 0;">Sales registration form — illegible. Upload a clearer scan.</p>
+            <a class="item-cta" href="#">Replace document</a>
+          </div>
+          <div class="item">
+            <div class="item-head">
+              <span class="item-ref">EXL-2026-00008</span>
+              <span class="item-tag warning">Quote</span>
             </div>
-            <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
-              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004779</span><span style="font-size: 12px; color: #454D56; font-weight: 500">Draft</span></div>
-              <div style="font-size: 13px">VIN and 5 documents missing.</div>
-              <a href="02-new-application.html" style="font-size: 13px; font-weight: 500">Continue draft</a>
+            <p class="item-body" style="margin: 4px 0 0;">Awaiting your decision. Expires 14 Oct.</p>
+            <a class="item-cta" href="#">Review quote</a>
+          </div>
+          <div class="item">
+            <div class="item-head">
+              <span class="item-ref">EXL-2026-00001</span>
+              <span class="item-tag neutral">Draft</span>
             </div>
+            <p class="item-body" style="margin: 4px 0 0;">9 documents missing.</p>
+            <a class="item-cta" href="#">Continue draft</a>
+          </div>
+          <div class="item">
+            <div class="item-head">
+              <span class="item-ref">EXL-2026-00002</span>
+              <span class="item-tag neutral">Draft</span>
+            </div>
+            <p class="item-body" style="margin: 4px 0 0;">4 documents missing.</p>
+            <a class="item-cta" href="#">Continue draft</a>
           </div>
         </section>
 
-        <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">Business clients · retention</h2>
-          <div style="display: flex; flex-direction: column">
-            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
-              <div style="font-size: 13px; font-weight: 500">Mokoena Cold Chain CC</div>
-              <div style="font-size: 12px; color: #6E4B00">Documents deleted on 21 Oct 2026 (17 days)</div>
-              <div style="display: flex; gap: 12px"><a href="#" style="font-size: 13px; font-weight: 500">Extend</a><a href="#" style="font-size: 13px; color: #4A525C">Let it lapse</a></div>
-            </div>
-            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
-              <div style="font-size: 13px; font-weight: 500">Ridgeline Haulage (Pty) Ltd</div>
-              <div style="font-size: 12px; color: #4A525C">Kept until 12 Mar 2027 · 12 months</div>
-            </div>
-            <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
-              <div style="font-size: 13px; font-weight: 500">Bushveld Aggregates (Pty) Ltd</div>
-              <div style="font-size: 12px; color: #4A525C">Kept until 30 Jun 2027 · 24 months</div>
-            </div>
+        <section class="panel">
+          <div class="panel-head"><h2>Business clients · retention</h2></div>
+          <div class="item">
+            <div class="retention-business">Mokoena Cold Chain</div>
+            <div class="retention-sub">Documents deleted on 16 Oct 2026 (11.971740003079 days)</div>
+            <div style="margin-top: 6px;"><a href="#">Extend</a> <span style="color: var(--muted);">·</span> <a href="#">Let it lapse</a></div>
+          </div>
+          <div class="item">
+            <div class="retention-business">Ridgeline Haulage</div>
+            <div class="retention-sub">Documents deleted on 4 Jun 2027 · 12 months</div>
+          </div>
+          <div class="item">
+            <div class="retention-business">Meridian Asset Finance</div>
+            <div class="retention-sub">Documents deleted on 4 Apr 2028 · 24 months</div>
+          </div>
+          <div class="item">
+            <div class="retention-business">Southern Cross Bank Vehicle Finance</div>
+            <div class="retention-sub">Documents deleted on 4 Jun 2028 · 24 months</div>
           </div>
         </section>
       </aside>
+
     </div>
+
   </main>
 </div>
+
 </body>
 </html>

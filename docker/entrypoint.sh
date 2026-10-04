@@ -44,6 +44,29 @@ if [ "$ROLE" = "app" ]; then
         php artisan migrate --force --no-interaction || true
     fi
 
+    if [ "${APP_SEED_ON_BOOT:-true}" = "true" ]; then
+        # Only seed on first boot (empty users table). The check is wrapped
+        # in try/catch so a brand new DB where "users" doesn't exist yet
+        # still counts as empty and triggers the seed.
+        USERS_COUNT="$(php -r '
+            require "vendor/autoload.php";
+            $app = require "bootstrap/app.php";
+            $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            try {
+                echo \Illuminate\Support\Facades\DB::table("users")->count();
+            } catch (\Throwable $e) {
+                echo 0;
+            }
+        ' 2>/dev/null || echo 0)"
+
+        if [ "${USERS_COUNT:-0}" = "0" ]; then
+            echo "[entrypoint] users table empty — running DemoSeeder for first boot..."
+            php artisan db:seed --class=DemoSeeder --force --no-interaction || true
+        else
+            echo "[entrypoint] users table already has ${USERS_COUNT} rows — skipping DemoSeeder."
+        fi
+    fi
+
     echo "[entrypoint] Warming caches..."
     php artisan config:cache || true
     php artisan route:cache  || true

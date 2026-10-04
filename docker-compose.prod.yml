@@ -61,6 +61,7 @@ services:
       - .env
     environment:
       APP_RUN_MIGRATIONS_ON_BOOT: "false"
+      APP_SEED_ON_BOOT: "false"
     volumes:
       - /mnt/data/licentra/storage:/var/www/html/storage
     command: ["queue"]
@@ -78,6 +79,7 @@ services:
       - .env
     environment:
       APP_RUN_MIGRATIONS_ON_BOOT: "false"
+      APP_SEED_ON_BOOT: "false"
     volumes:
       - /mnt/data/licentra/storage:/var/www/html/storage
     command: ["scheduler"]
