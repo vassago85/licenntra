@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licentra — Client dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F3F0}
+a{color:#1F47B8}a:hover{color:#15327F}
+th{font-weight:500;font-size:12px;color:#4A525C;text-align:left;padding:10px 12px;border-bottom:1px solid #D9DCD6;white-space:nowrap;background:#F8F9F6}
+td{padding:12px;border-bottom:1px solid #E6E8E3;vertical-align:top;font-size:13px}
+</style>
+</head>
+<body><a href="/" style="display:flex;align-items:center;height:36px;padding:0 20px;background:#14181D;color:#FFFFFF;font-family:'IBM Plex Sans','Segoe UI',sans-serif;font-size:13px;text-decoration:none">Licentra <span style="opacity:.72;margin-left:8px">· Back to overview</span></a>
+<div style="font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; color: #14181D; background: #F2F3F0; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <nav aria-label="Main" style="flex: 1 1 232px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #D9DCD6; padding: 20px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+      <div style="font-weight: 700; font-size: 18px; letter-spacing: 0.14em; color: #1F47B8">NORTHLINE</div>
+      <div style="font-size: 12px; color: #4A525C">Client portal</div>
+    </div>
+    <div style="border: 1px solid #D9DCD6; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.08em">Client account</div>
+      <div style="font-weight: 600; font-size: 14px">Highveld Commercial Centurion</div>
+      <div style="font-size: 12px; color: #4A525C">Dealer · Thandi M. (Admin)</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; background: #EEF1FA; color: #1F47B8; font-weight: 600; font-size: 14px; text-decoration: none">Dashboard</a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Applications</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C">42</span></a>
+      <a href="02-new-application.html" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">New application</a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Business clients</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C">12</span></a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none"><span>Quotes</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6E4B00; background: #FAEFD4; padding: 1px 7px; border-radius: 10px">1</span></a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">Reports</a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 6px; color: #14181D; font-size: 14px; text-decoration: none">Users</a>
+    </div>
+    <div style="margin-top: auto; padding: 0 8px; font-size: 12px; color: #4A525C; display: flex; flex-direction: column; gap: 4px">
+      <div>Support: [SUPPORT EMAIL]</div>
+      <div>Powered by Licentra</div>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 600">Dashboard</h1>
+        <div style="font-size: 13px; color: #4A525C">Sunday 4 October 2026 · 42 open applications</div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+        <label for="q" style="position: absolute; left: -9999px">Search</label>
+        <input id="q" type="search" placeholder="Reference, VIN, register no, owner" style="width: 300px; max-width: 100%; height: 40px; box-sizing: border-box; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF">
+        <a href="02-new-application.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 6px; background: #1F47B8; color: #FFFFFF; font-weight: 600; font-size: 14px; text-decoration: none">New application</a>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 3px 0 #B3261E">
+        <div style="font-size: 13px; color: #4A525C">Needs your action</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">5</div>
+        <div style="font-size: 12px; color: #4A525C">2 rejected documents · 1 quote · 2 drafts</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; color: #4A525C">With Northline</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">27</div>
+        <div style="font-size: 12px; color: #4A525C">14 in review · 6 at the authority · 7 payment</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; color: #4A525C">Datafix</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">9</div>
+        <div style="font-size: 12px; color: #4A525C">6 waiting on documents · 3 in progress</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; color: #4A525C">Ready for collection</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500">3</div>
+        <div style="font-size: 12px; color: #4A525C">2 with licence disc · 1 registration only</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+      <section style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Applications</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #14181D; background: #14181D; color: #FFFFFF; font: inherit; font-size: 13px">All open</button>
+            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Needs action</button>
+            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Commercial</button>
+            <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C9CDC6; background: #FFFFFF; color: #14181D; font: inherit; font-size: 13px">Passenger</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; min-width: 980px">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Vehicle / VIN</th>
+                <th>Register no</th>
+                <th>Owner</th>
+                <th>Service</th>
+                <th>Stage</th>
+                <th>Datafix</th>
+                <th>Docs</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004812</a></td>
+                  <td>
+                    <div style="font-weight: 500">Hino 500 1627</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>JHH</span><span>GD8JLA</span><span>7K104512</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">TLX914G</td>
+                  <td>
+                    <div>Ridgeline Haulage (Pty) Ltd</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">Document review</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px"></div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">3 of 4 accepted</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">6 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">2 h ago</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004809</a></td>
+                  <td>
+                    <div style="font-weight: 500">Isuzu FTR 850 AMT</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>ADM</span><span>FTR34H</span><span>9L208833</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">KMV227B</td>
+                  <td>
+                    <div>Mokoena Cold Chain CC</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FBE5E2; color: #9E2419">Changes requested</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">COF rejected</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">2 of 4 accepted</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">5 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">5 h ago</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004805</a></td>
+                  <td>
+                    <div style="font-weight: 500">Mercedes-Benz Actros 2645</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>WDB</span><span>963403</span><span>3L871240</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">PRD508F</td>
+                  <td>
+                    <div>Bushveld Aggregates (Pty) Ltd</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">Datafix in progress</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px"></div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #1F47B8"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">In progress</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">Yesterday</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004801</a></td>
+                  <td>
+                    <div style="font-weight: 500">UD Croner PKE 250</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>JNC</span><span>PK2502</span><span>6U330917</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">WTB771H</td>
+                  <td>
+                    <div>Ridgeline Haulage (Pty) Ltd</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FAEFD4; color: #6E4B00">Quote sent</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Same-day runner</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Ready</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">Yesterday</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004798</a></td>
+                  <td>
+                    <div style="font-weight: 500">Volkswagen Polo Vivo 1.4</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>AAV</span><span>ZZZ6RZ</span><span>RU051882</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">GHX402C</td>
+                  <td>
+                    <div>N. Dlamini</div>
+                    <div style="font-size: 12px; color: #4A525C">Individual</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #FAEFD4; color: #6E4B00">Payment pending</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Invoice sent 2 Oct</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Not required</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">3 / 3</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">2 Oct</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004790</a></td>
+                  <td>
+                    <div style="font-weight: 500">Iveco Tector 15-250</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>ZCF</span><span>A1EM12</span><span>0D612204</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">LNB339K</td>
+                  <td>
+                    <div>Mokoena Cold Chain CC</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E5EBFA; color: #1A3D9E">At the authority</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Submitted 1 Oct</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #2E7D4F"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Completed</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">7 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">1 Oct</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004781</a></td>
+                  <td>
+                    <div style="font-weight: 500">Toyota Corolla Cross 1.8</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>AHT</span><span>KB3FS6</span><span>0P190455</span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">YDM816T</td>
+                  <td>
+                    <div>P. van Wyk</div>
+                    <div style="font-size: 12px; color: #4A525C">Individual</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register only</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #E2F1E6; color: #1C6535">Ready for collection</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">Registration certificate</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #F0F1EE"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">Not required</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">3 / 3</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">30 Sep</td>
+                </tr>
+              
+                <tr>
+                  <td><a href="03-reviewer-workspace.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none">NL-2026-004779</a></td>
+                  <td>
+                    <div style="font-weight: 500">Hino 300 816</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4A525C; display: flex; gap: 5px; margin-top: 2px"><span>—</span><span></span><span></span></div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">SRC120D</td>
+                  <td>
+                    <div>Bushveld Aggregates (Pty) Ltd</div>
+                    <div style="font-size: 12px; color: #4A525C">Business</div>
+                  </td>
+                  <td style="font-size: 12px; white-space: nowrap">Register &amp; license</td>
+                  <td>
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #ECEEEA; color: #454D56">Draft</span>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px">VIN missing</div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 3px" aria-hidden="true">
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                        <span style="display: block; width: 14px; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+                      
+                    </div>
+                    <div style="font-size: 12px; color: #4A525C; margin-top: 4px; white-space: nowrap">0 of 4 accepted</div>
+                  </td>
+                  <td style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap">2 / 7</td>
+                  <td style="font-size: 12px; color: #4A525C; white-space: nowrap">29 Sep</td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">Needs your action</h2>
+          <div style="display: flex; flex-direction: column">
+            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004809</span><span style="font-size: 12px; color: #9E2419; font-weight: 500">Rejected</span></div>
+              <div style="font-size: 13px">COF is illegible. Upload a clearer scan.</div>
+              <a href="#" style="font-size: 13px; font-weight: 500">Replace document</a>
+            </div>
+            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004801</span><span style="font-size: 12px; color: #6E4B00; font-weight: 500">Quote</span></div>
+              <div style="font-size: 13px">Same-day runner. Expires 7 Oct.</div>
+              <a href="#" style="font-size: 13px; font-weight: 500">Review quote</a>
+            </div>
+            <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">NL-2026-004779</span><span style="font-size: 12px; color: #454D56; font-weight: 500">Draft</span></div>
+              <div style="font-size: 13px">VIN and 5 documents missing.</div>
+              <a href="02-new-application.html" style="font-size: 13px; font-weight: 500">Continue draft</a>
+            </div>
+          </div>
+        </section>
+
+        <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600; padding: 14px 16px; border-bottom: 1px solid #D9DCD6">Business clients · retention</h2>
+          <div style="display: flex; flex-direction: column">
+            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
+              <div style="font-size: 13px; font-weight: 500">Mokoena Cold Chain CC</div>
+              <div style="font-size: 12px; color: #6E4B00">Documents deleted on 21 Oct 2026 (17 days)</div>
+              <div style="display: flex; gap: 12px"><a href="#" style="font-size: 13px; font-weight: 500">Extend</a><a href="#" style="font-size: 13px; color: #4A525C">Let it lapse</a></div>
+            </div>
+            <div style="padding: 12px 16px; border-bottom: 1px solid #E6E8E3; display: flex; flex-direction: column; gap: 4px">
+              <div style="font-size: 13px; font-weight: 500">Ridgeline Haulage (Pty) Ltd</div>
+              <div style="font-size: 12px; color: #4A525C">Kept until 12 Mar 2027 · 12 months</div>
+            </div>
+            <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+              <div style="font-size: 13px; font-weight: 500">Bushveld Aggregates (Pty) Ltd</div>
+              <div style="font-size: 12px; color: #4A525C">Kept until 30 Jun 2027 · 24 months</div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

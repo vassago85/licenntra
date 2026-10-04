@@ -1,0 +1,112 @@
+# Production compose for Licentra.
+# Install path on server: /opt/licentra
+# Reverse proxied by Nginx Proxy Manager: licentra.charsleydigital.co.za -> 127.0.0.1:8089
+# (8089 chosen because 8081-8088 and 8090-8099 are already bound by other
+# docker-proxy listeners on this host as of 2026-10-04.)
+#
+# PERSISTENT STATE ALL LIVES ON /mnt/data (3.4T ext4 spindle):
+#   /mnt/data/licentra/storage   -> /var/www/html/storage       (logs, cache, uploads)
+#   /mnt/data/licentra/pgsql     -> /var/lib/postgresql/data    (database)
+#   /mnt/data/licentra/redis     -> /data                       (queue + session + cache)
+#   /mnt/data/licentra/backups   -> (host-side only, used by scripts/backup.sh)
+#
+# Pre-flight on a fresh server (run as root once):
+#   mkdir -p /mnt/data/licentra/{storage,pgsql,redis,backups}
+#   chown -R 33:33  /mnt/data/licentra/storage     # www-data in the container (uid 33)
+#   chown -R 999:999 /mnt/data/licentra/pgsql      # postgres uid in postgres:16-alpine
+#   chown -R 999:999 /mnt/data/licentra/redis      # redis uid in redis:7-alpine
+#   chmod -R 750 /mnt/data/licentra
+
+name: licentra
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: licentra-app:latest
+    container_name: licentra-app
+    restart: unless-stopped
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8089:80"
+    volumes:
+      - /mnt/data/licentra/storage:/var/www/html/storage
+    command: ["app"]
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://127.0.0.1/up"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  queue:
+    image: licentra-app:latest
+    container_name: licentra-queue
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_RUN_MIGRATIONS_ON_BOOT: "false"
+    volumes:
+      - /mnt/data/licentra/storage:/var/www/html/storage
+    command: ["queue"]
+
+  scheduler:
+    image: licentra-app:latest
+    container_name: licentra-scheduler
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+      pgsql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_RUN_MIGRATIONS_ON_BOOT: "false"
+    volumes:
+      - /mnt/data/licentra/storage:/var/www/html/storage
+    command: ["scheduler"]
+
+  pgsql:
+    image: postgres:16-alpine
+    container_name: licentra-pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-licentra}"
+      POSTGRES_USER: "${DB_USERNAME:-licentra}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - /mnt/data/licentra/pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-licentra} -d ${DB_DATABASE:-licentra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: licentra-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /mnt/data/licentra/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10

@@ -1,0 +1,12 @@
+<?php
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => $this->withoutVite())
+    ->in('Feature');
+
+pest()->extend(TestCase::class)
+    ->in('Unit');

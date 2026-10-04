@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licentra — New application</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F3F0}
+a{color:#1F47B8}a:hover{color:#15327F}
+</style>
+</head>
+<body><a href="/" style="display:flex;align-items:center;height:36px;padding:0 20px;background:#14181D;color:#FFFFFF;font-family:'IBM Plex Sans','Segoe UI',sans-serif;font-size:13px;text-decoration:none">Licentra <span style="opacity:.72;margin-left:8px">· Back to overview</span></a>
+<div style="font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; color: #14181D; background: #F2F3F0; padding: 24px 28px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; max-width: 1360px; width: 100%; margin: 0 auto">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 13px; color: #4A525C"><a href="01-client-dashboard.html" style="text-decoration: none">Dashboard</a> / New application</div>
+      <h1 style="margin: 0; font-size: 22px; font-weight: 600">New application <span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 400; color: #4A525C">Draft · saved 14:02</span></h1>
+    </div>
+    <div style="font-size: 13px; color: #4A525C">Highveld Commercial Centurion</div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; max-width: 1360px; width: 100%; margin: 0 auto">
+
+    <div style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">1 · Request</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="rt" style="font-size: 13px; font-weight: 500">Request type</label>
+            <select id="rt" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; background: #FFFFFF">
+              <option>New vehicle registration</option>
+              <option>Data change</option>
+              <option>Change of ownership</option>
+              <option>Licence renewal</option>
+              <option>Export</option>
+              <option>Import</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="pv" style="font-size: 13px; font-weight: 500">Province</label>
+            <select id="pv" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; background: #FFFFFF">
+              <option>Gauteng</option>
+              <option>Mpumalanga</option>
+              <option>Limpopo</option>
+              <option>KwaZulu-Natal</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+          <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+            <legend style="font-size: 13px; font-weight: 500; padding: 0; margin-bottom: 6px">Vehicle category</legend>
+            <div style="display: flex; border: 1px solid #C9CDC6; border-radius: 6px; overflow: hidden">
+              <button type="button" aria-pressed="true" style="flex: 1; min-height: 44px; border: 0; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; background: #14181D; color: #FFFFFF">Commercial</button>
+              <button type="button" aria-pressed="false" style="flex: 1; min-height: 44px; border: 0; border-left: 1px solid #C9CDC6; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; background: #FFFFFF; color: #14181D">Passenger</button>
+            </div>
+          </fieldset>
+          <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+            <legend style="font-size: 13px; font-weight: 500; padding: 0; margin-bottom: 6px">Service</legend>
+            <div style="display: flex; border: 1px solid #C9CDC6; border-radius: 6px; overflow: hidden">
+              <button type="button" aria-pressed="true" style="flex: 1; min-height: 44px; border: 0; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; background: #14181D; color: #FFFFFF">Register &amp; license</button>
+              <button type="button" aria-pressed="false" style="flex: 1; min-height: 44px; border: 0; border-left: 1px solid #C9CDC6; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; background: #FFFFFF; color: #14181D">Register only</button>
+            </div>
+          </fieldset>
+        </div>
+        <div style="font-size: 13px; color: #4A525C">You will receive the registration certificate and licence disc.</div>
+      </section>
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">2 · Vehicle</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="vin" style="font-size: 13px; font-weight: 500">Full VIN <span style="color: #9E2419">required to submit</span></label>
+            <input id="vin" type="text" style="height: 44px; border: 1px solid #2E7D4F; border-radius: 6px; padding: 0 12px; font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase" value="JHHGD8JLA7K104512">
+            <div style="display: flex; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px">
+              <span style="padding: 2px 6px; background: #ECEEEA; border-radius: 3px">JHH</span>
+              <span style="padding: 2px 6px; background: #ECEEEA; border-radius: 3px">GD8JLA</span>
+              <span style="padding: 2px 6px; background: #ECEEEA; border-radius: 3px">7K104512</span>
+              <span style="color: #1C6535; font-family: 'IBM Plex Sans', sans-serif">17 of 17 · valid</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="reg" style="font-size: 13px; font-weight: 500">Vehicle register number <span style="color: #9E2419">required to submit</span></label>
+            <input id="reg" type="text" style="height: 44px; border: 1px solid #2E7D4F; border-radius: 6px; padding: 0 12px; font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase" value="TLX914G">
+            <div style="font-size: 12px; color: #1C6535">Valid format</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="mk" style="font-size: 13px; font-weight: 500">Make</label>
+            <input id="mk" type="text" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font: inherit; font-size: 14px" value="Hino">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="md" style="font-size: 13px; font-weight: 500">Model</label>
+            <input id="md" type="text" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font: inherit; font-size: 14px" value="500 1627">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="en" style="font-size: 13px; font-weight: 500">Engine number</label>
+            <input id="en" type="text" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font-family: 'IBM Plex Mono', monospace; font-size: 14px" value="J08EWB12345">
+          </div>
+          
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="bt" style="font-size: 13px; font-weight: 500">Body fitted</label>
+              <input id="bt" type="text" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 12px; font: inherit; font-size: 14px" value="Insulated body, refrigerated">
+            </div>
+          
+        </div>
+        <div style="font-size: 12px; color: #6E4B00; background: #FAEFD4; padding: 8px 12px; border-radius: 6px">This VIN is not on any other open application.</div>
+      </section>
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">3 · Owner and title holder</h2>
+          <div style="display: flex; border: 1px solid #C9CDC6; border-radius: 6px; overflow: hidden">
+            <button type="button" aria-pressed="true" style="min-height: 36px; padding: 0 14px; border: 0; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: #14181D; color: #FFFFFF">Business</button>
+            <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 14px; border: 0; border-left: 1px solid #C9CDC6; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: #FFFFFF; color: #14181D">Individual</button>
+          </div>
+        </div>
+        
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="bc" style="font-size: 13px; font-weight: 500">Saved business client</label>
+              <select id="bc" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; background: #FFFFFF">
+                <option>Ridgeline Haulage (Pty) Ltd</option>
+                <option>Mokoena Cold Chain CC</option>
+                <option>Bushveld Aggregates (Pty) Ltd</option>
+                <option>+ New business client</option>
+              </select>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; background: #F8F9F6; border: 1px solid #E6E8E3; border-radius: 6px; padding: 12px">
+              <div><div style="color: #4A525C; font-size: 12px">Registration no</div><div style="font-family: 'IBM Plex Mono', monospace">•••• /••••••/07 <a href="#" style="font-family: 'IBM Plex Sans', sans-serif; font-size: 12px">Show</a></div></div>
+              <div><div style="color: #4A525C; font-size: 12px">Proxy</div><div>S. Naidoo · ID •••••••••4081</div></div>
+              <div><div style="color: #4A525C; font-size: 12px">Documents kept until</div><div>12 Mar 2027 (12 months)</div></div>
+            </div>
+          </div>
+        
+        
+        <div style="border-top: 1px solid #E6E8E3; padding-top: 16px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 13px; font-weight: 500">Is the vehicle financed?</div>
+            <div style="font-size: 12px; color: #4A525C">If yes, the bank is the title holder on NaTIS and the owner stays as above.</div>
+          </div>
+          <div style="display: flex; border: 1px solid #C9CDC6; border-radius: 6px; overflow: hidden">
+            <button type="button" aria-pressed="true" style="min-height: 36px; padding: 0 16px; border: 0; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: #14181D; color: #FFFFFF">Yes</button>
+            <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 16px; border: 0; border-left: 1px solid #C9CDC6; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: #FFFFFF; color: #14181D">No</button>
+          </div>
+        </div>
+        
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="th" style="font-size: 13px; font-weight: 500">Title holder</label>
+              <select id="th" style="height: 40px; border: 1px solid #C9CDC6; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; background: #FFFFFF">
+                <option>Southern Cross Bank Vehicle Finance</option>
+                <option>Meridian Asset Finance</option>
+                <option>+ New title holder</option>
+              </select>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; background: #F8F9F6; border: 1px solid #E6E8E3; border-radius: 6px; padding: 12px">
+              <div><div style="color: #4A525C; font-size: 12px">Role on NaTIS</div><div>Title holder</div></div>
+              <div><div style="color: #4A525C; font-size: 12px">Proxy</div><div>R. Pillay · ID •••••••••2217</div></div>
+              <div><div style="color: #4A525C; font-size: 12px">Documents kept until</div><div>1 Sep 2028 (24 months)</div></div>
+            </div>
+          </div>
+        
+      </section>
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #D9DCD6">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">4 · Documents</h2>
+          <div style="font-size: 13px; color: #4A525C">Commercial · business owner · financed · 9 required</div>
+        </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">SRF</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Vehicle</span></div>
+              <div style="font-size: 12px; color: #4A525C">SRF_JHHGD8JLA7K104512.pdf · 412 KB · scanned clean</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #E5EBFA; color: #1A3D9E">Uploaded</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Replace</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">Weighbridge certificate</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Vehicle</span></div>
+              <div style="font-size: 12px; color: #4A525C">Certified tare of the completed vehicle</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #ECEEEA; color: #454D56">Missing</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Upload</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">COF</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Vehicle</span></div>
+              <div style="font-size: 12px; color: #4A525C">COF_TLX914G.pdf · 288 KB · scanned clean</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #E5EBFA; color: #1A3D9E">Uploaded</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Replace</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">Body builder certificate</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Vehicle</span></div>
+              <div style="font-size: 12px; color: #4A525C">From the body builder: what body was fitted</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #ECEEEA; color: #454D56">Missing</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Upload</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">BRN certificate</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Owner</span></div>
+              <div style="font-size: 12px; color: #4A525C">From Ridgeline Haulage · version 3 · accepted on 4 previous applications</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #E2F1E6; color: #1C6535">Linked</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">View</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">Proxy ID copy</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Owner</span></div>
+              <div style="font-size: 12px; color: #4A525C">From Ridgeline Haulage · version 2</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #E2F1E6; color: #1C6535">Linked</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">View</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">POA</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Owner</span></div>
+              <div style="font-size: 12px; color: #4A525C">Dated 12 Apr 2026. Upload a newer proof of address to avoid rejection.</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #FAEFD4; color: #6E4B00">Older than 3 months</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Replace</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">BRN certificate</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Title holder</span></div>
+              <div style="font-size: 12px; color: #4A525C">From Southern Cross Bank Vehicle Finance · version 5</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #E2F1E6; color: #1C6535">Linked</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">View</button>
+            </div>
+          </div>
+        
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E6E8E3">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1 1 260px">
+              <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 14px; font-weight: 500">Proxy ID copy</span><span style="font-size: 11px; color: #4A525C; text-transform: uppercase; letter-spacing: 0.06em">Title holder</span></div>
+              <div style="font-size: 12px; color: #4A525C">Proxy changed. Upload the new proxy's ID for Southern Cross Bank.</div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: #ECEEEA; color: #454D56">Missing</span>
+              <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Upload</button>
+            </div>
+          </div>
+        
+      </section>
+    </div>
+
+    <aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Before you can submit</h2>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+          <div style="display: flex; justify-content: space-between; gap: 8px"><span>Full VIN</span><span style="color: #1C6535; font-weight: 500">Valid</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 8px"><span>Vehicle register number</span><span style="color: #1C6535; font-weight: 500">Valid</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 8px"><span>Required documents</span><span style="font-weight: 500; color: #9E2419">6 of 9 uploaded</span></div>
+        </div>
+        <button type="button" aria-disabled="true" style="min-height: 44px; border: 0; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 600; background: #E1E4DE; color: #4A525C">Submit application</button>
+        <button type="button" style="min-height: 44px; border: 1px solid #C9CDC6; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 14px">Save draft</button>
+      </section>
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Datafix</h2>
+        <div style="display: flex; gap: 3px" aria-hidden="true">
+          
+            <span style="display: block; flex: 1; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+          
+            <span style="display: block; flex: 1; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+          
+            <span style="display: block; flex: 1; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+          
+            <span style="display: block; flex: 1; height: 6px; border-radius: 1px; background: #E1E4DE"></span>
+          
+        </div>
+        <div style="font-size: 13px; font-weight: 500">Required · waiting on documents</div>
+        <div style="font-size: 12px; color: #4A525C">Northline can do the datafix once the SRF, weighbridge certificate, COF and body builder certificate are all accepted.</div>
+      </section>
+
+      <section style="background: #FFFFFF; border: 1px solid #D9DCD6; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Fee estimate</h2>
+          <span style="font-size: 11px; color: #6E4B00; background: #FAEFD4; padding: 2px 6px; border-radius: 3px">Demo fee table · Gauteng</span>
+        </div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>Registration fee</span><span style="font-family: 'IBM Plex Mono', monospace">R 357.00</span></div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>Licence fee (12 months)</span><span style="font-family: 'IBM Plex Mono', monospace">R 4 820.00</span></div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>Datafix</span><span style="font-family: 'IBM Plex Mono', monospace">R 1 150.00</span></div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>Admin fee</span><span style="font-family: 'IBM Plex Mono', monospace">R 650.00</span></div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>Number plates</span><span style="font-family: 'IBM Plex Mono', monospace">R 420.00</span></div>
+        
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span>VAT on service fees (15%)</span><span style="font-family: 'IBM Plex Mono', monospace">R 333.00</span></div>
+        
+        <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 600; border-top: 1px solid #D9DCD6; padding-top: 10px"><span>Estimated total</span><span style="font-family: 'IBM Plex Mono', monospace">R 7 730.00</span></div>
+        <div style="font-size: 12px; color: #4A525C">Final amount is confirmed after document review. Arrears and penalties are added by Northline if they apply.</div>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>
