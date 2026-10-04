@@ -112,3 +112,13 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+
+# Pin the default network name so Nginx Proxy Manager (which lives in a
+# separate compose project) can declare `licentra_default` as an external
+# network and reach `licentra-app:80` directly instead of punching through
+# the host loopback. Without this pin, Docker Compose would compose the
+# name from the project directory and quietly drift if the folder is
+# renamed, breaking the proxy without a visible change on either side.
+networks:
+  default:
+    name: licentra_default
