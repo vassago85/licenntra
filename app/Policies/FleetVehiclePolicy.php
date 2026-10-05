@@ -16,7 +16,7 @@ class FleetVehiclePolicy
         }
 
         if ($user->isClient()) {
-            return $user->clientAccount?->type === ClientAccountType::FleetOperator;
+            return $user->clientAccount?->hasType(ClientAccountType::FleetOperator) ?? false;
         }
 
         return $user->isLicensingStaff();
@@ -29,7 +29,7 @@ class FleetVehiclePolicy
         }
 
         if ($user->isClient()) {
-            return $user->clientAccount?->type === ClientAccountType::FleetOperator
+            return ($user->clientAccount?->hasType(ClientAccountType::FleetOperator) ?? false)
                 && $user->client_account_id === $vehicle->client_account_id;
         }
 
@@ -46,7 +46,7 @@ class FleetVehiclePolicy
     {
         return $user->is_active
             && $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])
-            && $fleet->type === ClientAccountType::FleetOperator;
+            && $fleet->hasType(ClientAccountType::FleetOperator);
     }
 
     public function reviewAny(User $user): bool

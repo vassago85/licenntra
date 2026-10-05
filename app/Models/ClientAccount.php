@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
 
 class ClientAccount extends Model
 {
@@ -18,7 +19,7 @@ class ClientAccount extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'type', 'status', 'quote_acceptance_allowed', 'markup_basis_points',
+        'name', 'type', 'additional_types', 'status', 'quote_acceptance_allowed', 'markup_basis_points',
         'billing_mode', 'payment_terms_days', 'credit_limit_cents',
         'contact_name', 'contact_email', 'contact_phone',
 
@@ -89,6 +90,7 @@ class ClientAccount extends Model
     {
         return [
             'type' => ClientAccountType::class,
+            'additional_types' => 'array',
             'billing_mode' => BillingMode::class,
             'quote_acceptance_allowed' => 'boolean',
             'proxy_id_type' => IdentificationType::class,
@@ -96,6 +98,51 @@ class ClientAccount extends Model
             'proxy_id_number' => 'encrypted',
             'representative_id_number' => 'encrypted',
         ];
+    }
+
+    /**
+     * Every ClientAccountType this account plays, primary first, with
+     * duplicates removed. A dealership that also runs a rental fleet
+     * returns [Dealer, FleetOperator] here.
+     *
+     * @return Collection<int, ClientAccountType>
+     */
+    public function types(): Collection
+    {
+        $additional = collect($this->additional_types ?? [])
+            ->map(fn ($value): ?ClientAccountType => $value instanceof ClientAccountType
+                ? $value
+                : ClientAccountType::tryFrom((string) $value))
+            ->filter();
+
+        return collect([$this->type])
+            ->concat($additional)
+            ->filter()
+            ->unique(fn (ClientAccountType $t): string => $t->value)
+            ->values();
+    }
+
+    /**
+     * True when the account plays this role, whether it is the primary
+     * type or one of the additional types.
+     */
+    public function hasType(ClientAccountType $type): bool
+    {
+        return $this->types()->contains(
+            fn (ClientAccountType $t): bool => $t === $type,
+        );
+    }
+
+    /**
+     * Query scope: accounts that play the given role, whether as their
+     * primary `type` or inside `additional_types`.
+     */
+    public function scopeOfType(Builder $query, ClientAccountType $type): Builder
+    {
+        return $query->where(function (Builder $q) use ($type): void {
+            $q->where('type', $type->value)
+                ->orWhereJsonContains('additional_types', $type->value);
+        });
     }
 
     /**

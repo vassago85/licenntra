@@ -34,7 +34,7 @@ class FleetReviewQueue extends Component
         $this->authorize('reviewAny', FleetVehicle::class);
 
         $fleet = ClientAccount::query()
-            ->where('type', ClientAccountType::FleetOperator->value)
+            ->ofType(ClientAccountType::FleetOperator)
             ->find($this->uploadFleetId);
 
         if ($fleet === null) {
@@ -76,7 +76,7 @@ class FleetReviewQueue extends Component
             ->get();
 
         $fleets = ClientAccount::query()
-            ->where('type', ClientAccountType::FleetOperator->value)
+            ->ofType(ClientAccountType::FleetOperator)
             ->orderBy('name')
             ->get(['id', 'name']);
 

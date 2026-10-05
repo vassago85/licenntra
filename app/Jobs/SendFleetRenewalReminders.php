@@ -31,7 +31,7 @@ class SendFleetRenewalReminders implements ShouldQueue
         $monthEnd = $today->copy()->endOfMonth();
 
         ClientAccount::query()
-            ->where('type', ClientAccountType::FleetOperator->value)
+            ->ofType(ClientAccountType::FleetOperator)
             ->orderBy('id')
             ->each(function (ClientAccount $fleet) use ($notifications, $monthStart, $monthEnd): void {
                 $vehicles = FleetVehicle::query()

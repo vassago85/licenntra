@@ -39,8 +39,26 @@ class ClientAccountResource extends Resource
                 TextInput::make('name')
                     ->required(),
                 Select::make('type')
+                    ->label('Primary type')
                     ->options(ClientAccountType::class)
-                    ->required(),
+                    ->required()
+                    ->helperText('Drives the account\'s default label and the paperwork fields (BRN, proxy) that print on ALV / RLV submissions.'),
+                Select::make('additional_types')
+                    ->label('Also operates as')
+                    ->multiple()
+                    ->options(ClientAccountType::class)
+                    ->helperText('Optional. Add every other role this account plays — e.g. a dealership that also runs a rental fleet picks "Fleet operator" here so the portal shows the fleet section.')
+                    ->dehydrateStateUsing(function (?array $state, $get): ?array {
+                        $primary = $get('type');
+
+                        $values = collect($state ?? [])
+                            ->filter(fn ($value): bool => $value !== null && $value !== '' && $value !== $primary)
+                            ->unique()
+                            ->values()
+                            ->all();
+
+                        return $values === [] ? null : $values;
+                    }),
                 TextInput::make('status')
                     ->required()
                     ->default('active'),
