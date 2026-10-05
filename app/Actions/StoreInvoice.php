@@ -27,6 +27,7 @@ class StoreInvoice
         UploadedFile $file,
         string $invoiceNumber,
         User $actor,
+        ?int $recipientUserId = null,
     ): Invoice {
         $invoiceNumber = trim($invoiceNumber);
 
@@ -35,6 +36,8 @@ class StoreInvoice
                 'invoice_number' => 'Enter the invoice number.',
             ]);
         }
+
+        $recipientUserId = $this->resolveRecipient($application, $recipientUserId);
 
         if (mb_strlen($invoiceNumber) > 40) {
             throw ValidationException::withMessages([
@@ -103,6 +106,7 @@ class StoreInvoice
             'size_bytes' => (int) $size,
             'sha256' => $hash,
             'uploaded_by_id' => $actor->id,
+            'recipient_user_id' => $recipientUserId,
             'uploaded_at' => Carbon::now(),
         ]));
 
@@ -118,9 +122,48 @@ class StoreInvoice
                 'sha256' => $hash,
                 'mime' => $mime,
                 'size' => (int) $size,
+                'recipient_user_id' => $recipientUserId,
             ],
         );
 
         return $invoice;
+    }
+
+    /**
+     * Pick the dealership-side user the invoice should be addressed to.
+     *
+     * - If finance explicitly chose a recipient, verify they belong to
+     *   the application's dealership (otherwise someone could post an
+     *   id from another account via a tampered form).
+     * - If finance left it blank, fall back to the dealership's
+     *   nominated stock controller. If none is nominated the invoice
+     *   is created with no recipient and the dealership's whole team
+     *   can pick it up from their shared invoices page.
+     */
+    private function resolveRecipient(Application $application, ?int $incomingUserId): ?int
+    {
+        if ($incomingUserId !== null) {
+            $candidate = User::query()
+                ->where('id', $incomingUserId)
+                ->where('client_account_id', $application->client_account_id)
+                ->where('is_active', true)
+                ->first();
+
+            if ($candidate === null) {
+                throw ValidationException::withMessages([
+                    'recipient_user_id' => 'Choose an active user who belongs to this dealership.',
+                ]);
+            }
+
+            return $candidate->id;
+        }
+
+        $stockController = $application->clientAccount?->stockController;
+
+        if ($stockController && $stockController->is_active) {
+            return $stockController->id;
+        }
+
+        return null;
     }
 }

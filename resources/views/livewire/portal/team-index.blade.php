@@ -69,8 +69,14 @@
             </thead>
             <tbody>
                 @forelse ($members as $member)
+                    @php($isStockController = $account->stock_controller_user_id === $member->id)
                     <tr class="border-b border-line last:border-0 align-top">
-                        <td class="px-3 py-2">{{ $member->name }}</td>
+                        <td class="px-3 py-2">
+                            {{ $member->name }}
+                            @if ($isStockController)
+                                <span class="ml-1 inline-block rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-900" title="Default recipient for every invoice uploaded by the licensing company">Stock controller</span>
+                            @endif
+                        </td>
                         <td class="px-3 py-2 font-mono text-xs">{{ $member->email }}</td>
                         <td class="px-3 py-2">
                             @foreach ($member->roles as $r)
@@ -98,6 +104,11 @@
                                         @error('resetPasswordConfirmation') <span class="w-full text-red-800">{{ $message }}</span> @enderror
                                     </form>
                                 @else
+                                    @if ($isStockController)
+                                        <button wire:click="demoteStockController" class="text-amber-800 hover:underline" title="Stop sending every invoice to this user by default">Clear stock controller</button>
+                                    @elseif ($member->is_active)
+                                        <button wire:click="promoteStockController({{ $member->id }})" class="text-blue-800 hover:underline" title="Make this user the default invoice recipient for the dealership">Make stock controller</button>
+                                    @endif
                                     <button wire:click="startPasswordReset({{ $member->id }})" class="hover:underline">Reset password</button>
                                     @if ($member->is_active)
                                         <button wire:click="deactivate({{ $member->id }})" class="text-red-700 hover:underline">Deactivate</button>

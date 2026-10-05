@@ -152,6 +152,15 @@
                                                 · {{ $invoice->uploader->name }}
                                             @endif
                                         </p>
+                                        @if ($invoice->recipient)
+                                            <p class="mt-1 text-xs">
+                                                <span class="text-muted">To:</span>
+                                                <span class="font-semibold">{{ $invoice->recipient->name }}</span>
+                                                @if ($stockControllerId && $invoice->recipient_user_id === $stockControllerId)
+                                                    <span class="ml-1 inline-block rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-900">Stock controller</span>
+                                                @endif
+                                            </p>
+                                        @endif
                                         <p class="mt-1">
                                             @if ($invoice->isPaid())
                                                 <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">Paid</span>
@@ -205,10 +214,29 @@
                         <label class="block">
                             <span class="text-xs text-muted">Invoice number</span>
                             <input type="text" wire:model="newInvoiceNumber" maxlength="40" class="mt-1 h-9 w-full rounded-md border border-line px-2 text-sm font-mono" placeholder="e.g. INV-2026-01284">
+                            @error('invoice_number') <span class="text-xs text-red-800">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-xs text-muted">Addressed to (at the dealership)</span>
+                            <select wire:model="newInvoiceRecipientUserId" class="mt-1 h-9 w-full rounded-md border border-line px-2 text-sm">
+                                <option value="">No specific recipient</option>
+                                @foreach ($dealershipUsers as $dealershipUser)
+                                    <option value="{{ $dealershipUser->id }}">
+                                        {{ $dealershipUser->name }}{{ $stockControllerId === $dealershipUser->id ? ' (Stock controller)' : '' }} - {{ $dealershipUser->email }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if ($stockControllerId)
+                                <span class="mt-1 block text-[11px] text-muted">Defaults to the dealership's stock controller. Override only when a specific invoice needs to go to someone else.</span>
+                            @else
+                                <span class="mt-1 block text-[11px] text-amber-800">No stock controller is nominated for this dealership. Ask the client_admin to pick one from Team or choose a recipient manually.</span>
+                            @endif
+                            @error('recipient_user_id') <span class="text-xs text-red-800">{{ $message }}</span> @enderror
                         </label>
                         <label class="block">
                             <span class="text-xs text-muted">File (PDF, JPG, or PNG, max 15 MB)</span>
                             <input type="file" wire:model="newInvoice" accept="application/pdf,image/jpeg,image/png" class="mt-1 block w-full text-xs">
+                            @error('invoice') <span class="text-xs text-red-800">{{ $message }}</span> @enderror
                         </label>
                         <div class="flex items-center justify-end gap-2">
                             <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Upload invoice</button>

@@ -9,6 +9,7 @@ use Database\Factories\ClientAccountFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
@@ -23,6 +24,11 @@ class ClientAccount extends Model
         'billing_mode', 'payment_terms_days', 'credit_limit_cents',
         'contact_name', 'contact_email', 'contact_phone',
 
+        // The user at this dealership who receives every invoice by
+        // default. One stock controller per dealership; nullable until
+        // the client_admin nominates someone from the Team page.
+        'stock_controller_user_id',
+
         // Dealership particulars printed into every ALV / RLV prepared on
         // behalf of this account.
         'brn',
@@ -34,6 +40,16 @@ class ClientAccount extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * The user nominated to receive every invoice by default. May be
+     * null if the client_admin hasn't picked one yet, or if the
+     * nominated user has been deactivated/deleted.
+     */
+    public function stockController(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'stock_controller_user_id');
     }
 
     public function applications(): HasMany

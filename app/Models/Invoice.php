@@ -38,6 +38,7 @@ class Invoice extends Model
         'size_bytes',
         'sha256',
         'uploaded_by_id',
+        'recipient_user_id',
         'uploaded_at',
         'paid_at',
         'paid_by_user_id',
@@ -57,6 +58,16 @@ class Invoice extends Model
     public function paidBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paid_by_user_id');
+    }
+
+    /**
+     * The dealership-side user the invoice is addressed to. Defaults to
+     * the dealership's stock controller when the licensing company
+     * uploads an invoice without picking a specific recipient.
+     */
+    public function recipient(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recipient_user_id');
     }
 
     public function isPaid(): bool

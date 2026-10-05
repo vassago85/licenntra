@@ -119,6 +119,38 @@ class TeamIndex extends Component
         $this->statusMessage = $member->name.' activated.';
     }
 
+    /**
+     * Nominate one team member as the dealership's stock controller -
+     * the default recipient for every invoice uploaded by the licensing
+     * company. Replaces any existing nomination; there is only one
+     * stock controller per dealership.
+     */
+    public function promoteStockController(int $userId): void
+    {
+        $member = $this->findMember($userId);
+
+        if (! $member->is_active) {
+            $this->statusMessage = 'Reactivate '.$member->name.' before making them the stock controller.';
+
+            return;
+        }
+
+        $account = $this->currentUser()->clientAccount;
+        abort_unless($account instanceof ClientAccount, 403);
+
+        $account->forceFill(['stock_controller_user_id' => $member->id])->save();
+        $this->statusMessage = $member->name.' is now the stock controller. New invoices default to them.';
+    }
+
+    public function demoteStockController(): void
+    {
+        $account = $this->currentUser()->clientAccount;
+        abort_unless($account instanceof ClientAccount, 403);
+
+        $account->forceFill(['stock_controller_user_id' => null])->save();
+        $this->statusMessage = 'Stock controller cleared. New invoices will have no default recipient until you nominate someone.';
+    }
+
     public function startPasswordReset(int $userId): void
     {
         $this->findMember($userId);

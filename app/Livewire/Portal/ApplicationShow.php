@@ -16,6 +16,7 @@ use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\DeliverableDocument;
 use App\Models\Invoice;
+use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +48,8 @@ class ApplicationShow extends Component
     public ?TemporaryUploadedFile $newInvoice = null;
 
     public string $newInvoiceNumber = '';
+
+    public string $newInvoiceRecipientUserId = '';
 
     public ?int $invoicePayingId = null;
 
@@ -176,6 +179,7 @@ class ApplicationShow extends Component
                 $this->newInvoice,
                 $this->newInvoiceNumber,
                 auth()->user(),
+                $this->newInvoiceRecipientUserId !== '' ? (int) $this->newInvoiceRecipientUserId : null,
             );
         } catch (ValidationException $exception) {
             $this->setErrorBag($exception->validator->getMessageBag());
@@ -183,7 +187,7 @@ class ApplicationShow extends Component
             return;
         }
 
-        $this->reset(['newInvoice', 'newInvoiceNumber']);
+        $this->reset(['newInvoice', 'newInvoiceNumber', 'newInvoiceRecipientUserId']);
         $this->application->refresh();
     }
 
@@ -270,12 +274,30 @@ class ApplicationShow extends Component
             'deliverables.uploader',
             'invoices.uploader',
             'invoices.paidBy',
+            'invoices.recipient',
             'vehicle',
             'quotes.lines',
             'notes.author',
             'businessClient',
             'titleHolder',
+            'clientAccount.stockController',
         ]);
+
+        $canUploadInvoice = auth()->user()?->can('upload', [Invoice::class, $this->application]) ?? false;
+        $dealershipUsers = collect();
+        $stockControllerId = $this->application->clientAccount?->stock_controller_user_id;
+
+        if ($canUploadInvoice) {
+            $dealershipUsers = User::query()
+                ->where('client_account_id', $this->application->client_account_id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']);
+
+            if ($this->newInvoiceRecipientUserId === '' && $stockControllerId !== null) {
+                $this->newInvoiceRecipientUserId = (string) $stockControllerId;
+            }
+        }
 
         return view('livewire.portal.application-show', [
             'stages' => ApplicationStage::cases(),
@@ -283,7 +305,9 @@ class ApplicationShow extends Component
             'quote' => $this->application->quotes()->where('status', 'sent')->latest('id')->first(),
             'deliverableKinds' => DeliverableKind::cases(),
             'canUploadDeliverable' => auth()->user()?->can('upload', [DeliverableDocument::class, $this->application]) ?? false,
-            'canUploadInvoice' => auth()->user()?->can('upload', [Invoice::class, $this->application]) ?? false,
+            'canUploadInvoice' => $canUploadInvoice,
+            'dealershipUsers' => $dealershipUsers,
+            'stockControllerId' => $stockControllerId,
         ]);
     }
 }
