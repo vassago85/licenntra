@@ -215,6 +215,31 @@
                                     <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
                                 @enderror
                             @endif
+
+                            @if ($document->requiresOriginal())
+                                <div class="mt-2 rounded-md border {{ $document->isOriginalReceived() ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50' }} px-2 py-2 text-xs">
+                                    @if ($document->isOriginalReceived())
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                            <span class="font-semibold text-emerald-900">Original on hand - collected {{ $document->original_received_at->format('d M Y H:i') }}</span>
+                                            @if ($canUploadDocument($document))
+                                                <button type="button" wire:click="undoOriginalReceived({{ $document->id }})" class="rounded border border-emerald-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-emerald-900 hover:bg-emerald-100">
+                                                    Undo
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <div class="space-y-1">
+                                            <p class="font-semibold text-amber-900">Original must be submitted in person</p>
+                                            <p class="text-amber-900">A scan is enough to progress the pack, but the physical original must be collected from the seller before the pack can go to the licensing authority.</p>
+                                            @if ($canUploadDocument($document))
+                                                <button type="button" wire:click="confirmOriginalReceived({{ $document->id }})" class="mt-1 rounded border border-amber-400 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100">
+                                                    Confirm original received
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         </li>
                     @empty
                         <li class="text-muted">Choose the request, category, and owner to build the checklist.</li>

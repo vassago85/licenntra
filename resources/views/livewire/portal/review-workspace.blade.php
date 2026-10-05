@@ -80,6 +80,13 @@
                                 @endif
                             </div>
                         @endif
+                        @if ($document->requiresOriginal())
+                            @if ($document->isOriginalReceived())
+                                <p class="mt-2 text-xs font-semibold text-emerald-800">Original received {{ $document->original_received_at->format('d M Y H:i') }} - clear to forward to the licensing authority</p>
+                            @else
+                                <p class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">Awaiting original - do not forward to the licensing authority until the dealer confirms the physical copy is in hand</p>
+                            @endif
+                        @endif
                         @if ($application->dangerous_goods && $document->documentType?->code === 'cof')
                             @if ($document->dangerous_goods_stamped)
                                 <p class="mt-2 text-xs font-semibold">Stamped Dangerous goods</p>

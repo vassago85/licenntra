@@ -252,6 +252,42 @@ class ApplicationForm extends Component
         $this->application->refresh();
     }
 
+    /**
+     * Mark the physical original of a document (e.g. the original NaTIS
+     * on a change of ownership) as being in the dealer's hand. The
+     * reviewer workspace honours this flag so no pack is forwarded to
+     * the licensing authority with just a scan.
+     */
+    public function confirmOriginalReceived(int $documentId): void
+    {
+        if ($this->application === null) {
+            return;
+        }
+
+        $document = $this->application->documents()->findOrFail($documentId);
+        $this->authorize('upload', $document);
+
+        if (! $document->requiresOriginal()) {
+            return;
+        }
+
+        $document->forceFill(['original_received_at' => now()])->save();
+        $this->application->refresh();
+    }
+
+    public function undoOriginalReceived(int $documentId): void
+    {
+        if ($this->application === null) {
+            return;
+        }
+
+        $document = $this->application->documents()->findOrFail($documentId);
+        $this->authorize('upload', $document);
+
+        $document->forceFill(['original_received_at' => null])->save();
+        $this->application->refresh();
+    }
+
     public function submit(): void
     {
         $this->persist(false);

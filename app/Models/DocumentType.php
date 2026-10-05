@@ -12,7 +12,7 @@ class DocumentType extends Model
     /** @use HasFactory<DocumentTypeFactory> */
     use HasFactory;
 
-    protected $fillable = ['code', 'name', 'is_identity_document', 'max_age_days'];
+    protected $fillable = ['code', 'name', 'is_identity_document', 'max_age_days', 'requires_original'];
 
     public function rules(): HasMany
     {
@@ -26,6 +26,7 @@ class DocumentType extends Model
     {
         return [
             'is_identity_document' => 'boolean',
+            'requires_original' => 'boolean',
         ];
     }
 }
