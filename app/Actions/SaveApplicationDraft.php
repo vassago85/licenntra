@@ -39,7 +39,7 @@ class SaveApplicationDraft
             ]);
         }
 
-        foreach (['request_type', 'service_type', 'vehicle_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'year', 'tare_kg'] as $key) {
+        foreach (['request_type', 'service_type', 'vehicle_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'new_title_holder_business_name', 'new_title_holder_registration_number', 'new_title_holder_proxy_name', 'new_title_holder_proxy_contact', 'new_title_holder_proxy_id_number', 'new_title_holder_address', 'year', 'tare_kg'] as $key) {
             if (array_key_exists($key, $data) && is_string($data[$key]) && trim($data[$key]) === '') {
                 $data[$key] = null;
             }
@@ -71,6 +71,12 @@ class SaveApplicationDraft
             'new_proxy_name' => ['nullable', 'string', 'max:160'],
             'new_proxy_id_number' => ['nullable', 'string', 'max:32'],
             'new_address' => ['nullable', 'string', 'max:500'],
+            'new_title_holder_business_name' => ['nullable', 'string', 'max:160'],
+            'new_title_holder_registration_number' => ['nullable', 'string', 'max:64'],
+            'new_title_holder_proxy_name' => ['nullable', 'string', 'max:160'],
+            'new_title_holder_proxy_contact' => ['nullable', 'string', 'max:160'],
+            'new_title_holder_proxy_id_number' => ['nullable', 'string', 'max:32'],
+            'new_title_holder_address' => ['nullable', 'string', 'max:500'],
         ])->validate();
 
         return DB::transaction(function () use ($actor, $data, $application): Application {
@@ -83,6 +89,7 @@ class SaveApplicationDraft
             ]);
 
             $businessClientId = $this->resolveBusinessClient($actor, $data, $application);
+            $titleHolderId = $this->resolveTitleHolder($actor, $data, $application);
 
             $application->fill([
                 'request_type' => $data['request_type'] ?? null,
@@ -93,7 +100,7 @@ class SaveApplicationDraft
                 'is_financed' => (bool) ($data['is_financed'] ?? false),
                 'dangerous_goods' => (bool) ($data['dangerous_goods'] ?? false),
                 'business_client_id' => $businessClientId,
-                'title_holder_business_client_id' => $this->ownedBusinessClientId($data['title_holder_business_client_id'] ?? null),
+                'title_holder_business_client_id' => $titleHolderId,
             ]);
             $application->save();
 
@@ -164,6 +171,37 @@ class SaveApplicationDraft
         }
 
         return $this->ownedBusinessClientId($data['business_client_id'] ?? $application->business_client_id);
+    }
+
+    /**
+     * Mirror of resolveBusinessClient for the title holder slot. If the
+     * caller passed inline "new title holder" fields we create a dedicated
+     * BusinessClient (usable_as = title_holder) scoped to the actor's
+     * dealership. Otherwise fall back to the chosen existing title holder.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveTitleHolder(User $actor, array $data, Application $application): ?int
+    {
+        $name = trim((string) ($data['new_title_holder_business_name'] ?? ''));
+
+        if ($name !== '') {
+            $client = BusinessClient::query()->create([
+                'client_account_id' => $actor->client_account_id,
+                'business_name' => $name,
+                'registration_number' => $data['new_title_holder_registration_number'] ?? null,
+                'proxy_name' => $data['new_title_holder_proxy_name'] ?? null,
+                'proxy_contact' => $data['new_title_holder_proxy_contact'] ?? null,
+                'proxy_id_number' => $data['new_title_holder_proxy_id_number'] ?? null,
+                'address' => $data['new_title_holder_address'] ?? null,
+                'usable_as' => 'title_holder',
+                'status' => 'active',
+            ]);
+
+            return $client->id;
+        }
+
+        return $this->ownedBusinessClientId($data['title_holder_business_client_id'] ?? $application->title_holder_business_client_id);
     }
 
     private function ownedBusinessClientId(mixed $id): ?int

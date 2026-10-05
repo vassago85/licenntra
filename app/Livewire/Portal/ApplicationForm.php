@@ -53,6 +53,22 @@ class ApplicationForm extends Component
 
     public string $new_address = '';
 
+    // Inline "new title holder" fields - parallel to the owner "new business
+    // client" fields above. A title holder is a separate BusinessClient
+    // record (usable_as = title_holder) that typically has NO proxy ID of
+    // its own; the proxy_contact field matters most for finance houses.
+    public string $new_title_holder_business_name = '';
+
+    public string $new_title_holder_registration_number = '';
+
+    public string $new_title_holder_proxy_name = '';
+
+    public string $new_title_holder_proxy_contact = '';
+
+    public string $new_title_holder_proxy_id_number = '';
+
+    public string $new_title_holder_address = '';
+
     public string $owner_name = '';
 
     public string $owner_identifier = '';
@@ -147,6 +163,10 @@ class ApplicationForm extends Component
             return;
         }
 
+        if ($name === 'title_holder_business_client_id' && $this->title_holder_business_client_id === 'new') {
+            return;
+        }
+
         if (in_array($name, $watched, true)) {
             $this->persist(false);
         }
@@ -221,6 +241,17 @@ class ApplicationForm extends Component
         $created = $this->application === null;
         $this->application = $saved->load(['vehicle', 'documents.documentType']);
         $this->new_business_name = '';
+        $this->new_title_holder_business_name = '';
+
+        // After a successful save, snap the dropdowns to the newly created
+        // business client records so the inline forms collapse back to a
+        // plain select showing the saved name.
+        if ($this->business_client_id === 'new' && $saved->business_client_id !== null) {
+            $this->business_client_id = (string) $saved->business_client_id;
+        }
+        if ($this->title_holder_business_client_id === 'new' && $saved->title_holder_business_client_id !== null) {
+            $this->title_holder_business_client_id = (string) $saved->title_holder_business_client_id;
+        }
 
         if ($created) {
             $this->redirectRoute('applications.edit', $saved);
@@ -247,12 +278,18 @@ class ApplicationForm extends Component
             'is_financed' => $this->is_financed,
             'dangerous_goods' => $this->dangerous_goods,
             'business_client_id' => $this->business_client_id === 'new' ? null : $this->business_client_id,
-            'title_holder_business_client_id' => $this->title_holder_business_client_id,
+            'title_holder_business_client_id' => $this->title_holder_business_client_id === 'new' ? null : $this->title_holder_business_client_id,
             'new_business_name' => $this->business_client_id === 'new' ? $this->new_business_name : null,
             'new_registration_number' => $this->new_registration_number,
             'new_proxy_name' => $this->new_proxy_name,
             'new_proxy_id_number' => $this->new_proxy_id_number,
             'new_address' => $this->new_address,
+            'new_title_holder_business_name' => $this->title_holder_business_client_id === 'new' ? $this->new_title_holder_business_name : null,
+            'new_title_holder_registration_number' => $this->new_title_holder_registration_number,
+            'new_title_holder_proxy_name' => $this->new_title_holder_proxy_name,
+            'new_title_holder_proxy_contact' => $this->new_title_holder_proxy_contact,
+            'new_title_holder_proxy_id_number' => $this->new_title_holder_proxy_id_number,
+            'new_title_holder_address' => $this->new_title_holder_address,
             'owner_name' => $this->owner_name,
             'owner_identifier' => $this->owner_identifier,
             'owner_address' => $this->owner_address,

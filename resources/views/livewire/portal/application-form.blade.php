@@ -109,11 +109,42 @@
                 <label class="block text-sm">Title holder
                     <select wire:model.live="title_holder_business_client_id" class="mt-1 w-full rounded-md border border-line px-2 py-2">
                         <option value="">Choose</option>
+                        <option value="new">+ New title holder</option>
                         @foreach ($titleHolders as $holder)
                             <option value="{{ $holder->id }}">{{ $holder->business_name }}</option>
                         @endforeach
                     </select>
                 </label>
+                @if ($title_holder_business_client_id === 'new')
+                    <div class="grid gap-3 rounded-md border border-dashed border-line bg-paper p-3 sm:grid-cols-2">
+                        <p class="text-xs text-muted sm:col-span-2">
+                            Finance houses are usually captured once and re-used. Required for the RLV; proxy details are only needed when the title holder appoints a representative at the licensing authority.
+                        </p>
+                        <label class="text-sm">Business name
+                            <input wire:model.blur="new_title_holder_business_name" class="mt-1 w-full rounded-md border border-line px-2 py-2">
+                        </label>
+                        <label class="text-sm">BRN (CIPC registration number)
+                            <input wire:model.blur="new_title_holder_registration_number" class="mt-1 w-full rounded-md border border-line px-2 py-2 font-mono"
+                                   placeholder="e.g. 1962/000738/06">
+                        </label>
+                        <label class="text-sm">Proxy name
+                            <input wire:model.blur="new_title_holder_proxy_name" class="mt-1 w-full rounded-md border border-line px-2 py-2">
+                        </label>
+                        <label class="text-sm">Proxy contact
+                            <input wire:model.blur="new_title_holder_proxy_contact" class="mt-1 w-full rounded-md border border-line px-2 py-2"
+                                   placeholder="Email or phone">
+                        </label>
+                        <label class="text-sm">Proxy ID number
+                            <input wire:model.blur="new_title_holder_proxy_id_number" class="mt-1 w-full rounded-md border border-line px-2 py-2 font-mono">
+                        </label>
+                        <label class="text-sm sm:col-span-2">Address
+                            <input wire:model.blur="new_title_holder_address" class="mt-1 w-full rounded-md border border-line px-2 py-2">
+                        </label>
+                        <p class="text-xs text-muted sm:col-span-2">
+                            This record is saved to your Business clients list as a title holder and can be re-used on later applications.
+                        </p>
+                    </div>
+                @endif
             @endif
         </section>
 
