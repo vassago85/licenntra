@@ -145,8 +145,32 @@ class CalculateFees
 
     private function applies(FeeLine $line, Application $application): bool
     {
-        if ($line->code === 'licence' && ! $this->chargesLicence($application)) {
-            return false;
+        if ($line->code === 'licence') {
+            if (! $this->chargesLicence($application)) {
+                return false;
+            }
+
+            // Gazette licence fees are priced by LicenceFeeCategory (Rigid
+            // vehicle, Trailer, Motorcycle, Caravan, Taxi, Breakdown,
+            // Tractor-on-public-road, etc). Every category has its own
+            // table of tare bands; without this filter a 6 500 kg truck
+            // matches the rigid-vehicle band AND the trailer band AND
+            // the breakdown band at the same time - fee estimate blows
+            // out to 15+ lines. The application captures the chosen
+            // category so the estimator only shows the one that applies.
+            if ($line->licence_category !== null
+                && $application->licence_category !== null
+                && $line->licence_category !== $application->licence_category) {
+                return false;
+            }
+
+            // No licence category pinned yet (brand-new draft) - skip
+            // the band lines so we don't double-charge; the admin
+            // charges and RTMC fee still appear so the estimate stays
+            // meaningful while the dealer is still filling in the form.
+            if ($line->licence_category !== null && $application->licence_category === null) {
+                return false;
+            }
         }
 
         if ($line->code === 'rtmc_transaction_fee' && ! $this->chargesLicence($application)) {

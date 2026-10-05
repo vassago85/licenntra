@@ -4,7 +4,9 @@ namespace App\Livewire\Portal;
 
 use App\Actions\CalculateFees;
 use App\Actions\SaveApplicationDraft;
+use App\Actions\StoreDocument;
 use App\Actions\SubmitApplication;
+use App\Enums\LicenceFeeCategory;
 use App\Enums\OwnerType;
 use App\Enums\Province;
 use App\Enums\RequestType;
@@ -19,10 +21,14 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts.portal')]
 class ApplicationForm extends Component
 {
+    use WithFileUploads;
+
     public ?Application $application = null;
 
     public string $request_type = '';
@@ -30,6 +36,11 @@ class ApplicationForm extends Component
     public string $service_type = '';
 
     public string $vehicle_category = '';
+
+    public string $licence_category = '';
+
+    /** @var array<int, TemporaryUploadedFile|null> */
+    public array $uploads = [];
 
     public string $owner_type = '';
 
@@ -155,7 +166,7 @@ class ApplicationForm extends Component
     public function updated(string $name): void
     {
         $watched = [
-            'request_type', 'service_type', 'vehicle_category', 'owner_type', 'province',
+            'request_type', 'service_type', 'vehicle_category', 'licence_category', 'owner_type', 'province',
             'is_financed', 'dangerous_goods', 'business_client_id', 'title_holder_business_client_id',
         ];
 
@@ -176,6 +187,44 @@ class ApplicationForm extends Component
     {
         $this->persist(true);
         session()->flash('status', 'Draft saved.');
+    }
+
+    /**
+     * Upload a required document straight from the application form so the
+     * dealer doesn't have to leave the page they're filling in. Mirrors
+     * the same flow used on ApplicationShow and goes through the same
+     * StoreDocument action, so audit logging and scan dispatching are
+     * identical.
+     */
+    public function upload(int $documentId): void
+    {
+        if ($this->application === null) {
+            $this->addError('upload', 'Save the draft first before uploading documents.');
+
+            return;
+        }
+
+        $document = $this->application->documents()->findOrFail($documentId);
+        $this->authorize('upload', $document);
+
+        $file = $this->uploads[$documentId] ?? null;
+
+        if (! $file instanceof TemporaryUploadedFile) {
+            $this->addError('upload', 'Choose a PDF, JPG, or PNG.');
+
+            return;
+        }
+
+        try {
+            app(StoreDocument::class)->handle($document, $file, auth()->user());
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        unset($this->uploads[$documentId]);
+        $this->application->refresh();
     }
 
     public function submit(): void
@@ -199,25 +248,59 @@ class ApplicationForm extends Component
 
     public function render(): View
     {
-        $documents = $this->application?->documents()->with('documentType')->orderBy('party_role')->orderBy('id')->get() ?? collect();
+        $documents = $this->application?->documents()
+            ->with(['documentType', 'currentVersion'])
+            ->orderBy('party_role')
+            ->orderBy('id')
+            ->get() ?? collect();
+
         $estimate = null;
 
         if ($this->application?->province) {
             $estimate = app(CalculateFees::class)->snapshot($this->application);
         }
 
+        $user = auth()->user();
+
         return view('livewire.portal.application-form', [
             'requestTypes' => RequestType::cases(),
             'serviceTypes' => ServiceType::cases(),
             'categories' => VehicleCategory::cases(),
+            'licenceCategories' => $this->dealerLicenceCategories(),
             'ownerTypes' => OwnerType::cases(),
             'provinces' => Province::cases(),
             'owners' => BusinessClient::query()->whereIn('usable_as', ['owner', 'both'])->orderBy('business_name')->get(),
             'titleHolders' => BusinessClient::query()->whereIn('usable_as', ['title_holder', 'both'])->orderBy('business_name')->get(),
             'documents' => $documents,
+            'canUploadDocument' => fn ($document) => $user?->can('upload', $document) ?? false,
+            'canDownloadDocument' => fn ($document) => $user?->can('download', $document) ?? false,
             'estimate' => $estimate,
             'money' => Money::class,
         ]);
+    }
+
+    /**
+     * The licence-fee categories a dealer realistically picks on an
+     * application. The gazette also prices things like dealer plates and
+     * trade-plate permits, but those aren't a per-vehicle application -
+     * they're issued separately.
+     *
+     * @return list<LicenceFeeCategory>
+     */
+    private function dealerLicenceCategories(): array
+    {
+        return [
+            LicenceFeeCategory::MotorCar,
+            LicenceFeeCategory::Motorcycle,
+            LicenceFeeCategory::Minibus,
+            LicenceFeeCategory::Bus,
+            LicenceFeeCategory::Taxi,
+            LicenceFeeCategory::Trailer,
+            LicenceFeeCategory::Caravan,
+            LicenceFeeCategory::BreakdownVehicle,
+            LicenceFeeCategory::TractorPublicRoad,
+            LicenceFeeCategory::SpecialClass,
+        ];
     }
 
     private function persist(bool $flash): void
@@ -273,6 +356,7 @@ class ApplicationForm extends Component
             'request_type' => $this->request_type,
             'service_type' => $this->service_type,
             'vehicle_category' => $this->vehicle_category,
+            'licence_category' => $this->licence_category,
             'owner_type' => $this->owner_type,
             'province' => $this->province,
             'is_financed' => $this->is_financed,
@@ -313,6 +397,7 @@ class ApplicationForm extends Component
         $this->request_type = $application?->request_type?->value ?? '';
         $this->service_type = $application?->service_type?->value ?? '';
         $this->vehicle_category = $application?->vehicle_category?->value ?? '';
+        $this->licence_category = $application?->licence_category?->value ?? '';
         $this->owner_type = $application?->owner_type?->value ?? '';
         $this->province = $application?->province?->value ?? '';
         $this->is_financed = (bool) $application?->is_financed;

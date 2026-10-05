@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Enums\ApplicationStage;
 use App\Enums\FuelType;
+use App\Enums\LicenceFeeCategory;
 use App\Enums\OwnerType;
 use App\Enums\Province;
 use App\Enums\ReasonForRegistration;
@@ -39,7 +40,7 @@ class SaveApplicationDraft
             ]);
         }
 
-        foreach (['request_type', 'service_type', 'vehicle_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'new_title_holder_business_name', 'new_title_holder_registration_number', 'new_title_holder_proxy_name', 'new_title_holder_proxy_contact', 'new_title_holder_proxy_id_number', 'new_title_holder_address', 'year', 'tare_kg'] as $key) {
+        foreach (['request_type', 'service_type', 'vehicle_category', 'licence_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'new_title_holder_business_name', 'new_title_holder_registration_number', 'new_title_holder_proxy_name', 'new_title_holder_proxy_contact', 'new_title_holder_proxy_id_number', 'new_title_holder_address', 'year', 'tare_kg'] as $key) {
             if (array_key_exists($key, $data) && is_string($data[$key]) && trim($data[$key]) === '') {
                 $data[$key] = null;
             }
@@ -49,6 +50,7 @@ class SaveApplicationDraft
             'request_type' => ['nullable', Rule::enum(RequestType::class)],
             'service_type' => ['nullable', Rule::enum(ServiceType::class)],
             'vehicle_category' => ['nullable', Rule::enum(VehicleCategory::class)],
+            'licence_category' => ['nullable', Rule::enum(LicenceFeeCategory::class)],
             'owner_type' => ['nullable', Rule::enum(OwnerType::class)],
             'province' => ['nullable', Rule::enum(Province::class)],
             'is_financed' => ['boolean'],
@@ -95,6 +97,7 @@ class SaveApplicationDraft
                 'request_type' => $data['request_type'] ?? null,
                 'service_type' => $data['service_type'] ?? null,
                 'vehicle_category' => $data['vehicle_category'] ?? null,
+                'licence_category' => $this->resolveLicenceCategory($data, $application),
                 'owner_type' => $data['owner_type'] ?? null,
                 'province' => $data['province'] ?? null,
                 'is_financed' => (bool) ($data['is_financed'] ?? false),
@@ -171,6 +174,33 @@ class SaveApplicationDraft
         }
 
         return $this->ownedBusinessClientId($data['business_client_id'] ?? $application->business_client_id);
+    }
+
+    /**
+     * Pick the LicenceFeeCategory the fee estimator should price against.
+     *
+     * - If the dealer explicitly set one on the form, honour it.
+     * - If the application already has one captured (edit of an existing
+     *   draft), keep it.
+     * - Otherwise default to MotorCar ("Rigid vehicle") because that is
+     *   the gazette's catch-all for cars, bakkies and rigid trucks and
+     *   covers 95% of what dealerships submit.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveLicenceCategory(array $data, Application $application): ?string
+    {
+        $incoming = $data['licence_category'] ?? null;
+
+        if (is_string($incoming) && $incoming !== '') {
+            return $incoming;
+        }
+
+        if ($application->licence_category !== null) {
+            return $application->licence_category->value;
+        }
+
+        return LicenceFeeCategory::MotorCar->value;
     }
 
     /**
