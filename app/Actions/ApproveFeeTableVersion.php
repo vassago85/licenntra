@@ -18,6 +18,23 @@ class ApproveFeeTableVersion
             ]);
         }
 
+        $live = FeeTableVersion::query()
+            ->where('fee_table_id', $version->fee_table_id)
+            ->where('id', '!=', $version->id)
+            ->where('status', 'active')
+            ->latest('version')
+            ->first();
+
+        if ($live !== null) {
+            $dropped = $version->linesMissingFrom($live)->pluck('label')->unique()->values()->all();
+
+            if ($dropped !== []) {
+                throw ValidationException::withMessages([
+                    'lines' => 'This version drops fees the live version charges: '.implode(', ', $dropped).'. Add them back, or set them to R0, before approving.',
+                ]);
+            }
+        }
+
         FeeTableVersion::query()
             ->where('fee_table_id', $version->fee_table_id)
             ->where('id', '!=', $version->id)

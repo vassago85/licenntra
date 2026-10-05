@@ -16,8 +16,9 @@ use Illuminate\Validation\ValidationException;
  * Record an application's hand-off to the licensing authority.
  *
  * Captures the authority-side reference and submission date, enforces the
- * same readiness rule the dashboard uses, and transitions the stage. All
- * three changes happen in one transaction and produce one audit entry.
+ * same readiness rule the dashboard uses, stamps the submission pack that
+ * was lodged (preparing one if nobody printed it) and transitions the
+ * stage, all in one transaction.
  *
  * Never called from a dashboard count click. The dashboard surfaces the
  * action; a reviewer explicitly supplies reference and date in the form.
@@ -29,6 +30,7 @@ class SubmitToAuthority
         private RecordAudit $audit,
         private OperationsWorkloadService $workload,
         private NotificationDispatcher $notifications,
+        private PrepareSubmissionPack $packs,
     ) {}
 
     public function handle(Application $application, User $actor, string $reference, Carbon $submittedAt): Application
@@ -57,6 +59,9 @@ class SubmitToAuthority
                 'authority_submitted_at' => $application->authority_submitted_at?->toIso8601String(),
             ];
 
+            $pack = $this->packs->handle($application, $actor);
+            $pack->forceFill(['submitted_at' => $submittedAt, 'authority_reference' => $reference])->save();
+
             $application->authority_reference = $reference;
             $application->authority_submitted_at = $submittedAt;
             $application->save();
@@ -67,11 +72,12 @@ class SubmitToAuthority
                 $actor,
                 $application,
                 'application.authority_submitted',
-                'Submitted to authority as '.$reference.'.',
+                'Submitted to authority as '.$reference.' with pack #'.$pack->id.'.',
                 $before,
                 [
                     'authority_reference' => $reference,
                     'authority_submitted_at' => $submittedAt->toIso8601String(),
+                    'submission_pack_id' => $pack->id,
                 ],
             );
 

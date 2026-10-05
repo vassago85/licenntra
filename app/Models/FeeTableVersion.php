@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class FeeTableVersion extends Model
 {
@@ -45,5 +46,26 @@ class FeeTableVersion extends Model
     public function isEditable(): bool
     {
         return $this->status === 'draft';
+    }
+
+    /**
+     * Lines the other version charges that this one has no line for, by fee
+     * code. A flat 'licence' line counts as covered when this version prices
+     * licences by gazette band instead.
+     *
+     * @return Collection<int, FeeLine>
+     */
+    public function linesMissingFrom(FeeTableVersion $other): Collection
+    {
+        $codes = $this->lines()->distinct()->pluck('code')->all();
+        $pricesLicenceByBand = $this->lines()->where('code', 'licence')->whereNotNull('licence_category')->exists();
+
+        return $other->lines()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->reject(fn (FeeLine $line): bool => in_array($line->code, $codes, true)
+                || ($line->code === 'licence' && $pricesLicenceByBand))
+            ->values();
     }
 }

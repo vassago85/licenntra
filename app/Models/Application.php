@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ApplicationStage;
 use App\Enums\DatafixStatus;
+use App\Enums\DocumentStatus;
 use App\Enums\LicenceFeeCategory;
 use App\Enums\OwnerType;
 use App\Enums\Province;
@@ -11,12 +12,15 @@ use App\Enums\RequestType;
 use App\Enums\ServiceType;
 use App\Enums\VehicleCategory;
 use App\Models\Concerns\ScopesToClientAccount;
+use App\Services\FeatureFlags;
+use Carbon\CarbonInterface;
 use Database\Factories\ApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class Application extends Model
 {
@@ -28,12 +32,24 @@ class Application extends Model
         'owner_type', 'business_client_id', 'is_financed', 'is_dealer_stock', 'dangerous_goods', 'title_holder_business_client_id',
         'province', 'stage', 'datafix_status', 'assigned_reviewer_id', 'due_at', 'submitted_at', 'completed_at',
         'authority_reference', 'authority_submitted_at', 'submitted_by_id',
+        'authority_query_resolved_at', 'authority_query_resolution',
+        'authority_returned_at', 'authority_returned_by_id', 'authority_return_notes',
         'fee_snapshot', 'cancelled_reason',
     ];
 
     public function clientAccount(): BelongsTo
     {
         return $this->belongsTo(ClientAccount::class);
+    }
+
+    /**
+     * True when requesting payment bills the client and moves straight on
+     * instead of waiting for finance to verify cash: either the client is
+     * on a monthly statement, or the deployment does not track payments.
+     */
+    public function billsWithoutPaymentCheck(): bool
+    {
+        return (bool) $this->clientAccount?->isOnAccount() || ! FeatureFlags::paymentTrackingRequired();
     }
 
     public function businessClient(): BelongsTo
@@ -116,6 +132,66 @@ class Application extends Model
         return $this->hasMany(StageHistory::class);
     }
 
+    public function submissionPacks(): HasMany
+    {
+        return $this->hasMany(SubmissionPack::class);
+    }
+
+    public function latestSubmissionPack(): HasOne
+    {
+        return $this->hasOne(SubmissionPack::class)->latestOfMany();
+    }
+
+    public function authorityReturnedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'authority_returned_by_id');
+    }
+
+    /**
+     * Documents that belong in the pack for the department: everything
+     * operations accepted, in the order the client uploaded them.
+     *
+     * @return Collection<int, ApplicationDocument>
+     */
+    public function packDocuments(): Collection
+    {
+        return $this->documents()
+            ->where('status', DocumentStatus::Accepted)
+            ->whereNotNull('linked_version_id')
+            ->with(['documentType', 'currentVersion'])
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * The latest pack, but only while it still lists the current version of
+     * every accepted document. A re-upload or new acceptance makes it stale.
+     */
+    public function currentSubmissionPack(): ?SubmissionPack
+    {
+        $pack = $this->latestSubmissionPack()->first();
+
+        if ($pack === null) {
+            return null;
+        }
+
+        $current = $this->packDocuments()->pluck('linked_version_id')->map(fn ($id): int => (int) $id)->sort()->values()->all();
+        $packed = collect($pack->versionIds())->sort()->values()->all();
+
+        return $current === $packed ? $pack : null;
+    }
+
+    /**
+     * The note the department sent with its most recent query.
+     */
+    public function latestAuthorityQueryNote(): ?string
+    {
+        return $this->stageHistories()
+            ->where('to_stage', ApplicationStage::AuthorityQuery)
+            ->latest('id')
+            ->value('reason');
+    }
+
     public function deliverableLabel(): string
     {
         return $this->service_type === ServiceType::RegisterAndLicense
@@ -123,31 +199,31 @@ class Application extends Model
             : 'Registration certificate';
     }
 
-    public function slaFlag(): ?string
+    /**
+     * True once the application has sat in its current step longer than
+     * that step's warning time (see System settings).
+     */
+    public function isPastWarningTime(): bool
     {
-        if ($this->due_at === null || $this->stage->isTerminal()) {
-            return null;
-        }
+        return $this->due_at !== null
+            && ! $this->stage->isTerminal()
+            && $this->due_at->isPast();
+    }
 
-        $start = $this->stageHistories()->latest('id')->first()?->created_at ?? $this->updated_at;
-        $total = $start->diffInSeconds($this->due_at, false);
+    /**
+     * When the application moved into its current step. Uses the
+     * `stage_entered_at` aggregate when the query selected it, so list
+     * views avoid one history lookup per row.
+     */
+    public function enteredStageAt(): CarbonInterface
+    {
+        $entered = array_key_exists('stage_entered_at', $this->getAttributes())
+            ? $this->getAttribute('stage_entered_at')
+            : $this->stageHistories()->max('created_at');
 
-        if ($total <= 0) {
-            return 'breach';
-        }
+        $entered ??= $this->attributes['updated_at'] ?? $this->attributes['created_at'] ?? null;
 
-        $elapsed = $start->diffInSeconds(now(), false);
-        $ratio = $elapsed / $total;
-
-        if ($ratio >= 1) {
-            return 'breach';
-        }
-
-        if ($ratio >= 0.75) {
-            return 'risk';
-        }
-
-        return null;
+        return $entered !== null ? $this->asDateTime($entered) : now();
     }
 
     /**
@@ -170,6 +246,8 @@ class Application extends Model
             'due_at' => 'datetime',
             'submitted_at' => 'datetime',
             'authority_submitted_at' => 'datetime',
+            'authority_query_resolved_at' => 'datetime',
+            'authority_returned_at' => 'datetime',
             'completed_at' => 'datetime',
             'fee_snapshot' => 'array',
         ];

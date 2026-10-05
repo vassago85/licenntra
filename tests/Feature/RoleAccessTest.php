@@ -157,9 +157,16 @@ it('lets a reviewer work the queue and blocks admin, finance, and other clients 
     $this->get(route('business-clients.index'))->assertOk();
 
     expect(stageDenial($reviewer, $this->application, ApplicationStage::ChangesRequested))
-        ->not->toBe('You cannot make this stage change.')
-        ->and(stageDenial($reviewer, $this->payable, ApplicationStage::PaymentVerified))
-        ->toBe('You cannot make this stage change.');
+        ->not->toBe('You cannot make this stage change.');
+
+    FeatureFlags::swapPaymentTrackingRequired(true);
+
+    try {
+        expect(stageDenial($reviewer, $this->payable, ApplicationStage::PaymentVerified))
+            ->toBe('You cannot make this stage change.');
+    } finally {
+        FeatureFlags::swapPaymentTrackingRequired(null);
+    }
 });
 
 it('sends finance to payments when tracking is on and to the overview when it is off', function () {

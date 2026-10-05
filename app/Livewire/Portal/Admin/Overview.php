@@ -5,6 +5,7 @@ namespace App\Livewire\Portal\Admin;
 use App\Models\AuditEvent;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use App\Services\OperationsWorkloadService;
 use App\Services\ReceivablesService;
 use Illuminate\Contracts\View\View;
@@ -14,9 +15,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Staff landing page at /admin: operations counters, dealerships needing
- * action and recent activity for everyone on the licensing team; money
- * panels for finance and owners only.
+ * Staff landing page at /admin, operations first: counters and dealerships
+ * needing action for everyone on the licensing team, then money panels for
+ * finance and owners only, then recent activity.
  */
 #[Layout('layouts.portal')]
 class Overview extends Component
@@ -42,6 +43,7 @@ class Overview extends Component
             'dealerships' => $workload->accountRows(['needs_action_only' => true])->take(10),
             'workload' => $workload,
             'seesMoney' => $seesMoney,
+            'quotesEnabled' => FeatureFlags::quotesEnabled(),
             'summary' => $seesMoney ? $receivables->summary() : null,
             'customerBalances' => $seesMoney ? $receivables->customerBalances() : collect(),
             'topCustomers' => $seesMoney ? $receivables->topCustomers() : collect(),

@@ -44,7 +44,8 @@ class QueueDashboardCardsTest extends TestCase
         $response->assertSee('Awaiting review');
         $response->assertSee('With client');
         $response->assertSee('Assigned to me');
-        $response->assertSee('SLA at risk');
+        $response->assertSee('Past warning time');
+        $response->assertDontSee('SLA');
     }
 
     public function test_payment_queue_renders_the_four_kpi_stat_cards(): void

@@ -22,7 +22,7 @@
         $primaryRole = collect($user->getRoleNames())->first();
         $accountSummary = match ($primaryRole) {
             'owner' => 'Owner',
-            'reviewer' => 'Reviewer',
+            'reviewer' => 'Operations',
             'finance' => 'Finance',
             'developer' => 'Platform developer',
             default => ucfirst((string) $primaryRole),
@@ -105,7 +105,7 @@
 
     /** Auto-expand a section if any of its routes is active. */
     $operationsActive = $isCurrent('review.*') || $isCurrent('finance.*') || $isCurrent('fleet.review.*')
-        || $isCurrent('tasks.*') || $isCurrent('dealerships.*');
+        || $isCurrent('tasks.*') || $isCurrent('dealerships.*') || (! $isClient && $isCurrent('handovers.*'));
     $portalActive = $isCurrent('applications.*') || $isCurrent('business-clients.*') || $isCurrent('estimate.*')
         || $isCurrent('handovers.*') || $isCurrent('invoices.*') || $isCurrent('fleet.vehicles.*') || $isCurrent('team.*');
     $operationsActive = $operationsActive || $isCurrent('admin.overview');
@@ -398,6 +398,13 @@
                             :icon="$icons['truck']"
                         >
                             Fleet licence review
+                        </x-portal.sidebar-link>
+                        <x-portal.sidebar-link
+                            :href="route('handovers.index')"
+                            :active="$isCurrent('handovers.*')"
+                            :icon="$icons['package']"
+                        >
+                            Hand-overs
                         </x-portal.sidebar-link>
                     @endif
                 </div>

@@ -132,7 +132,7 @@ class AuditLog extends Component
     {
         return [
             'owner' => 'Owner',
-            'reviewer' => 'Reviewer',
+            'reviewer' => 'Operations',
             'finance' => 'Finance',
             'customer_admin' => 'Dealer / fleet admin',
             'customer_user' => 'Dealer / fleet user',

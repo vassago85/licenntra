@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 /*
 |------------------------------------------------------------------------
 | The dealer-facing "Requested fixes" panel on /applications/{id} used to
-| claim "All reviewer feedback is addressed" the moment it had no
+| claim "All feedback from operations is addressed" the moment it had no
 | outstanding document fixes - even if the reviewer never wrote any
 | feedback. That let a dealer resubmit without changing anything.
 |
@@ -66,7 +66,7 @@ it('shows "no specific fixes recorded" when there is no outstanding and no revie
 
     Livewire::test(ApplicationShow::class, ['application' => $application])
         ->assertSee('No specific fixes have been recorded')
-        ->assertDontSee('All reviewer feedback is addressed')
+        ->assertDontSee('All feedback from operations is addressed')
         ->assertDontSee('Send back for review');
 });
 
@@ -86,7 +86,7 @@ it('shows "feedback addressed" + resubmit when there is no outstanding but a sta
     $this->actingAs($this->admin);
 
     Livewire::test(ApplicationShow::class, ['application' => $application])
-        ->assertSee('All reviewer feedback is addressed')
+        ->assertSee('All feedback from operations is addressed')
         ->assertSee('Send back for review')
         ->assertDontSee('No specific fixes have been recorded');
 });
@@ -102,6 +102,6 @@ it('shows "feedback addressed" when the reviewer left a client-visible note inst
     $this->actingAs($this->admin);
 
     Livewire::test(ApplicationShow::class, ['application' => $application])
-        ->assertSee('All reviewer feedback is addressed')
+        ->assertSee('All feedback from operations is addressed')
         ->assertSee('Send back for review');
 });

@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\DB;
  * Marks an invoice as paid. Finance uses this once the money has landed
  * (either against the dealership's monthly statement or an up-front
  * transaction). An optional reference captures the EFT / statement line
- * so the record ties back to accounting.
+ * so the record ties back to accounting. Paying the invoice settles the
+ * application's billed-but-unpaid entries, which moves them from
+ * outstanding to received on the overview.
  */
 class MarkInvoicePaid
 {
@@ -31,6 +33,10 @@ class MarkInvoicePaid
                 'paid_by_user_id' => $actor->id,
                 'paid_reference' => $reference !== null && $reference !== '' ? $reference : null,
             ])->save();
+
+            $invoice->application?->payments()
+                ->outstandingOnStatement()
+                ->update(['statement_settled_at' => Carbon::now(), 'settled_by' => $actor->id]);
 
             $this->audit->handle(
                 $actor,

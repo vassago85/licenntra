@@ -2,7 +2,7 @@
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold">System settings</h1>
-            <p class="text-sm text-muted">Platform-wide configuration: finance, security, retention and email transport.</p>
+            <p class="text-sm text-muted">Platform-wide configuration: finance, workflow warning times, security, retention and email transport.</p>
         </div>
     </div>
 
@@ -48,6 +48,32 @@
                     <small class="block text-xs text-muted">Shows the Payments queue to finance and counts payment checks as outstanding work. When off, packs can be prepared and submitted without a payment check.</small>
                 </span>
             </label>
+        </section>
+
+        <section class="rounded-md border border-line bg-white p-4">
+            <header class="mb-4">
+                <h2 class="text-sm font-semibold">Warning times</h2>
+                <p class="text-xs text-muted">How long an application may sit in each step before it is flagged as waiting too long on the review queue, outstanding tasks and dashboards. Enter hours (24 = 1 day, 120 = 5 days). Leave blank for no warning. Changes apply straight away to applications already in that step.</p>
+            </header>
+
+            <div class="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($warningStages as $stage)
+                    <label class="block text-sm" wire:key="warning-{{ $stage->value }}">
+                        <span class="text-muted">
+                            {{ $stage->label() }}
+                            @if ($stage->isQuoteStep())
+                                <span class="text-[11px]">(quotes only)</span>
+                            @endif
+                        </span>
+                        <span class="mt-1 flex items-center gap-2">
+                            <input wire:model="warning_hours.{{ $stage->value }}" type="number" min="1" max="8760" step="1" placeholder="No warning"
+                                class="h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+                            <span class="text-xs text-muted">hours</span>
+                        </span>
+                        @error('warning_hours.'.$stage->value) <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
+                    </label>
+                @endforeach
+            </div>
         </section>
 
         <section class="rounded-md border border-line bg-white p-4">

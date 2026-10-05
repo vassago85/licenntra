@@ -291,7 +291,9 @@
         </section>
         <section class="rounded-md border border-line bg-white p-3">
             <h2 class="text-sm font-semibold">Fee estimate</h2>
-            @if ($estimate)
+            @if ($estimate && $estimate['fee_table_version_id'] === null && $estimate['total_cents'] === 0)
+                <p class="mt-3 rounded-md border border-amber-300 bg-amber-50 px-2 py-2 text-sm text-amber-900">No fee table is in effect for this province today. Operations will confirm the fees before billing.</p>
+            @elseif ($estimate)
                 <ul class="mt-3 space-y-1 text-sm">
                     @foreach ($estimate['lines'] as $line)
                         @if ($line['client_visible'])

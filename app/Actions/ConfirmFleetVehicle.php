@@ -82,7 +82,7 @@ class ConfirmFleetVehicle
                 'fleet_vehicle_id' => $vehicle->id,
                 'user_id' => $reviewer->id,
                 'action' => 'confirmed',
-                'summary' => 'Reviewer confirmed vehicle and licence expiry.',
+                'summary' => 'Operations confirmed vehicle and licence expiry.',
                 'context' => [
                     'document_id' => $document->id,
                     'licence_expires_on' => $expiry?->toDateString(),
@@ -102,7 +102,7 @@ class ConfirmFleetVehicle
             $reviewer,
             $vehicle->refresh(),
             'fleet_vehicle.confirmed',
-            'Reviewer confirmed fleet vehicle.',
+            'Operations confirmed fleet vehicle.',
             $before,
             $after,
         );

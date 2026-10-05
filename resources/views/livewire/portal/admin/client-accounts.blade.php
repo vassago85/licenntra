@@ -66,9 +66,9 @@
                         @error('brn') <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
                     </label>
                     <label class="block text-sm md:col-span-2">
-                        <span class="text-muted">Primary reviewer</span>
+                        <span class="text-muted">Operations contact</span>
                         <select wire:model="primaryReviewerId" class="mt-1 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
-                            <option value="">General queue (no fixed reviewer)</option>
+                            <option value="">General queue (no fixed contact)</option>
                             @foreach ($reviewers as $id => $reviewerName)
                                 <option value="{{ $id }}">{{ $reviewerName }}</option>
                             @endforeach
@@ -160,7 +160,7 @@
                         <th class="px-3 py-2 font-medium">Account</th>
                         <th class="px-3 py-2 font-medium">Type</th>
                         <th class="px-3 py-2 font-medium">Billing</th>
-                        <th class="px-3 py-2 font-medium">Reviewer</th>
+                        <th class="px-3 py-2 font-medium">Operations contact</th>
                         <th class="px-3 py-2 font-medium">Contact</th>
                         <th class="px-3 py-2 font-medium text-right">Apps / users</th>
                         <th class="px-3 py-2 font-medium text-right"><span class="sr-only">Actions</span></th>

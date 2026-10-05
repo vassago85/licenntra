@@ -12,7 +12,9 @@ use App\Models\Application;
 use App\Models\ApplicationDocument;
 use App\Models\BusinessClient;
 use App\Models\Quote;
+use App\Services\FeatureFlags;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -62,16 +64,16 @@ class Dashboard extends Component
         $open = Application::query()->whereIn('stage', $openStages);
         $openCount = (clone $open)->count();
 
-        $rejectedDocs = ApplicationDocument::query()
-            ->where('status', DocumentStatus::Rejected)
-            ->whereHas('application', fn ($q) => $q->whereIn('stage', $openStages))
-            ->count();
-        $quotesWaiting = Quote::query()
-            ->where('status', 'sent')
-            ->whereHas('application', fn ($q) => $q->whereIn('stage', $openStages))
-            ->count();
-        $drafts = (clone $open)->where('stage', ApplicationStage::Draft)->count();
-        $needsAction = $rejectedDocs + $quotesWaiting + $drafts;
+        $needsActionQuery = $this->needsActionQuery((clone $open));
+        $needsAction = (clone $needsActionQuery)->count();
+        $drafts = (clone $needsActionQuery)->where('stage', ApplicationStage::Draft)->count();
+        $quotesWaiting = FeatureFlags::quotesEnabled()
+            ? (clone $needsActionQuery)->where('stage', ApplicationStage::QuoteSent)->count()
+            : 0;
+        $paymentsDue = FeatureFlags::paymentTrackingRequired()
+            ? (clone $needsActionQuery)->where('stage', ApplicationStage::PaymentPending)->count()
+            : 0;
+        $changesNeeded = $needsAction - $drafts - $quotesWaiting - $paymentsDue;
 
         $inReview = (clone $open)->whereIn('stage', [
             ApplicationStage::Submitted,
@@ -119,18 +121,7 @@ class Dashboard extends Component
                 fn ($q) => $q->whereIn('stage', $completedStages),
                 fn ($q) => $q->whereIn('stage', $openStages),
             )
-            ->when($this->filter === 'needs_action', function ($q) {
-                $q->where(function ($inner): void {
-                    $inner->whereIn('stage', [
-                        ApplicationStage::Draft,
-                        ApplicationStage::ChangesRequested,
-                        ApplicationStage::QuoteSent,
-                        ApplicationStage::PaymentPending,
-                    ])->orWhereHas('documents', function ($docs): void {
-                        $docs->where('status', DocumentStatus::Rejected);
-                    });
-                });
-            })
+            ->when($this->filter === 'needs_action', fn ($q) => $this->needsActionQuery($q))
             ->when($this->filter === 'commercial', fn ($q) => $q->where('vehicle_category', VehicleCategory::Commercial))
             ->when($this->filter === 'passenger', fn ($q) => $q->where('vehicle_category', VehicleCategory::Passenger))
             ->when($this->search !== '', function ($query): void {
@@ -159,8 +150,9 @@ class Dashboard extends Component
                 'needsAction' => [
                     'total' => $needsAction,
                     'parts' => array_filter([
-                        $rejectedDocs ? "{$rejectedDocs} rejected document".($rejectedDocs === 1 ? '' : 's') : null,
+                        $changesNeeded ? "{$changesNeeded} with changes requested" : null,
                         $quotesWaiting ? "{$quotesWaiting} quote".($quotesWaiting === 1 ? '' : 's') : null,
+                        $paymentsDue ? "{$paymentsDue} payment".($paymentsDue === 1 ? '' : 's').' due' : null,
                         $drafts ? "{$drafts} draft".($drafts === 1 ? '' : 's') : null,
                     ]),
                 ],
@@ -198,6 +190,33 @@ class Dashboard extends Component
     }
 
     /**
+     * Applications waiting on the dealership: drafts, changes requested or a
+     * rejected document, plus quotes and up-front payments when those
+     * features are switched on. The tile count and the filtered list share
+     * this definition so they always agree.
+     *
+     * @param  Builder<Application>  $query
+     * @return Builder<Application>
+     */
+    private function needsActionQuery(Builder $query): Builder
+    {
+        $stages = [ApplicationStage::Draft, ApplicationStage::ChangesRequested];
+
+        if (FeatureFlags::quotesEnabled()) {
+            $stages[] = ApplicationStage::QuoteSent;
+        }
+
+        if (FeatureFlags::paymentTrackingRequired()) {
+            $stages[] = ApplicationStage::PaymentPending;
+        }
+
+        return $query->where(function (Builder $inner) use ($stages): void {
+            $inner->whereIn('stage', $stages)
+                ->orWhereHas('documents', fn (Builder $docs) => $docs->where('status', DocumentStatus::Rejected));
+        });
+    }
+
+    /**
      * Build the "Needs your action" sidebar items: rejected docs, waiting quotes, drafts.
      *
      * @param  list<ApplicationStage>  $openStages
@@ -232,7 +251,7 @@ class Dashboard extends Component
             ];
         }
 
-        $quotes = Quote::query()
+        $quotes = ! FeatureFlags::quotesEnabled() ? collect() : Quote::query()
             ->with('application')
             ->where('status', 'sent')
             ->whereHas('application', fn ($q) => $q->whereIn('stage', $openStages))

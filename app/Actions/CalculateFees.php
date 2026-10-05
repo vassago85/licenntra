@@ -29,7 +29,7 @@ class CalculateFees
      */
     public function snapshot(Application $application): array
     {
-        $version = $this->resolveVersion($application);
+        $version = $this->versionInEffect($application);
 
         $lines = [];
 
@@ -169,7 +169,12 @@ class CalculateFees
         return false;
     }
 
-    private function resolveVersion(Application $application): ?FeeTableVersion
+    /**
+     * The active fee table version for the application's province that is in
+     * effect today. Expired and future-dated versions never price an
+     * application, matching the dealer estimator.
+     */
+    public function versionInEffect(Application $application): ?FeeTableVersion
     {
         $province = $application->province?->value;
 
@@ -179,11 +184,9 @@ class CalculateFees
 
         $today = Carbon::now()->toDateString();
 
-        $query = FeeTableVersion::query()
+        return FeeTableVersion::query()
             ->where('status', 'active')
-            ->whereHas('feeTable', fn ($q) => $q->where('province', $province));
-
-        $dated = (clone $query)
+            ->whereHas('feeTable', fn ($q) => $q->where('province', $province))
             ->where(function ($q) use ($today): void {
                 $q->whereNull('effective_from')->orWhere('effective_from', '<=', $today);
             })
@@ -193,8 +196,6 @@ class CalculateFees
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
             ->first();
-
-        return $dated ?? $query->latest('id')->first();
     }
 
     private function applies(FeeLine $line, Application $application): bool

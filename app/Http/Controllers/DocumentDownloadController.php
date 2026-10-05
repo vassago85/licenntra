@@ -27,6 +27,19 @@ class DocumentDownloadController extends Controller
         if ($applicationDocument !== null) {
             Gate::authorize('download', $applicationDocument);
 
+            if (request()->boolean('inline')) {
+                $audit->handle(
+                    request()->user(),
+                    $applicationDocument,
+                    'document.viewed',
+                    'Document viewed.',
+                    null,
+                    ['version_id' => $version->id],
+                );
+
+                return Storage::disk('documents')->response($version->storage_path, $version->original_filename, ['Content-Type' => $version->mime]);
+            }
+
             $audit->handle(
                 request()->user(),
                 $applicationDocument,

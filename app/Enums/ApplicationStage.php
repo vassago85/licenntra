@@ -97,6 +97,25 @@ enum ApplicationStage: string
     }
 
     /**
+     * Steps an application can wait in once submitted, in workflow order.
+     * Each one carries its own configurable warning time.
+     *
+     * @return list<self>
+     */
+    public static function warningStages(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $stage): bool => $stage !== self::Draft && ! $stage->isTerminal(),
+        ));
+    }
+
+    public function isQuoteStep(): bool
+    {
+        return in_array($this, [self::QuoteRequired, self::QuoteSent, self::QuoteAccepted], true);
+    }
+
+    /**
      * UI tone for stage badges. Maps to a bg/fg colour pair in the view.
      */
     public function tone(): string

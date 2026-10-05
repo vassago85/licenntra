@@ -13,6 +13,12 @@ class Payment extends Model
 
     public const METHOD_ACCOUNT_STATEMENT = 'account_statement';
 
+    /**
+     * Billed for invoicing because payment tracking is switched off; the
+     * client still owes it until the invoice is marked paid.
+     */
+    public const METHOD_INVOICE = 'invoice';
+
     protected $fillable = [
         'application_id', 'amount_cents', 'method', 'reference', 'proof_document_id',
         'verified_by', 'verified_at', 'override_reason',

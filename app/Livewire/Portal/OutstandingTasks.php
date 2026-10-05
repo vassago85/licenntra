@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Portal;
 
+use App\Actions\PrepareSubmissionPack;
 use App\Actions\SubmitToAuthority;
 use App\Enums\Province;
+use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\ClientAccount;
 use App\Models\User;
@@ -11,6 +13,8 @@ use App\Services\OperationsWorkloadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -67,6 +71,9 @@ class OutstandingTasks extends Component
 
     public string $authoritySubmittedAt = '';
 
+    /** @var list<int> */
+    public array $selectedApplicationIds = [];
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -104,6 +111,46 @@ class OutstandingTasks extends Component
         if (! $belongs) {
             $this->submittedById = null;
         }
+    }
+
+    /**
+     * Prepares (or reuses) the pack for one application, or for every
+     * selected row when no id is given, then opens them all in one print
+     * view. Nothing is prepared if any application is not ready.
+     */
+    public function preparePacks(?int $applicationId = null): void
+    {
+        abort_unless($this->canSubmitToAuthority(), 403);
+
+        $ids = $applicationId !== null
+            ? [$applicationId]
+            : array_values(array_unique(array_map('intval', $this->selectedApplicationIds)));
+
+        if ($ids === []) {
+            $this->addError('pack', 'Tick at least one application to print.');
+
+            return;
+        }
+
+        $user = Auth::user();
+        abort_unless($user instanceof User, 403);
+
+        try {
+            DB::transaction(function () use ($ids, $user): void {
+                $prepare = app(PrepareSubmissionPack::class);
+
+                foreach (Application::query()->whereIn('id', $ids)->get() as $application) {
+                    $prepare->handle($application, $user);
+                }
+            });
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->selectedApplicationIds = [];
+        $this->redirectRoute('review.packs.print', ['ids' => implode(',', $ids)]);
     }
 
     public function openSubmitModal(int $applicationId): void
@@ -150,12 +197,22 @@ class OutstandingTasks extends Component
         $user = Auth::user();
         abort_unless($user instanceof User, 403);
 
-        app(SubmitToAuthority::class)->handle(
-            $application,
-            $user,
-            $this->authorityReference,
-            Carbon::parse($this->authoritySubmittedAt),
-        );
+        try {
+            app(SubmitToAuthority::class)->handle(
+                $application,
+                $user,
+                $this->authorityReference,
+                Carbon::parse($this->authoritySubmittedAt),
+            );
+        } catch (InvalidTransition $exception) {
+            $this->addError('authorityReference', $exception->getMessage());
+
+            return;
+        } catch (ValidationException $exception) {
+            $this->addError('authorityReference', $exception->validator->getMessageBag()->first());
+
+            return;
+        }
 
         $this->cancelSubmitModal();
         session()->flash('status', 'Submitted to authority.');

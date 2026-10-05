@@ -4,8 +4,11 @@ namespace App\Livewire\Portal;
 
 use App\Actions\ConfirmDocumentHandover;
 use App\Actions\SaveDocumentHandover;
+use App\Enums\ApplicationStage;
 use App\Enums\HandoverDirection;
 use App\Models\Application;
+use App\Models\BrandingSetting;
+use App\Models\ClientAccount;
 use App\Models\DocumentHandover;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +29,9 @@ class DocumentHandoverForm extends Component
 
     #[Url(as: 'direction')]
     public string $direction = '';
+
+    #[Url(as: 'account')]
+    public string $client_account_id = '';
 
     public string $counterparty_name = '';
 
@@ -51,7 +57,14 @@ class DocumentHandoverForm extends Component
     {
         if ($handover === null || $handover->id === null) {
             $this->authorize('create', DocumentHandover::class);
-            $this->dealer_person_name = (string) auth()->user()?->name;
+
+            if ($this->isOperations()) {
+                $this->counterparty_company = (string) BrandingSetting::current()->company_name;
+                $this->counterparty_name = (string) auth()->user()?->name;
+                $this->preselectApplication((int) request()->query('application'));
+            } else {
+                $this->dealer_person_name = (string) auth()->user()?->name;
+            }
 
             return;
         }
@@ -59,6 +72,35 @@ class DocumentHandoverForm extends Component
         $this->authorize('view', $handover);
         $this->handover = $handover->load('applications');
         $this->fillFromHandover();
+    }
+
+    private function isOperations(): bool
+    {
+        return auth()->user()?->client_account_id === null;
+    }
+
+    private function preselectApplication(int $applicationId): void
+    {
+        if ($applicationId === 0) {
+            return;
+        }
+
+        $application = Application::query()->find($applicationId, ['id', 'client_account_id', 'reference']);
+
+        if ($application === null) {
+            return;
+        }
+
+        $this->client_account_id = (string) $application->client_account_id;
+        $this->application_ids = [$application->id];
+    }
+
+    public function updatedClientAccountId(): void
+    {
+        if ($this->handover === null) {
+            $this->application_ids = [];
+            $this->line_items = [];
+        }
     }
 
     private function fillFromHandover(): void
@@ -69,6 +111,7 @@ class DocumentHandoverForm extends Component
             return;
         }
 
+        $this->client_account_id = (string) $handover->client_account_id;
         $this->direction = $handover->direction->value;
         $this->counterparty_name = (string) $handover->counterparty_name;
         $this->counterparty_identifier = (string) $handover->counterparty_identifier;
@@ -223,17 +266,28 @@ class DocumentHandoverForm extends Component
 
     public function render(): View
     {
-        $accountId = auth()->user()?->client_account_id;
+        $operations = $this->isOperations();
+        $accountId = $operations ? (int) $this->client_account_id : auth()->user()?->client_account_id;
 
-        $availableApplications = Application::query()
-            ->where('client_account_id', $accountId)
-            ->orderByDesc('id')
-            ->limit(200)
-            ->get(['id', 'reference', 'stage']);
+        $availableApplications = $accountId
+            ? Application::query()
+                ->where('client_account_id', $accountId)
+                ->when(
+                    $operations && $this->direction === HandoverDirection::Delivery->value && $this->handover === null,
+                    fn ($query) => $query->orderByRaw('case when stage = ? then 0 else 1 end', [ApplicationStage::ReadyForCollection->value]),
+                )
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get(['id', 'reference', 'stage'])
+            : collect();
 
         return view('livewire.portal.document-handover-form', [
             'directions' => HandoverDirection::cases(),
             'availableApplications' => $availableApplications,
+            'operations' => $operations,
+            'accounts' => $operations
+                ? ClientAccount::query()->orderBy('name')->get(['id', 'name'])
+                : collect(),
         ]);
     }
 
@@ -243,6 +297,7 @@ class DocumentHandoverForm extends Component
     private function payload(): array
     {
         return [
+            'client_account_id' => (int) $this->client_account_id,
             'direction' => $this->direction,
             'counterparty_name' => $this->counterparty_name,
             'counterparty_identifier' => $this->counterparty_identifier,

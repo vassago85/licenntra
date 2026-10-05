@@ -116,7 +116,7 @@ it('does not overwrite an existing manual assignment', function (): void {
     expect($result->assigned_reviewer_id)->toBe($this->coverer->id);
 });
 
-it('records a plain "Reviewer assigned" audit entry when the primary reviewer takes their own account', function (): void {
+it('records a plain "Operations assigned" audit entry when the primary reviewer takes their own account', function (): void {
     $this->dealer->update(['primary_reviewer_user_id' => $this->primary->id]);
 
     $application = makeReviewableApplication($this->dealer, $this->dealerUser);
@@ -130,7 +130,7 @@ it('records a plain "Reviewer assigned" audit entry when the primary reviewer ta
         ->first();
 
     expect($audit)->not->toBeNull()
-        ->and($audit->summary)->toBe('Reviewer assigned.')
+        ->and($audit->summary)->toBe('Operations assigned.')
         ->and($audit->after['covering_for_user_id'])->toBeNull();
 });
 
@@ -165,7 +165,7 @@ it('does not add a covering annotation when the dealership has no primary review
         ->first();
 
     expect($audit)->not->toBeNull()
-        ->and($audit->summary)->toBe('Reviewer assigned.');
+        ->and($audit->summary)->toBe('Operations assigned.');
 });
 
 it('accepts a customer_admin as a valid reviewer (they also staff the review queue)', function (): void {
@@ -196,7 +196,7 @@ it('clears the covering annotation when the primary reviewer later takes over fr
         ->latest('id')
         ->first();
 
-    expect($audit->summary)->toBe('Reviewer assigned.')
+    expect($audit->summary)->toBe('Operations assigned.')
         ->and($audit->after['covering_for_user_id'])->toBeNull();
 });
 

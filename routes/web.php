@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentDownloadController;
 use App\Http\Controllers\HandoverPrintController;
 use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
+use App\Http\Controllers\SubmissionPackPrintController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
 use App\Livewire\Portal\Admin\AuditLog as AdminAuditLog;
@@ -81,6 +82,7 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/applications/{application}', ApplicationShow::class)->name('applications.show');
 
     Route::get('/review', ReviewQueue::class)->name('review.queue');
+    Route::get('/review/packs/print', SubmissionPackPrintController::class)->name('review.packs.print');
     Route::get('/review/{application}', ReviewWorkspace::class)->name('review.show');
 
     Route::get('/dealerships/board', DealershipCards::class)->name('dealerships.board');

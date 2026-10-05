@@ -14,7 +14,7 @@ class AssignReviewer
     {
         if ($reviewer !== null && ! $reviewer->hasAnyRole(['reviewer', 'owner'])) {
             throw ValidationException::withMessages([
-                'reviewer' => 'Choose a reviewer.',
+                'reviewer' => 'Choose an operations team member.',
             ]);
         }
 
@@ -36,13 +36,13 @@ class AssignReviewer
         }
 
         $summary = match (true) {
-            $reviewer === null => 'Reviewer unassigned.',
+            $reviewer === null => 'Operations unassigned.',
             $coveringFor !== null => sprintf(
-                'Reviewer assigned (%s, covering for %s).',
+                'Operations assigned (%s, covering for %s).',
                 $reviewer->name,
                 $coveringFor->name,
             ),
-            default => 'Reviewer assigned.',
+            default => 'Operations assigned.',
         };
 
         $this->audit->handle(

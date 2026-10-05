@@ -11,6 +11,7 @@ use App\Models\Application;
 use App\Models\ClientAccount;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use App\Services\OperationsWorkloadService;
 use Database\Seeders\DocumentRuleSeeder;
 use Database\Seeders\FeeTableSeeder;
@@ -69,11 +70,17 @@ class BillingModeTest extends TestCase
 
         $this->accept($application);
 
-        app(TransitionApplication::class)->handle(
-            $application,
-            ApplicationStage::PaymentPending,
-            $this->userWithRole('reviewer'),
-        );
+        FeatureFlags::swapPaymentTrackingRequired(true);
+
+        try {
+            app(TransitionApplication::class)->handle(
+                $application,
+                ApplicationStage::PaymentPending,
+                $this->userWithRole('reviewer'),
+            );
+        } finally {
+            FeatureFlags::swapPaymentTrackingRequired(null);
+        }
 
         $application->refresh();
 

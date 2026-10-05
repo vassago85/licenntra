@@ -2,7 +2,7 @@
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold">Outstanding tasks</h1>
-            <p class="text-sm text-muted">Cross-dealership backlog: approvals, submission packs, awaiting return, ready for handover.</p>
+            <p class="text-sm text-muted">Cross-dealership backlog: approvals, submission packs, paperwork out at the department, and returns waiting for handover.</p>
         </div>
     </div>
 
@@ -50,9 +50,9 @@
                 </select>
             </label>
             <label>
-                <span class="block text-xs text-muted">Assigned reviewer</span>
+                <span class="block text-xs text-muted">Assigned to</span>
                 <select wire:model.live="reviewerId" class="mt-1 block h-9 w-full rounded-md border border-line bg-white px-2 text-sm">
-                    <option value="">Any reviewer</option>
+                    <option value="">Anyone</option>
                     @foreach ($reviewers as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach
@@ -86,18 +86,40 @@
         </div>
     </section>
 
+    @php
+        $packTab = $tab === \App\Services\OperationsWorkloadService::TAB_SUBMISSION_PACKS && $canSubmitToAuthority;
+    @endphp
+
+    @error('pack')
+        <p class="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">{{ $message }}</p>
+    @enderror
+
+    @if ($packTab && $tasks->isNotEmpty())
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-white px-3 py-2 text-sm">
+            <span class="text-muted">Tick applications to print their packs in one go. Each pack lists the exact document versions printed.</span>
+            <button type="button" wire:click="preparePacks" @disabled(count($selectedApplicationIds) === 0)
+                class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                style="background: var(--brand);">
+                Prepare and print selected ({{ count($selectedApplicationIds) }})
+            </button>
+        </div>
+    @endif
+
     @if ($viewMode === 'table')
         <section class="overflow-x-auto rounded-md border border-line bg-white">
             <table class="min-w-full text-left text-sm">
                 <thead class="border-b border-line text-xs text-muted">
                     <tr>
+                        @if ($packTab)
+                            <th class="w-8 px-3 py-2"><span class="sr-only">Select</span></th>
+                        @endif
                         <th class="px-3 py-2 font-medium">Customer</th>
                         <th class="hidden 2xl:table-cell px-3 py-2 font-medium">Submitted by</th>
                         <th class="px-3 py-2 font-medium">Application</th>
                         <th class="px-3 py-2 font-medium">Vehicle</th>
                         <th class="hidden xl:table-cell px-3 py-2 font-medium">Request type</th>
                         <th class="px-3 py-2 font-medium">Required action</th>
-                        <th class="hidden lg:table-cell px-3 py-2 font-medium">Reviewer</th>
+                        <th class="hidden lg:table-cell px-3 py-2 font-medium">Assigned to</th>
                         <th class="hidden xl:table-cell px-3 py-2 font-medium">Waiting since</th>
                         <th class="px-3 py-2 font-medium">Due</th>
                         <th class="px-3 py-2 text-right font-medium">Action</th>
@@ -109,11 +131,16 @@
                             $allowed = match ($task['kind']) {
                                 'approval.document' => $canReviewDocuments,
                                 'approval.payment' => $canVerifyPayments,
-                                'ready_to_submit' => $canSubmitToAuthority,
+                                'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover' => $canSubmitToAuthority,
                                 default => true,
                             };
                         @endphp
-                        <tr class="border-b border-line last:border-0 {{ $task['overdue'] ? 'bg-red-50/60' : '' }}">
+                        <tr class="border-b border-line last:border-0 {{ $task['overdue'] ? 'bg-red-50/60' : '' }}" wire:key="task-{{ $task['task_key'] }}">
+                            @if ($packTab)
+                                <td class="px-3 py-2">
+                                    <input type="checkbox" wire:model.live="selectedApplicationIds" value="{{ $task['application']->id }}" aria-label="Select {{ $task['application']->reference }}">
+                                </td>
+                            @endif
                             <td class="whitespace-nowrap px-3 py-2 text-sm">
                                 <span class="font-medium">{{ $task['account']?->name ?? '-' }}</span>
                                 @if ($task['account']?->type)
@@ -154,7 +181,16 @@
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-3 py-2 text-right text-sm">
-                                @if ($allowed && $task['kind'] === 'ready_to_submit')
+                                @if ($allowed && $task['kind'] === 'prepare_pack')
+                                    <button type="button" wire:click="preparePacks({{ $task['application']->id }})"
+                                        class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"
+                                        style="background: var(--brand);">
+                                        Prepare and print pack
+                                    </button>
+                                @elseif ($allowed && $task['kind'] === 'ready_to_submit')
+                                    @if (! empty($task['pack_url']))
+                                        <a href="{{ $task['pack_url'] }}" class="mr-1 inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">Reprint</a>
+                                    @endif
                                     <button type="button" wire:click="openSubmitModal({{ $task['application']->id }})"
                                         class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"
                                         style="background: var(--brand);">
@@ -170,7 +206,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-3 py-8 text-center text-sm text-muted">
+                            <td colspan="11" class="px-3 py-8 text-center text-sm text-muted">
                                 Nothing in this view right now.
                             </td>
                         </tr>
@@ -190,7 +226,7 @@
                         $allowed = match ($task['kind']) {
                             'approval.document' => $canReviewDocuments,
                             'approval.payment' => $canVerifyPayments,
-                            'ready_to_submit' => $canSubmitToAuthority,
+                            'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover' => $canSubmitToAuthority,
                             default => true,
                         };
                     @endphp
@@ -227,7 +263,7 @@
                             <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted">
                                 <span class="font-mono">{{ $task['application']?->reference ?? '-' }}</span>
                                 <span>{{ $task['application']?->request_type?->label() ?? '-' }}</span>
-                                <span>Reviewer: {{ $task['reviewer']?->name ?? 'Unassigned' }}</span>
+                                <span>Assigned to: {{ $task['reviewer']?->name ?? 'Unassigned' }}</span>
                                 @if ($task['waiting_since'])
                                     <span>Since {{ $task['waiting_since']->diffForHumans() }}</span>
                                 @endif
@@ -238,8 +274,23 @@
                         </div>
 
                         @if ($allowed)
-                            <div class="flex items-center justify-end border-t border-line pt-3">
-                                @if ($task['kind'] === 'ready_to_submit')
+                            <div class="flex items-center justify-end gap-2 border-t border-line pt-3">
+                                @if ($packTab)
+                                    <label class="mr-auto inline-flex items-center gap-2 text-xs text-muted">
+                                        <input type="checkbox" wire:model.live="selectedApplicationIds" value="{{ $task['application']->id }}">
+                                        Select
+                                    </label>
+                                @endif
+                                @if ($task['kind'] === 'prepare_pack')
+                                    <button type="button" wire:click="preparePacks({{ $task['application']->id }})"
+                                        class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"
+                                        style="background: var(--brand);">
+                                        Prepare and print pack
+                                    </button>
+                                @elseif ($task['kind'] === 'ready_to_submit')
+                                    @if (! empty($task['pack_url']))
+                                        <a href="{{ $task['pack_url'] }}" class="inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">Reprint</a>
+                                    @endif
                                     <button type="button" wire:click="openSubmitModal({{ $task['application']->id }})"
                                         class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"
                                         style="background: var(--brand);">
@@ -271,7 +322,7 @@
             @keydown.escape.window="$wire.cancelSubmitModal()">
             <div class="w-full max-w-md rounded-md border border-line bg-white p-5 shadow-lg">
                 <h2 class="text-base font-semibold">Submit to authority</h2>
-                <p class="mt-1 text-xs text-muted">Capture the authority reference and the submission date. The application will move to &ldquo;At the authority&rdquo; and the handover will be audited.</p>
+                <p class="mt-1 text-xs text-muted">Capture the authority reference and the submission date. The printed pack is stamped as lodged and the application moves to &ldquo;At the authority&rdquo;.</p>
 
                 <div class="mt-4 space-y-3">
                     <div>

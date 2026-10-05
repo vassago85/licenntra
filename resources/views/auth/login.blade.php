@@ -11,7 +11,7 @@
             'tone' => 'danger',
         ],
         [
-            'label' => 'Reviewer',
+            'label' => 'Operations',
             'email' => 'reviewer@licentra.test',
             'role' => 'reviewer',
             'summary' => 'Takes applications from the review queue. Accept/reject documents, request changes, confirm datafix, upload returned NaTIS + licence disc, review fleet licences. Can open identity documents.',

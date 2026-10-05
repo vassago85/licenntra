@@ -26,12 +26,12 @@
     @endif
 
     <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <button type="button" wire:click="showTab('review')" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $tab === 'review' && ! $slaRisk ? 'border-ink' : 'border-line' }}">
+        <button type="button" wire:click="showTab('review')" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $tab === 'review' && ! $pastWarning ? 'border-ink' : 'border-line' }}">
             <p class="text-xs uppercase tracking-wide text-muted">Awaiting review</p>
             <p class="mt-1 text-xl font-semibold">{{ $stats['awaiting_review'] }}</p>
             <p class="mt-0.5 text-xs text-muted">Submitted or in document review</p>
         </button>
-        <button type="button" wire:click="showTab('client')" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $tab === 'client' && ! $slaRisk ? 'border-ink' : 'border-line' }}">
+        <button type="button" wire:click="showTab('client')" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $tab === 'client' && ! $pastWarning ? 'border-ink' : 'border-line' }}">
             <p class="text-xs uppercase tracking-wide text-muted">With client</p>
             <p class="mt-1 text-xl font-semibold">{{ $stats['with_client'] }}</p>
             <p class="mt-0.5 text-xs text-muted">Waiting on the dealer</p>
@@ -41,10 +41,10 @@
             <p class="mt-1 text-xl font-semibold">{{ $stats['assigned_to_me'] }}</p>
             <p class="mt-0.5 text-xs text-muted">Your personal workload</p>
         </button>
-        <button type="button" wire:click="showSlaRisk" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $slaRisk ? 'border-ink' : 'border-line' }}">
-            <p class="text-xs uppercase tracking-wide text-muted">SLA at risk</p>
-            <p class="mt-1 text-xl font-semibold {{ $stats['sla_at_risk'] > 0 ? 'text-[#9E2419]' : '' }}">{{ $stats['sla_at_risk'] }}</p>
-            <p class="mt-0.5 text-xs text-muted">Past or near the handling target</p>
+        <button type="button" wire:click="showPastWarning" class="rounded-md border bg-white p-3 text-left hover:border-ink {{ $pastWarning ? 'border-ink' : 'border-line' }}">
+            <p class="text-xs uppercase tracking-wide text-muted">Past warning time</p>
+            <p class="mt-1 text-xl font-semibold {{ $stats['past_warning'] > 0 ? 'text-amber-800' : '' }}">{{ $stats['past_warning'] }}</p>
+            <p class="mt-0.5 text-xs text-muted">Waiting longer than the step allows</p>
         </button>
     </div>
 
@@ -75,7 +75,7 @@
                 <option value="{{ $id }}">{{ $name }}</option>
             @endforeach
         </select>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="slaRisk"> SLA risk only</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pastWarning"> Past warning time only</label>
         @if ($hasFilters)
             <button type="button" wire:click="clearFilters" class="text-xs font-medium text-ink hover:underline">Clear filters</button>
         @endif
@@ -90,21 +90,23 @@
                         <th class="px-3 py-2 font-medium">Dealer</th>
                         <th class="px-3 py-2 font-medium">Stage</th>
                         <th class="px-3 py-2 font-medium">Waiting</th>
-                        <th class="px-3 py-2 font-medium">Reviewer</th>
+                        <th class="px-3 py-2 font-medium">Assigned to</th>
                         <th class="px-3 py-2 font-medium text-right"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line">
                     @forelse ($rows as $row)
                         @php
-                            $sla = $row->slaFlag();
+                            $isLate = $row->isPastWarningTime();
+                            $enteredStageAt = $row->enteredStageAt();
+                            $stepWarningHours = $warningHours[$row->stage->value] ?? null;
                             $vehicleLine = collect([
                                 trim(($row->vehicle?->make ?? '').' '.($row->vehicle?->model ?? '')),
                                 $row->vehicle?->vehicle_register_number,
                                 $row->vehicle?->vin ? '…'.substr($row->vehicle->vin, -6) : null,
                             ])->filter()->implode(' · ');
                         @endphp
-                        <tr wire:key="rq-{{ $row->id }}" class="{{ $sla === 'breach' ? 'bg-red-50/40' : '' }}">
+                        <tr wire:key="rq-{{ $row->id }}" class="{{ $isLate ? 'bg-amber-50/50' : '' }}">
                             <td class="px-3 py-2">
                                 <a class="font-mono font-medium hover:underline" href="{{ route('review.show', $row) }}">{{ $row->reference }}</a>
                                 @if ($row->dangerous_goods)
@@ -117,11 +119,13 @@
                                 <span class="inline-block whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium {{ $toneClasses[$row->stage->tone()] }}">{{ $row->stage->label() }}</span>
                             </td>
                             <td class="whitespace-nowrap px-3 py-2 text-xs">
-                                <span title="{{ $row->updated_at?->format('d M Y H:i') }}">{{ $row->updated_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</span>
-                                @if ($sla === 'breach')
-                                    <span class="ml-1 rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-900">SLA breach</span>
-                                @elseif ($sla === 'risk')
-                                    <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-900">SLA risk</span>
+                                @if ($row->stage->isTerminal())
+                                    <span title="{{ $row->updated_at?->format('d M Y H:i') }}">{{ $row->updated_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</span>
+                                @else
+                                    <span title="In {{ $row->stage->label() }} since {{ $enteredStageAt->format('d M Y H:i') }}">{{ $enteredStageAt->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</span>
+                                @endif
+                                @if ($isLate)
+                                    <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-900" title="{{ $stepWarningHours ? 'Warning time for '.$row->stage->label().' is '.$stepWarningHours.' h' : 'Past the warning time for this step' }}">Past warning time</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-xs">

@@ -27,6 +27,17 @@
     <form wire:submit.prevent="save" class="space-y-4">
         <section class="grid gap-3 rounded-md border border-line bg-white p-3 sm:grid-cols-2">
             <h2 class="text-sm font-semibold sm:col-span-2">Visit</h2>
+            @if ($operations)
+                <label class="text-sm sm:col-span-2">Dealership
+                    <select wire:model.live="client_account_id" @disabled($handover !== null) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm">
+                        <option value="">Choose the dealership</option>
+                        @foreach ($accounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('client_account_id') <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
+                </label>
+            @endif
             <label class="text-sm">Direction
                 <select wire:model.live="direction" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm">
                     <option value="">Choose</option>
@@ -45,7 +56,7 @@
                 <input wire:model.blur="counterparty_identifier" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm font-mono">
             </label>
             <label class="text-sm sm:col-span-2">Dealership person on the counter
-                <input wire:model.blur="dealer_person_name" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm" placeholder="Your name - the one signing on behalf of the dealership">
+                <input wire:model.blur="dealer_person_name" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm" placeholder="{{ $operations ? 'Name of the dealership staff member signing' : 'Your name - the one signing on behalf of the dealership' }}">
             </label>
         </section>
 
@@ -70,7 +81,7 @@
                         </div>
                     </label>
                 @empty
-                    <p class="text-xs text-muted">No applications on your dealership yet.</p>
+                    <p class="text-xs text-muted">{{ $operations && $client_account_id === '' ? 'Choose the dealership first.' : 'No applications on this dealership yet.' }}</p>
                 @endforelse
             </div>
         </section>

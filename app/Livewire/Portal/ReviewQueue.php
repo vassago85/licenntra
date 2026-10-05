@@ -6,6 +6,7 @@ use App\Actions\AssignReviewer;
 use App\Enums\ApplicationStage;
 use App\Models\Application;
 use App\Models\ClientAccount;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -43,8 +44,8 @@ class ReviewQueue extends Component
     #[Url(as: 'account', except: '')]
     public string $accountId = '';
 
-    #[Url(as: 'sla', except: false)]
-    public bool $slaRisk = false;
+    #[Url(as: 'late', except: false)]
+    public bool $pastWarning = false;
 
     #[Url(as: 'q', except: '')]
     public string $search = '';
@@ -64,7 +65,7 @@ class ReviewQueue extends Component
 
     public function updating(string $property): void
     {
-        if (in_array($property, ['tab', 'assignment', 'accountId', 'slaRisk', 'search'], true)) {
+        if (in_array($property, ['tab', 'assignment', 'accountId', 'pastWarning', 'search'], true)) {
             $this->resetPage();
         }
     }
@@ -76,20 +77,20 @@ class ReviewQueue extends Component
         }
 
         $this->tab = $tab;
-        $this->slaRisk = false;
+        $this->pastWarning = false;
         $this->resetPage();
     }
 
     public function showMine(): void
     {
         $this->assignment = 'me';
-        $this->slaRisk = false;
+        $this->pastWarning = false;
         $this->resetPage();
     }
 
-    public function showSlaRisk(): void
+    public function showPastWarning(): void
     {
-        $this->slaRisk = true;
+        $this->pastWarning = true;
         $this->resetPage();
     }
 
@@ -97,7 +98,7 @@ class ReviewQueue extends Component
     {
         $this->assignment = '';
         $this->accountId = '';
-        $this->slaRisk = false;
+        $this->pastWarning = false;
         $this->search = '';
         $this->resetPage();
     }
@@ -120,14 +121,18 @@ class ReviewQueue extends Component
     public function render(): View
     {
         $user = $this->currentUser();
+        $settings = SystemSetting::current();
 
         return view('livewire.portal.review-queue', [
+            'warningHours' => collect(ApplicationStage::warningStages())
+                ->mapWithKeys(fn (ApplicationStage $stage): array => [$stage->value => $settings->warningHoursFor($stage)])
+                ->all(),
             'rows' => $this->rows(),
             'tabs' => $this->tabCounts(),
             'stats' => $this->stats(),
             'accounts' => ClientAccount::query()->orderBy('name')->pluck('name', 'id'),
             'canTake' => $user->hasAnyRole(['reviewer', 'owner']),
-            'hasFilters' => $this->assignment !== '' || $this->accountId !== '' || $this->slaRisk || $this->search !== '',
+            'hasFilters' => $this->assignment !== '' || $this->accountId !== '' || $this->pastWarning || $this->search !== '',
         ]);
     }
 
@@ -171,11 +176,8 @@ class ReviewQueue extends Component
     {
         $query = $this->filteredQuery()
             ->whereIn('stage', self::tabStages()[$this->tab])
-            ->with(['vehicle', 'clientAccount', 'reviewer']);
-
-        if ($this->slaRisk) {
-            $query->whereIn('id', $this->slaRiskIds());
-        }
+            ->with(['vehicle', 'clientAccount', 'reviewer'])
+            ->withMax('stageHistories as stage_entered_at', 'created_at');
 
         $query = $this->tab === self::TAB_DONE
             ? $query->latest('updated_at')
@@ -195,6 +197,7 @@ class ReviewQueue extends Component
             ->when($this->assignment === 'me', fn (Builder $query) => $query->where('assigned_reviewer_id', Auth::id()))
             ->when($this->assignment === 'unassigned', fn (Builder $query) => $query->whereNull('assigned_reviewer_id'))
             ->when($this->accountId !== '', fn (Builder $query) => $query->where('client_account_id', (int) $this->accountId))
+            ->when($this->pastWarning, fn (Builder $query) => $this->wherePastWarning($query))
             ->when($this->search !== '', function (Builder $query): void {
                 $term = '%'.trim($this->search).'%';
 
@@ -218,35 +221,25 @@ class ReviewQueue extends Component
         $counts = [];
 
         foreach (self::tabStages() as $tab => $stages) {
-            $query = $this->filteredQuery()->whereIn('stage', $stages);
-
-            if ($this->slaRisk) {
-                $query->whereIn('id', $this->slaRiskIds());
-            }
-
-            $counts[$tab] = $query->count();
+            $counts[$tab] = $this->filteredQuery()->whereIn('stage', $stages)->count();
         }
 
         return $counts;
     }
 
     /**
-     * @return list<int>
+     * Open applications that have sat in their current step longer than
+     * the warning time configured for it in System settings.
+     *
+     * @param  Builder<Application>  $query
+     * @return Builder<Application>
      */
-    private function slaRiskIds(): array
+    private function wherePastWarning(Builder $query): Builder
     {
-        return Application::query()
+        return $query
+            ->whereIn('stage', ApplicationStage::warningStages())
             ->whereNotNull('due_at')
-            ->whereNotIn('stage', [
-                ApplicationStage::Draft,
-                ApplicationStage::Completed,
-                ApplicationStage::Cancelled,
-                ApplicationStage::Archived,
-            ])
-            ->get()
-            ->filter(fn (Application $application): bool => $application->slaFlag() !== null)
-            ->pluck('id')
-            ->all();
+            ->where('due_at', '<', now());
     }
 
     /**
@@ -266,7 +259,7 @@ class ReviewQueue extends Component
             'awaiting_review' => (clone $active)->whereIn('stage', self::tabStages()[self::TAB_REVIEW])->count(),
             'with_client' => (clone $active)->whereIn('stage', self::tabStages()[self::TAB_CLIENT])->count(),
             'assigned_to_me' => (clone $active)->where('assigned_reviewer_id', Auth::id())->count(),
-            'sla_at_risk' => count($this->slaRiskIds()),
+            'past_warning' => $this->wherePastWarning(Application::query())->count(),
         ];
     }
 

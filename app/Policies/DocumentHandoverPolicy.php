@@ -27,12 +27,14 @@ class DocumentHandoverPolicy
 
     public function create(User $user): bool
     {
-        return $user->is_active && $user->isClient();
+        return $user->is_active && ($user->isClient() || $this->isOperations($user));
     }
 
     public function update(User $user, DocumentHandover $handover): bool
     {
-        return $this->view($user, $handover) && $handover->isPending() && $user->isClient();
+        return $this->view($user, $handover)
+            && $handover->isPending()
+            && ($user->isClient() || $this->isOperations($user));
     }
 
     public function confirm(User $user, DocumentHandover $handover): bool
@@ -42,7 +44,7 @@ class DocumentHandoverPolicy
 
     public function delete(User $user, DocumentHandover $handover): bool
     {
-        return $this->view($user, $handover) && $handover->isPending() && $user->isClient();
+        return $this->update($user, $handover);
     }
 
     public function print(User $user, DocumentHandover $handover): bool
@@ -52,6 +54,11 @@ class DocumentHandoverPolicy
 
     public function uploadSigned(User $user, DocumentHandover $handover): bool
     {
-        return $this->view($user, $handover) && $user->isClient();
+        return $this->view($user, $handover) && ($user->isClient() || $this->isOperations($user));
+    }
+
+    private function isOperations(User $user): bool
+    {
+        return $user->hasAnyRole(['reviewer', 'owner']);
     }
 }

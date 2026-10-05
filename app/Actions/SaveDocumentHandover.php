@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\HandoverDirection;
 use App\Enums\HandoverStatus;
 use App\Models\Application;
+use App\Models\ClientAccount;
 use App\Models\DocumentHandover;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -20,11 +21,7 @@ class SaveDocumentHandover
      */
     public function handle(User $actor, array $data, ?DocumentHandover $handover = null): DocumentHandover
     {
-        if ($actor->client_account_id === null) {
-            throw ValidationException::withMessages([
-                'handover' => 'Only a dealership user can record a hand-over.',
-            ]);
-        }
+        $accountId = $this->resolveAccountId($actor, $data, $handover);
 
         if ($handover !== null && ! $handover->isPending()) {
             throw ValidationException::withMessages([
@@ -51,11 +48,11 @@ class SaveDocumentHandover
             'line_items' => ['array'],
         ])->validate();
 
-        return DB::transaction(function () use ($actor, $validated, $handover): DocumentHandover {
+        return DB::transaction(function () use ($actor, $accountId, $validated, $handover): DocumentHandover {
             $creating = $handover === null;
 
             $handover ??= new DocumentHandover([
-                'client_account_id' => $actor->client_account_id,
+                'client_account_id' => $accountId,
                 'status' => HandoverStatus::Pending,
                 'created_by_id' => $actor->id,
             ]);
@@ -72,7 +69,7 @@ class SaveDocumentHandover
 
             $handover->save();
 
-            $applicationIds = $this->resolveApplicationIds($actor, $validated['application_ids'] ?? []);
+            $applicationIds = $this->resolveApplicationIds($accountId, $validated['application_ids'] ?? []);
             $syncPayload = [];
 
             foreach ($applicationIds as $id) {
@@ -101,10 +98,49 @@ class SaveDocumentHandover
     }
 
     /**
+     * Dealership users always record against their own account; operations
+     * staff choose the dealership, which is fixed once the draft exists.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveAccountId(User $actor, array $data, ?DocumentHandover $handover): int
+    {
+        if ($actor->client_account_id !== null) {
+            if ($handover !== null && $handover->client_account_id !== $actor->client_account_id) {
+                throw ValidationException::withMessages([
+                    'handover' => 'This hand-over belongs to another dealership.',
+                ]);
+            }
+
+            return (int) $actor->client_account_id;
+        }
+
+        if (! $actor->is_active || ! $actor->hasAnyRole(['reviewer', 'owner'])) {
+            throw ValidationException::withMessages([
+                'handover' => 'Only dealership users and operations can record a hand-over.',
+            ]);
+        }
+
+        if ($handover !== null) {
+            return (int) $handover->client_account_id;
+        }
+
+        $accountId = (int) ($data['client_account_id'] ?? 0);
+
+        if ($accountId === 0 || ! ClientAccount::query()->whereKey($accountId)->exists()) {
+            throw ValidationException::withMessages([
+                'client_account_id' => 'Choose the dealership this hand-over is with.',
+            ]);
+        }
+
+        return $accountId;
+    }
+
+    /**
      * @param  list<int>  $incoming
      * @return list<int>
      */
-    private function resolveApplicationIds(User $actor, array $incoming): array
+    private function resolveApplicationIds(int $accountId, array $incoming): array
     {
         if ($incoming === []) {
             return [];
@@ -112,14 +148,14 @@ class SaveDocumentHandover
 
         $owned = Application::query()
             ->whereIn('id', $incoming)
-            ->where('client_account_id', $actor->client_account_id)
+            ->where('client_account_id', $accountId)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
 
         if (count($owned) !== count(array_unique($incoming))) {
             throw ValidationException::withMessages([
-                'application_ids' => 'Choose applications from your own dealership only.',
+                'application_ids' => 'Choose applications from this dealership only.',
             ]);
         }
 

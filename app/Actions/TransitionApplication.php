@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\ApplicationStage;
 use App\Enums\DatafixStatus;
 use App\Enums\DocumentStatus;
+use App\Enums\QuoteStatus;
 use App\Enums\RequestType;
 use App\Enums\VehicleCategory;
 use App\Exceptions\InvalidTransition;
@@ -34,6 +35,12 @@ class TransitionApplication
             throw new InvalidTransition("Cannot move {$from->value} to {$to->value}.");
         }
 
+        if ($this->isManualBilling($application, $from, $to, $isSystem)) {
+            $this->authorizeManualBilling($actor);
+
+            return DB::transaction(fn (): Application => $this->billWithoutPaymentCheck($application));
+        }
+
         $this->authorize($from, $to, $actor, $isSystem);
         $this->guard($application, $from, $to, $reason);
 
@@ -42,10 +49,10 @@ class TransitionApplication
                 $application->fee_snapshot = app(CalculateFees::class)->billingSnapshot($application);
             }
 
+            $warningHours = SystemSetting::current()->warningHoursFor($to);
+
             $application->stage = $to;
-            $application->due_at = $to->isTerminal()
-                ? null
-                : now()->addHours(SystemSetting::current()->slaHoursFor($to->value));
+            $application->due_at = $warningHours === null ? null : now()->addHours($warningHours);
 
             if ($to === ApplicationStage::Submitted) {
                 $application->submitted_at = now();
@@ -60,6 +67,11 @@ class TransitionApplication
 
             if ($to === ApplicationStage::Cancelled) {
                 $application->cancelled_reason = $reason;
+            }
+
+            if ($to === ApplicationStage::AuthorityQuery) {
+                $application->authority_query_resolved_at = null;
+                $application->authority_query_resolution = null;
             }
 
             // Stamp the metering timestamp used by the platform billing
@@ -99,26 +111,28 @@ class TransitionApplication
 
             $application = $application->refresh();
 
-            // Dealership (and any other on-account) clients are not blocked on
-            // cash: the fee goes onto a running statement and the paperwork
-            // keeps moving. Record a synthetic on-account payment and advance
-            // straight to PaymentVerified so downstream stages are unchanged.
-            if ($to === ApplicationStage::PaymentPending && $application->clientAccount?->isOnAccount()) {
-                return $this->settleOnAccount($application);
+            if ($to === ApplicationStage::PaymentPending && $application->billsWithoutPaymentCheck()) {
+                return $this->billWithoutPaymentCheck($application);
             }
 
             return $application;
         });
     }
 
-    private function settleOnAccount(Application $application): Application
+    /**
+     * Records the fee as owed (an unsettled on-account entry) and advances to
+     * PaymentVerified so downstream stages are unchanged. The entry stays
+     * outstanding until finance marks the application's invoice paid.
+     */
+    private function billWithoutPaymentCheck(Application $application): Application
     {
         $amountCents = (int) ($application->fee_snapshot['total_cents'] ?? 0);
+        $onStatement = (bool) $application->clientAccount?->isOnAccount();
 
         $payment = $application->payments()->create([
             'amount_cents' => $amountCents,
-            'method' => Payment::METHOD_ACCOUNT_STATEMENT,
-            'reference' => 'On statement',
+            'method' => $onStatement ? Payment::METHOD_ACCOUNT_STATEMENT : Payment::METHOD_INVOICE,
+            'reference' => $onStatement ? 'On statement' : 'To invoice',
             'on_account' => true,
             'verified_at' => now(),
             'statement_settled_at' => null,
@@ -128,7 +142,9 @@ class TransitionApplication
             null,
             $payment,
             'payment.on_account',
-            'Fee added to '.$application->clientAccount->name.' statement.',
+            $onStatement
+                ? 'Fee added to '.$application->clientAccount->name.' statement.'
+                : 'Fee billed for invoicing; payment tracking is off.',
             null,
             ['amount_cents' => $amountCents],
             isSystem: true,
@@ -137,12 +153,34 @@ class TransitionApplication
         return $this->handle($application, ApplicationStage::PaymentVerified, null, isSystem: true);
     }
 
+    /**
+     * Applications that reached PaymentPending before payment tracking was
+     * switched off (or before the client moved onto a statement) have no
+     * payment to verify; staff bill them by hand instead.
+     */
+    private function isManualBilling(Application $application, ApplicationStage $from, ApplicationStage $to, bool $isSystem): bool
+    {
+        return ! $isSystem
+            && $from === ApplicationStage::PaymentPending
+            && $to === ApplicationStage::PaymentVerified
+            && $application->billsWithoutPaymentCheck()
+            && $application->payments()->doesntExist();
+    }
+
+    private function authorizeManualBilling(?User $actor): void
+    {
+        if ($actor === null || ! $actor->is_active || ! $actor->hasAnyRole(['owner', 'reviewer', 'finance'])) {
+            throw new InvalidTransition('You cannot bill this application.');
+        }
+    }
+
     private function authorize(ApplicationStage $from, ApplicationStage $to, ?User $actor, bool $isSystem): void
     {
         if ($isSystem && in_array($to, [
             ApplicationStage::DocumentReview,
             ApplicationStage::QuoteAccepted,
             ApplicationStage::PaymentVerified,
+            ApplicationStage::Completed,
             ApplicationStage::Archived,
         ], true)) {
             return;
@@ -242,6 +280,12 @@ class TransitionApplication
             if ($missing) {
                 throw new InvalidTransition('Every required document must be accepted.');
             }
+
+            $quoted = $application->quotes()->where('status', QuoteStatus::Accepted)->exists();
+
+            if (! $quoted && app(CalculateFees::class)->versionInEffect($application) === null) {
+                throw new InvalidTransition('No fee table is in effect today for '.($application->province?->label() ?? 'this province').'. Approve a current fee table before billing.');
+            }
         }
 
         if ($from === ApplicationStage::PaymentPending && $to === ApplicationStage::PaymentVerified) {
@@ -283,6 +327,14 @@ class TransitionApplication
 
         if ($to === ApplicationStage::AuthorityQuery && blank($reason)) {
             throw new InvalidTransition('An authority query needs a note.');
+        }
+
+        if ($from === ApplicationStage::AuthorityQuery && $to === ApplicationStage::SubmittedToAuthority && $application->authority_query_resolved_at === null) {
+            throw new InvalidTransition('Record how the department query was resolved before resubmitting.');
+        }
+
+        if ($from === ApplicationStage::Approved && $to === ApplicationStage::ReadyForCollection && $application->authority_returned_at === null) {
+            throw new InvalidTransition('Record the physical receipt of the returned documents first.');
         }
     }
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\CalculateFees;
+use App\Actions\TransitionApplication;
 use App\Enums\ApplicationStage;
 use App\Enums\FeePeriod;
 use App\Enums\LicenceFeeCategory;
@@ -10,13 +11,16 @@ use App\Enums\Province;
 use App\Enums\ServiceType;
 use App\Enums\TaxTreatment;
 use App\Enums\VehicleCategory;
+use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\ClientAccount;
 use App\Models\FeeTable;
 use App\Models\FeeTableVersion;
 use App\Models\SystemSetting;
+use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\LicenceFeeBandSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -124,6 +128,54 @@ class CalculateFeesTest extends TestCase
 
         $this->assertSame($currentYear->id, $snapshot['fee_table_version_id']);
         $this->assertSame(82000, $snapshot['exempt_subtotal_cents']);
+    }
+
+    public function test_an_expired_fee_table_never_prices_an_application(): void
+    {
+        $application = $this->makeApplication(tareKg: 1200, province: Province::Gauteng);
+
+        $expired = $this->seedActiveTable(Province::Gauteng, [
+            ['code' => 'licence', 'label' => 'Old rate', 'cents' => 60000, 'tax' => TaxTreatment::Exempt, 'tare_min' => 1001, 'tare_max' => 1500, 'period' => FeePeriod::Annual],
+        ]);
+        $expired->update([
+            'effective_from' => Carbon::now()->subYears(2)->toDateString(),
+            'effective_until' => Carbon::now()->subDay()->toDateString(),
+        ]);
+
+        $snapshot = app(CalculateFees::class)->snapshot($application->refresh());
+
+        $this->assertNull($snapshot['fee_table_version_id']);
+        $this->assertSame(0, $snapshot['total_cents']);
+    }
+
+    public function test_a_future_dated_fee_table_never_prices_an_application(): void
+    {
+        $application = $this->makeApplication(tareKg: 1200, province: Province::Gauteng);
+
+        $future = $this->seedActiveTable(Province::Gauteng, [
+            ['code' => 'licence', 'label' => 'Next year', 'cents' => 90000, 'tax' => TaxTreatment::Exempt, 'tare_min' => 1001, 'tare_max' => 1500, 'period' => FeePeriod::Annual],
+        ]);
+        $future->update(['effective_from' => Carbon::now()->addMonth()->toDateString()]);
+
+        $this->assertNull(app(CalculateFees::class)->versionInEffect($application->refresh()));
+    }
+
+    public function test_billing_is_refused_when_no_fee_table_is_in_effect(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $reviewer = User::factory()->create(['is_active' => true]);
+        $reviewer->assignRole('reviewer');
+
+        $application = $this->makeApplication(tareKg: 1200, province: Province::Gauteng);
+        $expired = $this->seedActiveTable(Province::Gauteng, [
+            ['code' => 'registration', 'label' => 'Registration', 'cents' => 50000, 'tax' => TaxTreatment::Exempt, 'tare_min' => null, 'tare_max' => null, 'period' => FeePeriod::OnceOff],
+        ]);
+        $expired->update(['effective_until' => Carbon::now()->subDay()->toDateString()]);
+
+        $this->expectException(InvalidTransition::class);
+        $this->expectExceptionMessage('No fee table is in effect today for Gauteng');
+
+        app(TransitionApplication::class)->handle($application->refresh(), ApplicationStage::PaymentPending, $reviewer);
     }
 
     public function test_licence_fee_band_seeder_populates_all_provinces(): void

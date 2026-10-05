@@ -1,5 +1,7 @@
 @php
     $branding = \App\Models\BrandingSetting::current();
+    $roleName = auth()->check() ? (string) (auth()->user()->getRoleNames()->first() ?? 'user') : null;
+    $roleLabel = $roleName === null ? null : (\App\Livewire\Portal\Admin\Users::ROLE_LABELS[$roleName] ?? ucfirst($roleName));
 @endphp
 <!doctype html>
 <html lang="en">
@@ -17,7 +19,7 @@
         <h1 class="mt-1 text-xl font-semibold">You don't have access to this page</h1>
         <p class="mt-2 text-sm text-muted">
             @auth
-                Your role ({{ collect(auth()->user()->getRoleNames())->first() ?? 'user' }}) can't open this screen. If you believe this is wrong, ask your administrator.
+                Your role ({{ $roleLabel }}) can't open this screen. If you believe this is wrong, ask your administrator.
             @else
                 You need to be signed in to see this.
             @endauth

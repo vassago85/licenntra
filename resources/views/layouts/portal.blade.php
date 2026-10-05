@@ -26,7 +26,7 @@
         $primaryRole = collect($user->getRoleNames())->first();
         $contextRole = match ($primaryRole) {
             'owner' => 'Owner',
-            'reviewer' => 'Reviewer',
+            'reviewer' => 'Operations',
             'finance' => 'Finance',
             'customer_admin' => 'Dealer / fleet admin',
             'customer_user' => 'Dealer / fleet user',
@@ -40,25 +40,25 @@
 <a class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:bg-ink focus:px-3 focus:py-2 focus:text-white" href="#content">Skip to content</a>
 
 <div x-data="{ open: false }" class="min-h-screen">
-    <div class="hidden items-center justify-between gap-3 border-b border-line bg-surface px-5 py-[9px] text-[11px] text-muted lg:flex">
-        <span class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
-            <span>{{ $branding->company_name }}</span>
-            @if ($contextRole)
-                <span class="mx-1 opacity-60">/</span>
-                <span>{{ $contextRole }}</span>
-            @endif
-        </span>
-        <span>
-            {{ ucfirst($branding->company_name) }}
-            <strong class="ml-1 font-medium text-ink">{{ $contextLabel }}</strong>
-        </span>
-    </div>
-
     <div class="min-h-screen lg:pl-[176px]">
         <x-portal.sidebar :branding="$branding" />
 
         <div class="flex min-h-screen flex-col">
+            <div class="hidden items-center justify-between gap-3 border-b border-line bg-surface px-5 py-[9px] text-[11px] text-muted lg:flex">
+                <span class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
+                    <span>{{ $branding->company_name }}</span>
+                    @if ($contextRole)
+                        <span class="mx-1 opacity-60">/</span>
+                        <span>{{ $contextRole }}</span>
+                    @endif
+                </span>
+                <span>
+                    {{ ucfirst($branding->company_name) }}
+                    <strong class="ml-1 font-medium text-ink">{{ $contextLabel }}</strong>
+                </span>
+            </div>
+
             <header class="sticky top-0 z-10 flex h-12 items-center gap-3 border-b border-line bg-surface px-4 lg:hidden">
                 <button
                     type="button"

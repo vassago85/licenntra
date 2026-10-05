@@ -16,6 +16,10 @@
     <p class="mb-4 rounded-md border border-line bg-white px-3 py-2 text-sm text-red-800">{{ $errors->first() }}</p>
 @endif
 
+@if (session('status'))
+    <p class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
+@endif
+
 <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div class="space-y-4">
         <section class="rounded-md border border-line bg-white">
@@ -128,7 +132,7 @@
                     <select wire:model="value_choice" class="mt-1 h-8 rounded-md border border-line px-2 text-sm">
                         <option value="">Choose</option>
                         <option value="client">Use the client value</option>
-                        <option value="reviewer">Use the reviewer value</option>
+                        <option value="reviewer">Use the operations value</option>
                     </select>
                 </label>
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -197,21 +201,110 @@
                     <input wire:model="service_reason" placeholder="Reason for the service change" class="h-8 w-full rounded-md border border-line px-2 text-xs">
                     <button type="button" wire:click="changeService" class="h-8 rounded-md border border-line px-2 text-xs">Change service type</button>
                 </div>
-                <a href="{{ route('applications.quote', $application) }}" class="mt-3 inline-block text-sm">Open quote builder</a>
+                @if ($quotesEnabled)
+                    <a href="{{ route('applications.quote', $application) }}" class="mt-3 inline-block text-sm">Open quote builder</a>
+                @endif
             @endcan
         </section>
 
         @can('review', $application)
-            <section class="rounded-md border border-line bg-white p-3 text-sm">
-                <h2 class="font-semibold">Move stage</h2>
-                <textarea wire:model="reason" rows="2" placeholder="Reason, when the stage needs one" class="mt-2 w-full rounded-md border border-line px-2 py-1"></textarea>
-                <div class="mt-2 flex flex-col gap-2">
-                    @foreach ($application->stage->successors() as $next)
-                        @continue(in_array($next, [\App\Enums\ApplicationStage::QuoteAccepted, \App\Enums\ApplicationStage::PaymentVerified], true))
-                        <button type="button" wire:click="advance('{{ $next->value }}')" class="h-8 rounded-md border border-line px-2 text-left text-xs">{{ $next->label() }}</button>
-                    @endforeach
-                </div>
-            </section>
+            @php($stage = $application->stage)
+            @php($stages = \App\Enums\ApplicationStage::class)
+            @if ($packStage || in_array($stage, [$stages::SubmittedToAuthority, $stages::Approved, $stages::ReadyForCollection], true))
+                <section class="rounded-md border border-line bg-white p-3 text-sm" id="department">
+                    <h2 class="font-semibold">Department submission</h2>
+
+                    @if ($stage === $stages::AuthorityQuery)
+                        <div class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-2 text-xs text-amber-900">
+                            <p class="font-semibold">Department query</p>
+                            <p class="mt-1">{{ $queryNote ?? 'No query note was captured.' }}</p>
+                        </div>
+                        @if ($application->authority_query_resolved_at)
+                            <p class="mt-2 text-xs text-emerald-800">Resolved {{ $application->authority_query_resolved_at->format('d M Y H:i') }}: {{ $application->authority_query_resolution }}</p>
+                        @else
+                            <label class="mt-2 block text-xs text-muted">How was the query resolved?
+                                <textarea wire:model="resolution" rows="2" class="mt-1 w-full rounded-md border border-line px-2 py-1 text-sm"></textarea>
+                            </label>
+                            @error('resolution') <p class="mt-1 text-xs text-red-800">{{ $message }}</p> @enderror
+                            <button type="button" wire:click="resolveQuery" class="mt-2 h-8 rounded-md border border-line px-2 text-xs">Mark query resolved</button>
+                        @endif
+                    @endif
+
+                    @if ($packStage)
+                        @if ($packBlockers !== [])
+                            <p class="mt-3 text-xs font-semibold">Not ready to lodge yet</p>
+                            <ul class="mt-1 list-disc space-y-1 pl-4 text-xs text-muted">
+                                @foreach ($packBlockers as $blocker)
+                                    <li>{{ $blocker }}</li>
+                                @endforeach
+                            </ul>
+                        @elseif ($currentPack)
+                            <p class="mt-3 text-xs text-muted">
+                                Pack #{{ $currentPack->id }} printed {{ $currentPack->created_at->format('d M Y H:i') }}
+                                by {{ $currentPack->preparedBy?->name ?? 'unknown' }} · {{ $currentPack->documentCount() }} {{ \Illuminate\Support\Str::plural('document', $currentPack->documentCount()) }}
+                            </p>
+                            <a href="{{ route('review.packs.print', ['ids' => $application->id]) }}" class="mt-2 inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">Reprint pack</a>
+                            <div class="mt-3 space-y-2 border-t border-line pt-3">
+                                <p class="text-xs font-semibold">Lodged with the department</p>
+                                <input wire:model="submitReference" placeholder="Department reference" class="h-8 w-full rounded-md border border-line px-2 text-xs">
+                                @error('submitReference') <p class="text-xs text-red-800">{{ $message }}</p> @enderror
+                                @error('authority_reference') <p class="text-xs text-red-800">{{ $message }}</p> @enderror
+                                <input type="datetime-local" wire:model="submitAt" class="h-8 w-full rounded-md border border-line px-2 text-xs">
+                                @error('submitAt') <p class="text-xs text-red-800">{{ $message }}</p> @enderror
+                                <button type="button" wire:click="submitToAuthority" class="h-8 rounded-md px-2 text-xs font-medium text-white" style="background: var(--brand);">
+                                    {{ $stage === $stages::AuthorityQuery ? 'Record resubmission' : 'Record submission' }}
+                                </button>
+                            </div>
+                        @else
+                            <p class="mt-3 text-xs text-muted">All documents are accepted and originals are in hand. Prepare the pack, print it and lodge it with the department.</p>
+                            <button type="button" wire:click="preparePack" class="mt-2 h-8 rounded-md px-2 text-xs font-medium text-white" style="background: var(--brand);">Prepare and print pack</button>
+                        @endif
+                        @error('pack') <p class="mt-1 text-xs text-red-800">{{ $message }}</p> @enderror
+                    @endif
+
+                    @if ($stage === $stages::SubmittedToAuthority)
+                        <p class="mt-2 text-xs text-muted">
+                            Lodged {{ $application->authority_submitted_at?->format('d M Y H:i') ?? '—' }}
+                            · ref {{ $application->authority_reference ?? '—' }}.
+                            Waiting for the department's decision.
+                        </p>
+                    @endif
+
+                    @if ($stage === $stages::Approved)
+                        <p class="mt-2 text-xs text-muted">Approved by the department. Documents are not back yet. Record receipt once the paperwork is physically in the office.</p>
+                        <label class="mt-2 block text-xs text-muted">Received at
+                            <input type="datetime-local" wire:model="returnedAt" class="mt-1 h-8 w-full rounded-md border border-line px-2 text-xs">
+                        </label>
+                        @error('returnedAt') <p class="mt-1 text-xs text-red-800">{{ $message }}</p> @enderror
+                        @error('returned_at') <p class="mt-1 text-xs text-red-800">{{ $message }}</p> @enderror
+                        <textarea wire:model="returnNotes" rows="2" placeholder="Notes (e.g. what came back)" class="mt-2 w-full rounded-md border border-line px-2 py-1 text-xs"></textarea>
+                        <button type="button" wire:click="recordReturn" class="mt-2 h-8 rounded-md px-2 text-xs font-medium text-white" style="background: var(--brand);">Record physical receipt</button>
+                    @endif
+
+                    @if ($stage === $stages::ReadyForCollection)
+                        <p class="mt-2 text-xs text-muted">
+                            Back from the department {{ $application->authority_returned_at?->format('d M Y H:i') ?? '—' }}
+                            @if ($application->authorityReturnedBy) · received by {{ $application->authorityReturnedBy->name }} @endif
+                        </p>
+                        @if ($application->authority_return_notes)
+                            <p class="mt-1 text-xs">{{ $application->authority_return_notes }}</p>
+                        @endif
+                        <a href="{{ route('handovers.create', ['direction' => 'delivery', 'account' => $application->client_account_id, 'application' => $application->id]) }}" class="mt-2 inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">Record hand-over to customer</a>
+                    @endif
+                </section>
+            @endif
+
+            @if ($moveStages !== [])
+                <section class="rounded-md border border-line bg-white p-3 text-sm">
+                    <h2 class="font-semibold">Move stage</h2>
+                    <textarea wire:model="reason" rows="2" placeholder="Reason, when the stage needs one" class="mt-2 w-full rounded-md border border-line px-2 py-1"></textarea>
+                    <div class="mt-2 flex flex-col gap-2">
+                        @foreach ($moveStages as $option)
+                            <button type="button" wire:click="advance('{{ $option['stage']->value }}')" class="h-8 rounded-md border border-line px-2 text-left text-xs">{{ $option['label'] }}</button>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
         @endcan
 
         <section class="rounded-md border border-line bg-white p-3 text-sm">

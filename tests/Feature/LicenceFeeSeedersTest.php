@@ -40,7 +40,8 @@ it('seeds the full gazette band structure for every province', function () {
             ->orderByDesc('version')
             ->firstOrFail();
 
-        expect($draft->lines()->count())->toBe(count($expectedCount));
+        expect($draft->lines()->whereIn('code', ['licence', 'rtmc_transaction_fee'])->count())->toBe(count($expectedCount))
+            ->and($draft->lines()->where('code', 'registration')->exists())->toBeTrue("{$province->value} draft must keep the registration fee");
     }
 });
 

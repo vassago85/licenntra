@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Portal\Admin;
 
+use App\Actions\ApplyStageWarningTimes;
+use App\Enums\ApplicationStage;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\NotificationDispatcher;
@@ -14,7 +16,7 @@ use Livewire\Component;
  * Portal replacement for the former Filament "System settings" page.
  *
  * All configuration that applies to the licensing company as a whole:
- * finance, security, retention, and Mailgun transport. Any value saved
+ * finance, workflow warning times, security, retention, and Mailgun transport. Any value saved
  * here overrides the matching MAIL_ / MAILGUN_ entries from .env at
  * runtime via AppServiceProvider::applyMailgunSettings().
  */
@@ -27,6 +29,16 @@ class SystemSettings extends Component
     public bool $quotes_enabled = false;
 
     public bool $payment_tracking_required = false;
+
+    // Workflow
+
+    /**
+     * Hours per step before an application is flagged as waiting too long.
+     * Blank switches the warning off for that step.
+     *
+     * @var array<string, int|string|null>
+     */
+    public array $warning_hours = [];
 
     // Security
     public int $idle_timeout_minutes = 30;
@@ -77,6 +89,9 @@ class SystemSettings extends Component
         $this->vat_percent = number_format($settings->vat_basis_points / 100, 2, '.', '');
         $this->quotes_enabled = (bool) $settings->quotes_enabled;
         $this->payment_tracking_required = (bool) $settings->payment_tracking_required;
+        foreach (ApplicationStage::warningStages() as $stage) {
+            $this->warning_hours[$stage->value] = $settings->warningHoursFor($stage) ?? '';
+        }
         $this->idle_timeout_minutes = (int) $settings->idle_timeout_minutes;
         $this->absolute_timeout_minutes = (int) $settings->absolute_timeout_minutes;
         $this->enforce_client_two_factor = (bool) $settings->enforce_client_two_factor;
@@ -93,7 +108,7 @@ class SystemSettings extends Component
         $this->test_email_recipient = (string) ($user->email ?? '');
     }
 
-    public function save(): void
+    public function save(ApplyStageWarningTimes $applyWarningTimes): void
     {
         $this->resetErrorBag();
         $this->statusMessage = null;
@@ -116,6 +131,12 @@ class SystemSettings extends Component
             'mail_from_address' => ['nullable', 'email', 'max:190'],
             'mail_from_name' => ['nullable', 'string', 'max:190'],
             'notifications_enabled' => ['boolean'],
+            'warning_hours' => ['array'],
+            'warning_hours.*' => ['nullable', 'integer', 'min:1', 'max:8760'],
+        ], [
+            'warning_hours.*.integer' => 'Use whole hours.',
+            'warning_hours.*.min' => 'Use at least 1 hour, or leave blank for no warning.',
+            'warning_hours.*.max' => 'Use at most 8760 hours (one year).',
         ]);
 
         $options = $this->parseRetentionOptions($data['retention_period_options_input']);
@@ -164,6 +185,11 @@ class SystemSettings extends Component
 
         SystemSetting::current()->update($payload);
 
+        $applyWarningTimes->handle(array_map(
+            static fn (mixed $hours): ?int => $hours === null || $hours === '' ? null : (int) $hours,
+            $data['warning_hours'] ?? [],
+        ), $this->currentUser());
+
         // Normalise the retention options input back to the canonical form.
         $this->retention_period_options_input = implode(', ', $options);
         $this->mailgun_secret = '';
@@ -201,7 +227,9 @@ class SystemSettings extends Component
 
     public function render(): View
     {
-        return view('livewire.portal.admin.system-settings');
+        return view('livewire.portal.admin.system-settings', [
+            'warningStages' => ApplicationStage::warningStages(),
+        ]);
     }
 
     /**

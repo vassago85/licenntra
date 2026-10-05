@@ -31,7 +31,7 @@ class Users extends Component
     /** @var array<string, string> */
     public const ROLE_LABELS = [
         'owner' => 'Owner',
-        'reviewer' => 'Reviewer',
+        'reviewer' => 'Operations',
         'finance' => 'Finance',
         'customer_admin' => 'Dealer / fleet admin',
         'customer_user' => 'Dealer / fleet user',

@@ -44,7 +44,7 @@ class DocumentHandoverIndex extends Component
         $this->authorize('viewAny', DocumentHandover::class);
 
         $query = DocumentHandover::query()
-            ->with(['createdBy', 'confirmedBy'])
+            ->with(['createdBy', 'confirmedBy', 'clientAccount'])
             ->withCount('applications')
             ->latest('id');
 

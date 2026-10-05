@@ -6,10 +6,12 @@
                 Record every in-person visit where a licensing-authority representative delivered documents to or collected documents from the dealership. Confirm the hand-over digitally when both parties are at the counter - a printed paper POD/POC is optional.
             </p>
         </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('handovers.create', ['direction' => 'delivery']) }}" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold hover:bg-paper">+ Delivery (from authority)</a>
-            <a href="{{ route('handovers.create', ['direction' => 'collection']) }}" class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">+ Collection (to authority)</a>
-        </div>
+        @can('create', \App\Models\DocumentHandover::class)
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('handovers.create', ['direction' => 'delivery']) }}" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold hover:bg-paper">+ Delivery (from authority)</a>
+                <a href="{{ route('handovers.create', ['direction' => 'collection']) }}" class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">+ Collection (to authority)</a>
+            </div>
+        @endcan
     </div>
 
     @if (session('status'))
@@ -47,6 +49,9 @@
                     <div class="min-w-0 space-y-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="font-semibold">#{{ $handover->id }} - {{ $handover->direction->shortLabel() }}</span>
+                            @unless (auth()->user()->isClient())
+                                <span class="text-xs text-muted">{{ $handover->clientAccount?->name }}</span>
+                            @endunless
                             @if ($handover->isCompleted())
                                 <span class="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-900">Completed {{ $handover->confirmed_at?->format('d M H:i') }}</span>
                             @else

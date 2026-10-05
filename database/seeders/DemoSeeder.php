@@ -10,6 +10,7 @@ use App\Models\Application;
 use App\Models\BrandingSetting;
 use App\Models\BusinessClient;
 use App\Models\ClientAccount;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -81,7 +82,7 @@ class DemoSeeder extends Seeder
         ];
 
         $this->user('Owner', 'owner@licentra.test', 'owner');
-        $reviewer = $this->user('Reviewer', 'reviewer@licentra.test', 'reviewer');
+        $reviewer = $this->user('Operations', 'reviewer@licentra.test', 'reviewer');
         $this->user('Finance', 'finance@licentra.test', 'finance');
         $this->user('Thandi Mokoena', 'thandi.mokoena@highveld.test', 'customer_admin', $accounts['dealer']->id);
         $this->user('Johan Botha', 'johan.botha@highveld.test', 'customer_user', $accounts['dealer']->id);
@@ -283,11 +284,15 @@ class DemoSeeder extends Seeder
             }
 
             if (in_array($stage, ['payment_verified', 'datafix_in_progress', 'submitted_to_authority', 'authority_query', 'approved', 'ready_for_collection', 'completed'], true)) {
+                $onStatement = $account->isOnAccount();
+
                 $application->payments()->create([
                     'amount_cents' => (int) ($application->fee_snapshot['total_cents'] ?? 0),
-                    'method' => 'eft',
-                    'reference' => 'PAY-'.$application->reference,
+                    'method' => $onStatement ? Payment::METHOD_ACCOUNT_STATEMENT : 'eft',
+                    'reference' => $onStatement ? 'On statement' : 'PAY-'.$application->reference,
                     'verified_at' => now()->subDay(),
+                    'on_account' => $onStatement,
+                    'statement_settled_at' => $onStatement && $stage === 'completed' ? now()->subHours(6) : null,
                 ]);
             }
 

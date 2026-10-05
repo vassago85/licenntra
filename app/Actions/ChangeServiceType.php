@@ -24,7 +24,7 @@ class ChangeServiceType
 
         if (! $actor->hasAnyRole(['reviewer', 'owner'])) {
             throw ValidationException::withMessages([
-                'service_type' => 'Only a reviewer can change the service type.',
+                'service_type' => 'Only operations can change the service type.',
             ]);
         }
 

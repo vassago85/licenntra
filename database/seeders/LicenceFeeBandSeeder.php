@@ -34,6 +34,12 @@ use Illuminate\Database\Seeder;
  */
 class LicenceFeeBandSeeder extends Seeder
 {
+    /**
+     * Fee codes this seeder owns on the draft. Every other line on the draft
+     * belongs to the licensing company and is left alone.
+     */
+    private const BAND_CODES = ['licence', 'rtmc_transaction_fee'];
+
     public function run(): void
     {
         foreach (Province::cases() as $province) {
@@ -61,18 +67,25 @@ class LicenceFeeBandSeeder extends Seeder
             return;
         }
 
+        $this->seedBands($version);
+        $this->carryServiceFees($table, $version);
+    }
+
+    private function seedBands(FeeTableVersion $version): void
+    {
         $expected = $this->bands();
+        $bandLines = $version->lines()->whereIn('code', self::BAND_CODES);
 
         /**
          * Only wipe when the band count or structure drifts from the
          * expected gazette layout, so an admin who has already captured
          * province-specific numbers on the draft keeps their edits.
          */
-        if ($version->lines()->count() === count($expected)) {
+        if ((clone $bandLines)->count() === count($expected)) {
             return;
         }
 
-        $version->lines()->delete();
+        $bandLines->delete();
 
         $sort = 0;
 
@@ -91,6 +104,24 @@ class LicenceFeeBandSeeder extends Seeder
                 'tare_max_kg' => $tareMax,
                 'sort_order' => $sort,
             ]);
+        }
+    }
+
+    /**
+     * The gazette only covers licence fees. Registration, datafix, admin,
+     * runner and plate fees are copied from the live version so approving
+     * the draft does not stop the company charging them.
+     */
+    private function carryServiceFees(FeeTable $table, FeeTableVersion $draft): void
+    {
+        $live = $table->versions()->where('status', 'active')->latest('version')->first();
+
+        if ($live === null) {
+            return;
+        }
+
+        foreach ($draft->linesMissingFrom($live) as $line) {
+            $draft->lines()->create($line->only($line->getFillable()));
         }
     }
 

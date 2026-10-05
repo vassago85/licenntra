@@ -24,47 +24,6 @@
         </div>
     </section>
 
-    @if ($seesMoney && $summary)
-        @php
-            $delta = $summary['verified_this_month_cents'] - $summary['verified_last_month_cents'];
-        @endphp
-        <section aria-label="Money">
-            <h2 class="mb-2 text-sm font-semibold">Money</h2>
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <a href="{{ route('finance.invoices') }}" class="rounded-md border border-line bg-white p-3 hover:border-ink">
-                    <p class="text-xs uppercase tracking-wide text-muted">Outstanding</p>
-                    <p class="mt-1 text-xl font-semibold tabular-nums {{ $summary['outstanding_cents'] > 0 ? 'text-amber-800' : '' }}">{{ \App\Support\Money::rands($summary['outstanding_cents']) }}</p>
-                    <p class="mt-0.5 text-xs text-muted">
-                        @if ($summary['oldest_days'] === null)
-                            Nothing owed right now
-                        @else
-                            Oldest {{ $summary['oldest_days'] }} days · {{ $summary['account_count'] }} {{ \Illuminate\Support\Str::plural('account', $summary['account_count']) }}
-                        @endif
-                    </p>
-                </a>
-                <div class="rounded-md border border-line bg-white p-3">
-                    <p class="text-xs uppercase tracking-wide text-muted">Verified this month</p>
-                    <p class="mt-1 text-xl font-semibold tabular-nums">{{ \App\Support\Money::rands($summary['verified_this_month_cents']) }}</p>
-                    <p class="mt-0.5 text-xs text-muted">{{ $delta >= 0 ? '+' : '−' }}{{ \App\Support\Money::rands(abs($delta)) }} vs last month</p>
-                </div>
-                <div class="rounded-md border border-line bg-white p-3">
-                    <p class="text-xs uppercase tracking-wide text-muted">Open quotes</p>
-                    <p class="mt-1 text-xl font-semibold">{{ $summary['open_quote_count'] }}</p>
-                    <p class="mt-0.5 text-xs text-muted">{{ $summary['open_quote_count'] > 0 ? \App\Support\Money::rands($summary['open_quote_cents']).' if accepted' : 'None awaiting a decision' }}</p>
-                </div>
-                <div class="rounded-md border border-line bg-white p-3">
-                    <p class="text-xs uppercase tracking-wide text-muted">Last payment</p>
-                    <p class="mt-1 text-xl font-semibold">{{ $summary['last_payment']?->verified_at?->diffForHumans() ?? 'None yet' }}</p>
-                    <p class="mt-0.5 text-xs text-muted">
-                        @if ($summary['last_payment'])
-                            {{ \App\Support\Money::rands($summary['last_payment']->amount_cents) }} · {{ $summary['last_payment']->application?->reference ?? 'App #'.$summary['last_payment']->application_id }}
-                        @endif
-                    </p>
-                </div>
-            </div>
-        </section>
-    @endif
-
     <section aria-label="Dealerships needing action" class="overflow-hidden rounded-md border border-line bg-white">
         <div class="flex items-center justify-between border-b border-line px-3 py-2">
             <h2 class="text-sm font-semibold">Dealerships needing action</h2>
@@ -85,7 +44,7 @@
                 <tbody class="divide-y divide-line">
                     @forelse ($dealerships as $row)
                         @php
-                            $owedByDealer = $row['waiting_on_dealership_docs'] + $row['quotes_awaiting_dealership'] + $row['payments_owed_by_dealership'];
+                            $owedByDealer = $row['waiting_on_dealership_docs'] + ($quotesEnabled ? $row['quotes_awaiting_dealership'] : 0) + $row['payments_owed_by_dealership'];
                             $oldestDays = $row['oldest_outstanding_at']?->diffInDays(now());
                         @endphp
                         <tr wire:key="dealership-{{ $row['id'] }}">
@@ -117,6 +76,49 @@
         </div>
     </section>
 
+    @if ($seesMoney && $summary)
+        @php
+            $delta = $summary['received_this_month_cents'] - $summary['received_last_month_cents'];
+        @endphp
+        <section aria-label="Money">
+            <h2 class="mb-2 text-sm font-semibold">Money</h2>
+            <div class="grid gap-3 sm:grid-cols-2 {{ $quotesEnabled ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }}">
+                <a href="{{ route('finance.invoices') }}" class="rounded-md border border-line bg-white p-3 hover:border-ink">
+                    <p class="text-xs uppercase tracking-wide text-muted">Outstanding</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums {{ $summary['outstanding_cents'] > 0 ? 'text-amber-800' : '' }}">{{ \App\Support\Money::rands($summary['outstanding_cents']) }}</p>
+                    <p class="mt-0.5 text-xs text-muted">
+                        @if ($summary['oldest_days'] === null)
+                            Nothing owed right now
+                        @else
+                            Oldest {{ $summary['oldest_days'] }} days · {{ $summary['account_count'] }} {{ \Illuminate\Support\Str::plural('account', $summary['account_count']) }}
+                        @endif
+                    </p>
+                </a>
+                <div class="rounded-md border border-line bg-white p-3">
+                    <p class="text-xs uppercase tracking-wide text-muted">Received this month</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums">{{ \App\Support\Money::rands($summary['received_this_month_cents']) }}</p>
+                    <p class="mt-0.5 text-xs text-muted">{{ $delta >= 0 ? '+' : '−' }}{{ \App\Support\Money::rands(abs($delta)) }} vs last month</p>
+                </div>
+                @if ($quotesEnabled)
+                    <div class="rounded-md border border-line bg-white p-3">
+                        <p class="text-xs uppercase tracking-wide text-muted">Open quotes</p>
+                        <p class="mt-1 text-xl font-semibold">{{ $summary['open_quote_count'] }}</p>
+                        <p class="mt-0.5 text-xs text-muted">{{ $summary['open_quote_count'] > 0 ? \App\Support\Money::rands($summary['open_quote_cents']).' if accepted' : 'None awaiting a decision' }}</p>
+                    </div>
+                @endif
+                <div class="rounded-md border border-line bg-white p-3">
+                    <p class="text-xs uppercase tracking-wide text-muted">Last payment</p>
+                    <p class="mt-1 text-xl font-semibold">{{ $summary['last_payment_at']?->diffForHumans() ?? 'None yet' }}</p>
+                    <p class="mt-0.5 text-xs text-muted">
+                        @if ($summary['last_payment'])
+                            {{ \App\Support\Money::rands($summary['last_payment']->amount_cents) }} · {{ $summary['last_payment']->application?->reference ?? 'App #'.$summary['last_payment']->application_id }}
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </section>
+    @endif
+
     @if ($seesMoney)
         <div class="grid gap-6 xl:grid-cols-2">
             <section aria-label="Customers owing" class="overflow-hidden rounded-md border border-line bg-white">
@@ -127,7 +129,7 @@
                             <th class="px-3 py-2 font-medium">Account</th>
                             <th class="px-3 py-2 text-right font-medium">Outstanding</th>
                             <th class="px-3 py-2 font-medium">Oldest</th>
-                            <th class="px-3 py-2 text-right font-medium">Paid 90d</th>
+                            <th class="px-3 py-2 text-right font-medium">Received 90d</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line">
@@ -135,14 +137,16 @@
                             <tr wire:key="balance-{{ $row['account']->id }}">
                                 <td class="px-3 py-2">
                                     <div class="font-medium">{{ $row['account']->name }}</div>
-                                    <div class="text-xs text-muted">{{ $row['open_quotes'] }} open {{ \Illuminate\Support\Str::plural('quote', $row['open_quotes']) }}</div>
+                                    @if ($quotesEnabled)
+                                        <div class="text-xs text-muted">{{ $row['open_quotes'] }} open {{ \Illuminate\Support\Str::plural('quote', $row['open_quotes']) }}</div>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-2 text-right tabular-nums {{ $row['outstanding_cents'] > 0 ? 'font-medium text-amber-800' : 'text-muted' }}">{{ \App\Support\Money::rands($row['outstanding_cents']) }}</td>
                                 <td class="px-3 py-2 text-xs {{ ($row['oldest_days'] ?? 0) > 60 ? 'text-red-800' : (($row['oldest_days'] ?? 0) > 30 ? 'text-amber-800' : 'text-muted') }}">{{ $row['oldest_days'] !== null ? $row['oldest_days'].' days' : '—' }}</td>
-                                <td class="px-3 py-2 text-right tabular-nums text-emerald-800">{{ \App\Support\Money::rands($row['verified_90d_cents']) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums text-emerald-800">{{ \App\Support\Money::rands($row['received_90d_cents']) }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-3 py-8 text-center text-muted">Nothing owed. Every accepted quote is paid.</td></tr>
+                            <tr><td colspan="4" class="px-3 py-8 text-center text-muted">Nothing owed and nothing received in the last 90 days.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -170,7 +174,7 @@
                                 <td class="px-3 py-2 text-right tabular-nums text-muted">{{ $row['average_cents'] !== null ? \App\Support\Money::rands($row['average_cents']) : '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-3 py-8 text-center text-muted">No verified revenue in the last 90 days.</td></tr>
+                            <tr><td colspan="5" class="px-3 py-8 text-center text-muted">No money received in the last 90 days.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -210,7 +214,12 @@
                                 </td>
                                 <td class="px-3 py-2 text-xs">{{ $payment->method ?? '—' }} <span class="font-mono text-muted">{{ $payment->reference }}</span></td>
                                 <td class="px-3 py-2 text-xs">
-                                    @if ($payment->verified_at)
+                                    @if ($payment->on_account && $payment->statement_settled_at)
+                                        <span class="text-emerald-700">Invoice paid</span>
+                                        <span class="text-muted">{{ $payment->statement_settled_at->format('d M') }}</span>
+                                    @elseif ($payment->on_account)
+                                        <span class="text-amber-800">Billed, unpaid</span>
+                                    @elseif ($payment->verified_at)
                                         <span class="text-emerald-700">Verified</span>
                                         <span class="text-muted">by {{ $payment->verifier?->name ?? '—' }}</span>
                                     @else

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ApplicationStage;
 use App\Models\Application;
 use App\Models\ClientAccount;
 use App\Models\Payment;
@@ -11,40 +12,38 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Money figures for the staff overview. "Outstanding" means accepted
- * quotes whose application has not yet been paid in full by verified
- * payments; age runs from the quote acceptance date.
+ * Money figures for the staff overview.
+ *
+ * "Outstanding" is everything a client owes: fees billed onto a statement
+ * or for invoicing that no paid invoice has settled yet, applications
+ * waiting for an up-front payment, and accepted quotes not yet billed.
+ *
+ * "Received" is money that actually landed: verified cash payments, plus
+ * billed entries on the day finance marked their invoice paid.
  */
 class ReceivablesService
 {
     /**
-     * @return array{outstanding_cents: int, oldest_days: ?int, account_count: int, verified_this_month_cents: int, verified_last_month_cents: int, open_quote_count: int, open_quote_cents: int, last_payment: ?Payment}
+     * @return array{outstanding_cents: int, oldest_days: ?int, account_count: int, received_this_month_cents: int, received_last_month_cents: int, open_quote_count: int, open_quote_cents: int, last_payment: ?Payment, last_payment_at: ?Carbon}
      */
     public function summary(): array
     {
         $outstanding = $this->outstandingByApplication();
+        $lastMonth = Carbon::now()->subMonthNoOverflow();
+        [$lastPayment, $lastPaymentAt] = $this->lastReceipt();
 
         return [
             'outstanding_cents' => (int) $outstanding->sum('balance_cents'),
             'oldest_days' => $outstanding->max('age_days'),
             'account_count' => $outstanding->pluck('account_id')->unique()->count(),
-            'verified_this_month_cents' => (int) Payment::query()
-                ->whereNotNull('verified_at')
-                ->where('verified_at', '>=', Carbon::now()->startOfMonth())
-                ->sum('amount_cents'),
-            'verified_last_month_cents' => (int) Payment::query()
-                ->whereNotNull('verified_at')
-                ->whereBetween('verified_at', [Carbon::now()->subMonthNoOverflow()->startOfMonth(), Carbon::now()->subMonthNoOverflow()->endOfMonth()])
-                ->sum('amount_cents'),
+            'received_this_month_cents' => array_sum($this->receivedByAccountBetween(Carbon::now()->startOfMonth(), Carbon::now())),
+            'received_last_month_cents' => array_sum($this->receivedByAccountBetween($lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth())),
             'open_quote_count' => Quote::query()->where('status', 'sent')->count(),
             'open_quote_cents' => (int) QuoteLine::query()
                 ->whereHas('quote', fn ($query) => $query->where('status', 'sent'))
                 ->sum('client_price_cents'),
-            'last_payment' => Payment::query()
-                ->whereNotNull('verified_at')
-                ->with('application:id,reference')
-                ->latest('verified_at')
-                ->first(),
+            'last_payment' => $lastPayment,
+            'last_payment_at' => $lastPaymentAt,
         ];
     }
 
@@ -52,12 +51,12 @@ class ReceivablesService
      * Accounts that owe money or paid something in the last 90 days, largest
      * balance first.
      *
-     * @return Collection<int, array{account: ClientAccount, outstanding_cents: int, oldest_days: ?int, open_quotes: int, verified_90d_cents: int}>
+     * @return Collection<int, array{account: ClientAccount, outstanding_cents: int, oldest_days: ?int, open_quotes: int, received_90d_cents: int}>
      */
     public function customerBalances(int $limit = 10): Collection
     {
         $balances = [];
-        $blank = ['outstanding_cents' => 0, 'oldest_days' => null, 'open_quotes' => 0, 'verified_90d_cents' => 0];
+        $blank = ['outstanding_cents' => 0, 'oldest_days' => null, 'open_quotes' => 0, 'received_90d_cents' => 0];
 
         foreach ($this->outstandingByApplication() as $row) {
             $balances[$row['account_id']] ??= $blank;
@@ -77,12 +76,12 @@ class ReceivablesService
             $balances[(int) $accountId]['open_quotes'] = (int) $total;
         }
 
-        foreach ($this->verifiedByAccountSince(Carbon::now()->subDays(90)) as $accountId => $cents) {
+        foreach ($this->receivedByAccountBetween(Carbon::now()->subDays(90), Carbon::now()) as $accountId => $cents) {
             $balances[$accountId] ??= $blank;
-            $balances[$accountId]['verified_90d_cents'] = $cents;
+            $balances[$accountId]['received_90d_cents'] = $cents;
         }
 
-        $balances = array_filter($balances, fn (array $row): bool => $row['outstanding_cents'] > 0 || $row['verified_90d_cents'] > 0);
+        $balances = array_filter($balances, fn (array $row): bool => $row['outstanding_cents'] > 0 || $row['received_90d_cents'] > 0);
         $accounts = ClientAccount::query()->whereIn('id', array_keys($balances))->get()->keyBy('id');
 
         return collect($balances)
@@ -94,14 +93,14 @@ class ReceivablesService
     }
 
     /**
-     * Top accounts by verified revenue over the window, with throughput.
+     * Top accounts by received revenue over the window, with throughput.
      *
      * @return Collection<int, array{account: ClientAccount, applications: int, revenue_cents: int, average_cents: ?int}>
      */
     public function topCustomers(int $days = 90, int $limit = 10): Collection
     {
         $since = Carbon::now()->subDays($days);
-        $revenue = $this->verifiedByAccountSince($since);
+        $revenue = array_filter($this->receivedByAccountBetween($since, Carbon::now()), fn (int $cents): bool => $cents > 0);
 
         if ($revenue === []) {
             return collect();
@@ -138,47 +137,104 @@ class ReceivablesService
      */
     private function outstandingByApplication(): Collection
     {
-        $quotes = Quote::query()
+        $now = Carbon::now();
+        $ageFrom = fn (?Carbon $date): int => $date ? (int) $date->diffInDays($now) : 0;
+
+        $billed = Payment::query()
+            ->outstandingOnStatement()
+            ->with('application:id,client_account_id')
+            ->get()
+            ->filter(fn (Payment $payment): bool => $payment->application !== null)
+            ->map(fn (Payment $payment): array => [
+                'application_id' => (int) $payment->application_id,
+                'account_id' => (int) $payment->application->client_account_id,
+                'balance_cents' => (int) $payment->amount_cents,
+                'age_days' => $ageFrom($payment->verified_at ?? $payment->created_at),
+            ]);
+
+        $awaitingCash = Application::query()
+            ->where('stage', ApplicationStage::PaymentPending)
+            ->whereDoesntHave('payments', fn ($query) => $query->whereNotNull('verified_at'))
+            ->get(['id', 'client_account_id', 'fee_snapshot', 'updated_at'])
+            ->map(fn (Application $application): array => [
+                'application_id' => (int) $application->id,
+                'account_id' => (int) $application->client_account_id,
+                'balance_cents' => (int) ($application->fee_snapshot['total_cents'] ?? 0),
+                'age_days' => $ageFrom($application->updated_at),
+            ]);
+
+        $acceptedNotBilled = Quote::query()
             ->where('status', 'accepted')
+            ->whereHas('application', fn ($query) => $query->where('stage', ApplicationStage::QuoteAccepted))
             ->with(['lines:id,quote_id,client_price_cents', 'application:id,client_account_id'])
             ->get()
-            ->filter(fn (Quote $quote): bool => $quote->application !== null);
+            ->map(fn (Quote $quote): array => [
+                'application_id' => (int) $quote->application_id,
+                'account_id' => (int) $quote->application->client_account_id,
+                'balance_cents' => (int) $quote->lines->sum('client_price_cents'),
+                'age_days' => $ageFrom($quote->updated_at ?? $quote->created_at),
+            ]);
 
-        $paidByApplication = Payment::query()
-            ->whereNotNull('verified_at')
-            ->whereIn('application_id', $quotes->pluck('application_id')->unique())
-            ->selectRaw('application_id, sum(amount_cents) as total')
-            ->groupBy('application_id')
-            ->pluck('total', 'application_id');
-
-        return $quotes
-            ->map(function (Quote $quote) use ($paidByApplication): array {
-                $acceptedAt = $quote->updated_at ?? $quote->created_at;
-
-                return [
-                    'application_id' => (int) $quote->application_id,
-                    'account_id' => (int) $quote->application->client_account_id,
-                    'balance_cents' => (int) $quote->lines->sum('client_price_cents') - (int) ($paidByApplication[$quote->application_id] ?? 0),
-                    'age_days' => $acceptedAt ? (int) $acceptedAt->diffInDays(Carbon::now()) : 0,
-                ];
-            })
+        return $billed
+            ->concat($awaitingCash)
+            ->concat($acceptedNotBilled)
             ->filter(fn (array $row): bool => $row['balance_cents'] > 0)
             ->values();
     }
 
     /**
-     * @return array<int, int> account id => verified cents
+     * @return array<int, int> account id => received cents
      */
-    private function verifiedByAccountSince(Carbon $since): array
+    private function receivedByAccountBetween(Carbon $from, Carbon $until): array
     {
-        return Payment::query()
-            ->whereNotNull('payments.verified_at')
-            ->where('payments.verified_at', '>=', $since)
-            ->join('applications', 'applications.id', '=', 'payments.application_id')
-            ->selectRaw('applications.client_account_id as account_id, sum(payments.amount_cents) as total')
-            ->groupBy('applications.client_account_id')
-            ->pluck('total', 'account_id')
-            ->mapWithKeys(fn ($total, $accountId): array => [(int) $accountId => (int) $total])
-            ->all();
+        $cash = Payment::query()
+            ->where('payments.on_account', false)
+            ->whereBetween('payments.verified_at', [$from, $until]);
+
+        $settled = Payment::query()
+            ->where('payments.on_account', true)
+            ->whereBetween('payments.statement_settled_at', [$from, $until]);
+
+        $received = [];
+
+        foreach ([$cash, $settled] as $query) {
+            $totals = $query
+                ->join('applications', 'applications.id', '=', 'payments.application_id')
+                ->selectRaw('applications.client_account_id as account_id, sum(payments.amount_cents) as total')
+                ->groupBy('applications.client_account_id')
+                ->pluck('total', 'account_id');
+
+            foreach ($totals as $accountId => $total) {
+                $received[(int) $accountId] = ($received[(int) $accountId] ?? 0) + (int) $total;
+            }
+        }
+
+        return $received;
+    }
+
+    /**
+     * @return array{0: ?Payment, 1: ?Carbon}
+     */
+    private function lastReceipt(): array
+    {
+        $cash = Payment::query()
+            ->where('on_account', false)
+            ->whereNotNull('verified_at')
+            ->with('application:id,reference')
+            ->latest('verified_at')
+            ->first();
+
+        $settled = Payment::query()
+            ->where('on_account', true)
+            ->whereNotNull('statement_settled_at')
+            ->with('application:id,reference')
+            ->latest('statement_settled_at')
+            ->first();
+
+        if ($settled !== null && ($cash === null || $settled->statement_settled_at->greaterThan($cash->verified_at))) {
+            return [$settled, $settled->statement_settled_at];
+        }
+
+        return [$cash, $cash?->verified_at];
     }
 }

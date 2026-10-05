@@ -11,6 +11,7 @@ use App\Models\AuditEvent;
 use App\Models\ClientAccount;
 use App\Models\FeeLine;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use Database\Seeders\DocumentRuleSeeder;
 use Database\Seeders\FeeTableSeeder;
 use Illuminate\Database\QueryException;
@@ -136,20 +137,25 @@ it('stops a commercial vehicle reaching the authority without a completed datafi
     $reviewer = accountUser('reviewer');
     $finance = accountUser('finance');
     $transition = app(TransitionApplication::class);
+    FeatureFlags::swapPaymentTrackingRequired(true);
 
-    $transition->handle($application, ApplicationStage::Submitted, $client);
-    $application->refresh();
-    $transition->handle($application, ApplicationStage::DocumentReview, null, isSystem: true);
-    $application->refresh();
-    $transition->handle($application, ApplicationStage::PaymentPending, $reviewer);
-    $application->refresh();
-    $application->payments()->create([
-        'amount_cents' => $application->fee_snapshot['total_cents'],
-        'method' => 'eft',
-        'reference' => 'PAY-1',
-    ]);
-    $transition->handle($application, ApplicationStage::PaymentVerified, $finance);
-    $application->refresh();
+    try {
+        $transition->handle($application, ApplicationStage::Submitted, $client);
+        $application->refresh();
+        $transition->handle($application, ApplicationStage::DocumentReview, null, isSystem: true);
+        $application->refresh();
+        $transition->handle($application, ApplicationStage::PaymentPending, $reviewer);
+        $application->refresh();
+        $application->payments()->create([
+            'amount_cents' => $application->fee_snapshot['total_cents'],
+            'method' => 'eft',
+            'reference' => 'PAY-1',
+        ]);
+        $transition->handle($application, ApplicationStage::PaymentVerified, $finance);
+        $application->refresh();
+    } finally {
+        FeatureFlags::swapPaymentTrackingRequired(null);
+    }
 
     expect(fn () => $transition->handle($application, ApplicationStage::SubmittedToAuthority, $reviewer))
         ->toThrow(InvalidTransition::class);

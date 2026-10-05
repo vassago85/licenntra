@@ -26,7 +26,7 @@ it('shows operations and money panels to finance and the owner', function (strin
         ->assertOk()
         ->assertSee('Outstanding tasks')
         ->assertSee('Dealerships needing action')
-        ->assertSee('Verified this month')
+        ->assertSee('Received this month')
         ->assertSee('Top customers');
 })->with(['owner', 'finance']);
 
@@ -36,7 +36,7 @@ it('shows a reviewer the operations panels without the money', function (): void
         ->assertOk()
         ->assertSee('Outstanding tasks')
         ->assertSee('Recent activity')
-        ->assertDontSee('Verified this month')
+        ->assertDontSee('Received this month')
         ->assertDontSee('Top customers');
 });
 

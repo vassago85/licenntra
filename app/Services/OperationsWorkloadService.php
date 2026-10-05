@@ -16,6 +16,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Single source of truth for the dealership operations workspace.
@@ -86,40 +87,76 @@ class OperationsWorkloadService
      */
     public function isReadyForAuthority(Application $application): bool
     {
-        $stage = $application->stage;
+        return $this->authorityBlockers($application) === [];
+    }
 
-        $resubmitFromQuery = $stage === ApplicationStage::AuthorityQuery;
+    /**
+     * Plain-language reasons the application cannot go to the licensing
+     * department yet. An empty list means it is ready for a pack.
+     *
+     * @return list<string>
+     */
+    public function authorityBlockers(Application $application): array
+    {
+        $stage = $application->stage;
 
         if (! in_array($stage, [
             ApplicationStage::PaymentVerified,
             ApplicationStage::DatafixInProgress,
             ApplicationStage::AuthorityQuery,
         ], true)) {
-            return false;
+            return ['Not at a stage that goes to the department ('.$stage->label().').'];
         }
 
-        $missingDoc = $application->documents()
+        $blockers = [];
+        $resubmitFromQuery = $stage === ApplicationStage::AuthorityQuery;
+
+        if ($resubmitFromQuery && $application->authority_query_resolved_at === null) {
+            $blockers[] = 'Resolve the department query first.';
+        }
+
+        $notAccepted = $application->documents()
             ->where('required', true)
             ->where('status', '!=', DocumentStatus::Accepted)
-            ->exists();
+            ->count();
 
-        if ($missingDoc) {
-            return false;
+        if ($notAccepted > 0) {
+            $blockers[] = $notAccepted.' required '.Str::plural('document', $notAccepted).' not accepted yet.';
         }
 
-        $hasVerifiedPayment = $application->payments()
-            ->whereNotNull('verified_at')
-            ->exists();
+        $withoutFile = $application->documents()
+            ->with('documentType')
+            ->where('required', true)
+            ->where('status', DocumentStatus::Accepted)
+            ->whereNull('linked_version_id')
+            ->get();
+
+        foreach ($withoutFile as $document) {
+            $blockers[] = $document->label().' has no file on record to print.';
+        }
+
+        $awaitingOriginals = $application->documents()
+            ->with('documentType')
+            ->where('required', true)
+            ->whereNull('original_received_at')
+            ->whereHas('documentType', fn (Builder $q) => $q->where('requires_original', true))
+            ->get();
+
+        foreach ($awaitingOriginals as $document) {
+            $blockers[] = 'Original '.$document->label().' not received yet.';
+        }
+
+        $hasVerifiedPayment = $application->payments()->whereNotNull('verified_at')->exists();
 
         if (! $hasVerifiedPayment && ! $resubmitFromQuery) {
-            return false;
+            $blockers[] = 'Payment not verified or billed yet.';
         }
 
         if ($this->needsDatafix($application) && $application->datafix_status !== DatafixStatus::Completed) {
-            return false;
+            $blockers[] = 'Datafix not completed.';
         }
 
-        return true;
+        return $blockers;
     }
 
     /**
@@ -148,7 +185,7 @@ class OperationsWorkloadService
                 'count' => $this->readyForAuthorityApplications()->count(),
                 'tone' => 'info',
                 'url' => $this->tabUrl(self::TAB_SUBMISSION_PACKS),
-                'description' => 'All required documents accepted. Prepare a submission pack and print.',
+                'description' => 'Documents accepted, originals in hand and any query resolved. Print the pack, then submit.',
             ],
             [
                 'key' => 'awaiting_return',
@@ -156,7 +193,7 @@ class OperationsWorkloadService
                 'count' => $this->awaitingReturnApplications()->count(),
                 'tone' => 'neutral',
                 'url' => $this->tabUrl(self::TAB_AWAITING_RETURN),
-                'description' => 'With the licensing department. Track days outstanding and follow up.',
+                'description' => 'At the department, or approved but not physically back yet. Follow up and record receipt.',
             ],
             [
                 'key' => 'returned_handover',
@@ -164,70 +201,66 @@ class OperationsWorkloadService
                 'count' => $this->returnedHandoverApplications()->count(),
                 'tone' => 'info',
                 'url' => $this->tabUrl(self::TAB_RETURNED_HANDOVER),
-                'description' => 'Documents or discs returned by the department. Hand over to the customer.',
+                'description' => 'Physical receipt recorded. Hand the documents or disc over to the customer.',
             ],
         ];
     }
 
     /**
-     * Combined outstanding count for the top counter. Covers every row the
-     * outstanding tab lists, so the counter and the destination tab agree.
+     * One per row the outstanding tab lists: each document to review, each
+     * payment to verify, each open department query and each overdue return.
      */
     private function outstandingTaskCount(): int
     {
-        $applicationIds = collect();
-        $applicationIds = $applicationIds->merge($this->awaitingDocumentApprovalTasks()->pluck('application_id'));
+        $count = $this->awaitingDocumentApprovalTasks()->count();
 
         if (FeatureFlags::paymentTrackingRequired()) {
-            $applicationIds = $applicationIds->merge($this->paymentVerificationTasks()->pluck('application_id'));
+            $count += $this->paymentVerificationTasks()->count();
         }
 
-        $applicationIds = $applicationIds->merge(
-            $this->awaitingReturnApplications()
-                ->where(function (Builder $q): void {
-                    $q->whereNotNull('due_at')->where('due_at', '<', now());
-                })
-                ->pluck('id')
-        );
-
-        $applicationIds = $applicationIds->merge($this->authorityQueryApplications()->pluck('id'));
-
-        return $applicationIds->unique()->count();
+        return $count
+            + $this->authorityQueryApplications()->count()
+            + $this->overdueAwaitingReturnApplications()->count();
     }
 
     /**
-     * Applications submitted to the licensing department and now awaiting
-     * physical return of the documents or disc. Authority queries live
-     * alongside these because they are a form of "still with the department".
+     * Applications whose paperwork is out of the office: lodged with the
+     * department, or approved by it but not yet physically received back.
      */
     public function awaitingReturnApplications(): Builder
     {
         return Application::query()
             ->whereIn('stage', [
                 ApplicationStage::SubmittedToAuthority,
-                ApplicationStage::AuthorityQuery,
+                ApplicationStage::Approved,
             ]);
     }
 
-    /**
-     * Applications where the authority has raised a query. Reviewer must
-     * resolve before the submission counts as still "in flight".
-     */
-    public function authorityQueryApplications(): Builder
+    public function overdueAwaitingReturnApplications(): Builder
     {
-        return Application::query()->where('stage', ApplicationStage::AuthorityQuery);
+        return $this->awaitingReturnApplications()
+            ->whereNotNull('due_at')
+            ->where('due_at', '<', now());
     }
 
     /**
-     * Applications where documents or disc have been returned by the
-     * department and are ready to hand over to the customer.
+     * Department queries nobody has resolved yet. Once a resolution is
+     * recorded the application moves to the submission-pack list instead.
+     */
+    public function authorityQueryApplications(): Builder
+    {
+        return Application::query()
+            ->where('stage', ApplicationStage::AuthorityQuery)
+            ->whereNull('authority_query_resolved_at');
+    }
+
+    /**
+     * Applications whose documents or disc are physically back in the
+     * office (receipt recorded) and waiting to go to the customer.
      */
     public function returnedHandoverApplications(): Builder
     {
-        return Application::query()->whereIn('stage', [
-            ApplicationStage::Approved,
-            ApplicationStage::ReadyForCollection,
-        ]);
+        return Application::query()->where('stage', ApplicationStage::ReadyForCollection);
     }
 
     /**
@@ -405,6 +438,18 @@ class OperationsWorkloadService
                 $q->where('required', true)
                     ->where('status', '!=', DocumentStatus::Accepted);
             })
+            ->whereDoesntHave('documents', function (Builder $q): void {
+                $q->where('required', true)
+                    ->whereNull('original_received_at')
+                    ->whereHas('documentType', fn (Builder $type) => $type->where('requires_original', true));
+            })
+            ->whereDoesntHave('documents', function (Builder $q): void {
+                $q->where('required', true)->whereNull('linked_version_id');
+            })
+            ->where(function (Builder $q): void {
+                $q->where('stage', '!=', ApplicationStage::AuthorityQuery)
+                    ->orWhereNotNull('authority_query_resolved_at');
+            })
             ->where(function (Builder $q): void {
                 $q->whereHas('payments', fn (Builder $p) => $p->whereNotNull('verified_at'))
                     ->orWhere('stage', ApplicationStage::AuthorityQuery);
@@ -478,7 +523,7 @@ class OperationsWorkloadService
     }
 
     /**
-     * Applications past their stage SLA that still need work.
+     * Applications past their step's warning time that still need work.
      */
     public function overdueApplications(): Builder
     {
@@ -810,16 +855,14 @@ class OperationsWorkloadService
 
         // Overdue awaiting-return rows surface in the outstanding tab too
         // because an overdue return is a licensing-company follow-up task.
-        foreach ($this->awaitingReturnApplications()
-            ->whereNotNull('due_at')
-            ->where('due_at', '<', now())
+        foreach ($this->overdueAwaitingReturnApplications()
             ->with(['clientAccount:id,name,type', 'reviewer:id,name', 'submittedBy:id,name', 'vehicle:id,application_id,vehicle_register_number,vin'])
             ->get() as $application) {
             if (! $this->matchesFilters($application, $filters)) {
                 continue;
             }
 
-            $rows->push($this->buildFollowUpReturnRow($application));
+            $rows->push($this->buildAwaitingReturnRow($application));
         }
 
         return $rows;
@@ -859,14 +902,18 @@ class OperationsWorkloadService
                 continue;
             }
 
-            $rows->push(
-                $application->stage === ApplicationStage::AuthorityQuery
-                    ? $this->buildAuthorityQueryRow($application)
-                    : $this->buildFollowUpReturnRow($application),
-            );
+            $rows->push($this->buildAwaitingReturnRow($application));
         }
 
         return $rows;
+    }
+
+    /** @return array<string, mixed> */
+    private function buildAwaitingReturnRow(Application $application): array
+    {
+        return $application->stage === ApplicationStage::Approved
+            ? $this->buildRecordReturnRow($application)
+            : $this->buildFollowUpReturnRow($application);
     }
 
     /** @param  array{account_id?: ?int, reviewer_id?: ?int, overdue?: ?bool, search?: ?string, submitted_by_id?: ?int, province?: ?string}  $filters */
@@ -883,11 +930,7 @@ class OperationsWorkloadService
                 continue;
             }
 
-            $rows->push(
-                $application->stage === ApplicationStage::Approved
-                    ? $this->buildRecordReturnRow($application)
-                    : $this->buildArrangeHandoverRow($application),
-            );
+            $rows->push($this->buildArrangeHandoverRow($application));
         }
 
         return $rows;
@@ -1024,19 +1067,18 @@ class OperationsWorkloadService
     }
 
     /**
-     * "Prepare submission pack" row. In chunk 1 the pack preview is not
-     * built yet, so the action opens the review workspace. Chunk 2 swaps
-     * this URL to the pack preview page.
+     * Submission-pack row. Until a pack listing the current document
+     * versions exists the task is to prepare and print it; afterwards the
+     * task is to lodge it and capture the department's reference.
      *
      * @return array<string, mixed>
      */
     private function buildSubmissionPackRow(Application $application): array
     {
-        return [
-            'kind' => 'prepare_pack',
-            'task_key' => 'pack:'.$application->id,
-            'label' => 'Prepare submission pack',
-            'blocker' => 'All required documents accepted; ready to assemble.',
+        $pack = $application->currentSubmissionPack();
+        $resubmission = $application->stage === ApplicationStage::AuthorityQuery;
+
+        $common = [
             'application' => $application,
             'account' => $application->clientAccount,
             'reviewer' => $application->reviewer,
@@ -1046,9 +1088,37 @@ class OperationsWorkloadService
             'waiting_since' => $application->updated_at,
             'due_at' => $application->due_at,
             'overdue' => $this->isOverdue($application),
-            'action_label' => 'Open application',
-            'action_url' => route('review.show', ['application' => $application->id]),
+            'pack_url' => route('review.packs.print', ['ids' => $application->id]),
         ];
+
+        if ($pack !== null) {
+            return $common + [
+                'kind' => 'ready_to_submit',
+                'task_key' => 'pack:'.$application->id,
+                'label' => $resubmission ? 'Resubmit pack to the department' : 'Submit pack to the department',
+                'blocker' => sprintf(
+                    'Pack printed %s by %s · %d %s.',
+                    $pack->created_at->format('d M H:i'),
+                    $pack->preparedBy?->name ?? 'unknown',
+                    $pack->documentCount(),
+                    Str::plural('document', $pack->documentCount()),
+                ),
+                'action_label' => 'Submit to authority',
+                'action_url' => route('review.show', ['application' => $application->id]),
+            ];
+        }
+
+        return array_merge($common, [
+            'kind' => 'prepare_pack',
+            'task_key' => 'pack:'.$application->id,
+            'label' => $resubmission ? 'Prepare resubmission pack' : 'Prepare submission pack',
+            'blocker' => $resubmission
+                ? 'Query resolved: '.Str::limit((string) $application->authority_query_resolution, 90)
+                : 'Documents accepted and originals in hand.',
+            'action_label' => 'Prepare and print pack',
+            'action_url' => route('review.show', ['application' => $application->id]),
+            'pack_url' => null,
+        ]);
     }
 
     /**
@@ -1090,7 +1160,7 @@ class OperationsWorkloadService
             'kind' => 'resolve_query',
             'task_key' => 'query:'.$application->id,
             'label' => 'Resolve a department query',
-            'blocker' => 'Authority raised a query. Resolve and resubmit.',
+            'blocker' => Str::limit($application->latestAuthorityQueryNote() ?? 'Authority raised a query. Resolve and resubmit.', 120),
             'application' => $application,
             'account' => $application->clientAccount,
             'reviewer' => $application->reviewer,
@@ -1116,7 +1186,7 @@ class OperationsWorkloadService
             'kind' => 'record_return',
             'task_key' => 'return:'.$application->id,
             'label' => 'Record returned documents/disc',
-            'blocker' => 'Authority approved. Capture physical receipt of documents.',
+            'blocker' => 'Department approved; not physically back yet. Record receipt when it arrives.',
             'application' => $application,
             'account' => $application->clientAccount,
             'reviewer' => $application->reviewer,
@@ -1142,18 +1212,24 @@ class OperationsWorkloadService
             'kind' => 'arrange_handover',
             'task_key' => 'handover:'.$application->id,
             'label' => 'Arrange customer handover',
-            'blocker' => 'Documents ready. Hand over to the customer.',
+            'blocker' => $application->authority_returned_at
+                ? 'Back in the office since '.$application->authority_returned_at->format('d M H:i').'.'
+                : 'Documents ready. Hand over to the customer.',
             'application' => $application,
             'account' => $application->clientAccount,
             'reviewer' => $application->reviewer,
             'submitted_by' => $application->submittedBy,
             'vehicle_registration' => $application->vehicle?->vehicle_register_number,
             'vehicle_vin' => $application->vehicle?->vin,
-            'waiting_since' => $application->updated_at,
+            'waiting_since' => $application->authority_returned_at ?? $application->updated_at,
             'due_at' => $application->due_at,
             'overdue' => $this->isOverdue($application),
-            'action_label' => 'Open application',
-            'action_url' => route('review.show', ['application' => $application->id]),
+            'action_label' => 'Record hand-over',
+            'action_url' => route('handovers.create', [
+                'direction' => 'delivery',
+                'account' => $application->client_account_id,
+                'application' => $application->id,
+            ]),
         ];
     }
 
@@ -1186,7 +1262,7 @@ class OperationsWorkloadService
     {
         return match ($application->stage) {
             ApplicationStage::Draft => ['Await customer submission', 'Draft not yet submitted'],
-            ApplicationStage::ChangesRequested => ['Request missing documents or corrections', 'Reviewer requested changes'],
+            ApplicationStage::ChangesRequested => ['Request missing documents or corrections', 'Operations requested changes'],
             ApplicationStage::QuoteSent => ['Await customer quote acceptance', 'Quote sent, no decision yet'],
             ApplicationStage::PaymentPending => ['Await customer payment', 'Fee snapshot taken, awaiting payment'],
             default => ['Await customer action', null],
@@ -1323,11 +1399,16 @@ class OperationsWorkloadService
             $pendingDocs > 0 => ['review_docs', 'Review documents', $openApp, "{$pendingDocs} document(s) waiting"],
             $hasPendingPayment => ['verify_payment', 'Verify payment', route('finance.payments', ['application' => $application->id]), 'Payment uploaded, needs verification'],
             $paymentOwed => ['open_app', 'Chase payment', $openApp, 'Dealership owes payment'],
-            $application->stage === ApplicationStage::QuoteSent => ['open_app', 'Chase quote decision', $openApp, 'Quote sent, no decision yet'],
-            $application->stage === ApplicationStage::QuoteRequired => ['open_quote', 'Build quote', route('applications.quote', ['application' => $application->id]), 'Quote required'],
+            $application->stage === ApplicationStage::QuoteSent && FeatureFlags::quotesEnabled() => ['open_app', 'Chase quote decision', $openApp, 'Quote sent, no decision yet'],
+            $application->stage === ApplicationStage::QuoteRequired && FeatureFlags::quotesEnabled() => ['open_quote', 'Build quote', route('applications.quote', ['application' => $application->id]), 'Quote required'],
             $application->stage === ApplicationStage::ChangesRequested => ['open_app', 'Chase corrections', $openApp, 'Changes requested from dealership'],
             $application->stage === ApplicationStage::Draft => ['open_app', 'Open draft', $openApp, 'Draft not yet submitted'],
-            $this->isReadyForAuthority($application) => ['submit_authority', 'Submit to authority', route('tasks.outstanding', ['tab' => self::TAB_READY_TO_SUBMIT, 'submit' => $application->id]), 'Ready for authority submission'],
+            $application->stage === ApplicationStage::AuthorityQuery && $application->authority_query_resolved_at === null => ['open_app', 'Resolve query', $openApp, 'Department raised a query'],
+            $this->isReadyForAuthority($application) => $application->currentSubmissionPack() !== null
+                ? ['submit_authority', 'Submit to authority', $openApp, 'Pack printed, ready to lodge']
+                : ['prepare_pack', 'Prepare pack', $openApp, 'Ready for a submission pack'],
+            $application->stage === ApplicationStage::Approved => ['open_app', 'Record receipt', $openApp, 'Approved, not physically back yet'],
+            $application->stage === ApplicationStage::ReadyForCollection => ['open_handover', 'Record hand-over', route('handovers.create', ['direction' => 'delivery', 'account' => $application->client_account_id, 'application' => $application->id]), 'Back in the office'],
             default => ['open_app', 'Open application', $openApp, null],
         };
     }

@@ -31,10 +31,10 @@ class ChangesRequestedForDealer extends Notification implements ShouldQueue
     {
         $message = $this->newBrandedMailMessage($this->branding)
             ->subject($this->brandedSubject($this->branding, 'Changes requested', $this->application->reference))
-            ->line('A reviewer requested changes on '.$this->application->reference.'.');
+            ->line('Our operations team requested changes on '.$this->application->reference.'.');
 
         if (filled($this->reason)) {
-            $message->line('Reviewer note: '.$this->reason);
+            $message->line('Operations note: '.$this->reason);
         }
 
         return $message

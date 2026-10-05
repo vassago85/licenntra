@@ -125,7 +125,7 @@
                             <th class="px-3 py-2 text-left font-medium">Stage</th>
                             <th class="hidden lg:table-cell px-3 py-2 text-left font-medium">Docs</th>
                             <th class="hidden lg:table-cell px-3 py-2 text-left font-medium">Payment</th>
-                            <th class="hidden xl:table-cell px-3 py-2 text-left font-medium">Reviewer</th>
+                            <th class="hidden xl:table-cell px-3 py-2 text-left font-medium">Assigned to</th>
                             <th class="px-3 py-2 text-left font-medium">Due</th>
                             <th class="px-3 py-2 text-right font-medium">Action</th>
                         </tr>
@@ -137,7 +137,8 @@
                                 $actionAllowed = match ($card['next_action_key']) {
                                     'review_docs' => $canReviewDocuments,
                                     'verify_payment' => $canVerifyPayments,
-                                    'submit_authority' => $canSubmitToAuthority,
+                                    'submit_authority', 'prepare_pack' => $canSubmitToAuthority,
+                                    'open_handover' => $canReviewDocuments,
                                     'open_quote' => $canBuildQuotes,
                                     default => true,
                                 };
@@ -214,7 +215,8 @@
                         $actionAllowed = match ($card['next_action_key']) {
                             'review_docs' => $canReviewDocuments,
                             'verify_payment' => $canVerifyPayments,
-                            'submit_authority' => $canSubmitToAuthority,
+                            'submit_authority', 'prepare_pack' => $canSubmitToAuthority,
+                                    'open_handover' => $canReviewDocuments,
                             'open_quote' => $canBuildQuotes,
                             default => true,
                         };
@@ -240,7 +242,7 @@
                                 <span>&middot;</span>
                                 <span>{{ $card['request_type_label'] }}</span>
                                 <span>&middot;</span>
-                                <span>Reviewer: {{ $card['reviewer']?->name ?? 'Unassigned' }}</span>
+                                <span>Assigned to: {{ $card['reviewer']?->name ?? 'Unassigned' }}</span>
                             </div>
 
                             <div class="flex flex-wrap gap-1.5">

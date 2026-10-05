@@ -16,6 +16,7 @@ use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\BusinessClient;
 use App\Models\FleetVehicle;
+use App\Models\Vehicle;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -351,11 +352,7 @@ class ApplicationForm extends Component
             ->orderBy('id')
             ->get() ?? collect();
 
-        $estimate = null;
-
-        if ($this->application?->province) {
-            $estimate = app(CalculateFees::class)->snapshot($this->application);
-        }
+        $estimate = $this->estimateFromForm();
 
         $user = auth()->user();
 
@@ -377,6 +374,38 @@ class ApplicationForm extends Component
             'estimate' => $estimate,
             'money' => Money::class,
         ]);
+    }
+
+    /**
+     * Prices the form as it stands, saved or not, so the estimate follows
+     * every province, category and tare change without a save.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function estimateFromForm(): ?array
+    {
+        $province = Province::tryFrom($this->province);
+
+        if ($province === null) {
+            return null;
+        }
+
+        $user = auth()->user();
+        $preview = new Application;
+        $preview->forceFill([
+            'client_account_id' => $this->application?->client_account_id ?? $user?->client_account_id,
+            'province' => $province,
+            'request_type' => RequestType::tryFrom($this->request_type),
+            'service_type' => ServiceType::tryFrom($this->service_type),
+            'vehicle_category' => VehicleCategory::tryFrom($this->vehicle_category),
+            'licence_category' => LicenceFeeCategory::tryFrom($this->licence_category),
+        ]);
+        $preview->setRelation('clientAccount', $this->application?->clientAccount ?? $user?->clientAccount);
+        $preview->setRelation('vehicle', new Vehicle([
+            'tare_kg' => ctype_digit(trim($this->tare_kg)) ? (int) trim($this->tare_kg) : null,
+        ]));
+
+        return app(CalculateFees::class)->snapshot($preview);
     }
 
     /**

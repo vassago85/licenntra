@@ -172,6 +172,7 @@ it('still waits for the dealer to accept when there is no standing agreement', f
 
 it('lets a standing-agreement import skip the quote when quotes are on', function (): void {
     FeatureFlags::swapQuotesEnabled(true);
+    FeatureFlags::swapPaymentTrackingRequired(true);
 
     try {
         $standing = quoteBillingApplication(quoteBillingAccount(standingAgreement: true), RequestType::Import);
@@ -185,6 +186,7 @@ it('lets a standing-agreement import skip the quote when quotes are on', functio
             ->toThrow(InvalidTransition::class, 'Imports and exports need a quote before payment.');
     } finally {
         FeatureFlags::swapQuotesEnabled(null);
+        FeatureFlags::swapPaymentTrackingRequired(null);
     }
 });
 

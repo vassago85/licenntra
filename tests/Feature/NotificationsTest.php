@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\RecordAuthorityReturn;
 use App\Actions\SendQuote;
 use App\Actions\SubmitToAuthority;
 use App\Actions\TransitionApplication;
@@ -188,14 +189,11 @@ it('sends an authority-submitted notification when a reviewer submits', function
     });
 });
 
-it('sends a ready-for-collection notification when the stage advances', function (): void {
+it('sends a ready-for-collection notification when the returned documents are received', function (): void {
     $application = makeReadyApplication($this->dealership, ApplicationStage::Approved);
+    $application->forceFill(['authority_submitted_at' => now()->subDays(3)])->save();
 
-    app(TransitionApplication::class)->handle(
-        $application,
-        ApplicationStage::ReadyForCollection,
-        $this->admin,
-    );
+    app(RecordAuthorityReturn::class)->handle($application, $this->admin, now());
 
     Notification::assertSentOnDemandTimes(ApplicationReadyForCollection::class, 1);
 });
