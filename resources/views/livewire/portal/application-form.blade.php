@@ -66,6 +66,11 @@
                     <p class="text-xs text-muted sm:col-span-2">The dealer-stock reg doc from your stock file must be collected alongside the original NaTIS before the pack goes to the licensing authority.</p>
                 @endif
             @endif
+            @if ($isDealerStock)
+                <p class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 sm:col-span-2">
+                    <span class="font-semibold">Dealer stock:</span> no title holder is captured and the "Owner" section drops down to one picker - stock into this dealership, or stock directly into a fleet customer's name (fleet-claim arrangements).
+                </p>
+            @endif
         </section>
 
         <section class="grid gap-3 rounded-md border border-line bg-white p-3 sm:grid-cols-2">
@@ -81,7 +86,35 @@
         </section>
 
         <section class="space-y-3 rounded-md border border-line bg-white p-3">
-            <h2 class="text-sm font-semibold">Owner</h2>
+            <h2 class="text-sm font-semibold">
+                {{ $isDealerStock ? 'Stock into' : 'Owner' }}
+            </h2>
+            @if ($isDealerStock)
+                <label class="block text-sm">Stock into
+                    <select wire:model.live="business_client_id" class="mt-1 w-full rounded-md border border-line px-2 py-2">
+                        <option value="">This dealership{{ $dealership?->name ? ' (' . $dealership->name . ')' : '' }}</option>
+                        <option value="new">+ New fleet (business client)</option>
+                        @foreach ($owners as $owner)
+                            <option value="{{ $owner->id }}">{{ $owner->business_name }}</option>
+                        @endforeach
+                    </select>
+                    <span class="mt-1 block text-xs text-muted">
+                        Pick a fleet when the dealership is stocking the vehicle directly into a customer's name - common for fleet-claim arrangements where the fleet must be the registered owner from day one.
+                    </span>
+                </label>
+                @if ($business_client_id === 'new')
+                    <div class="grid gap-3 rounded-md border border-dashed border-line bg-paper p-3 sm:grid-cols-2">
+                        <p class="text-xs text-muted sm:col-span-2">
+                            This record is saved to Business clients and can be re-used on later stock-ins or renewals for the same fleet.
+                        </p>
+                        <label class="text-sm">Fleet name <input wire:model="new_business_name" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+                        <label class="text-sm">Registration number <input wire:model="new_registration_number" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+                        <label class="text-sm">Proxy name <input wire:model="new_proxy_name" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+                        <label class="text-sm">Proxy ID <input wire:model="new_proxy_id_number" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+                        <label class="text-sm sm:col-span-2">Address <input wire:model="new_address" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+                    </div>
+                @endif
+            @else
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="text-sm">Owner type
                     <select wire:model.live="owner_type" class="mt-1 w-full rounded-md border border-line px-2 py-2">
@@ -168,6 +201,7 @@
                         </p>
                     </div>
                 @endif
+            @endif
             @endif
         </section>
 

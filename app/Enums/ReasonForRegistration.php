@@ -38,6 +38,9 @@ enum ReasonForRegistration: string
     {
         return match ($requestType) {
             RequestType::NewRegistration => self::FirstRegistration,
+            // Dealer stock is almost always a brand-new vehicle entering
+            // the dealership's inventory from the OEM for the first time.
+            RequestType::DealerStock => self::FirstRegistration,
             RequestType::ChangeOfOwnership => self::OwnershipChange,
             default => self::OwnershipChange,
         };

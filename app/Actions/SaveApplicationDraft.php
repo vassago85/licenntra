@@ -114,14 +114,31 @@ class SaveApplicationDraft
                 $isFinanced = false;
             }
 
-            // Dealer-stock resales only exist as a concept on a change of
-            // ownership. On any other request type we drop the flag so a
-            // stale UI tick doesn't attach the dealer-stock reg-doc slot
-            // to a renewal or duplicate pack.
+            // The `is_dealer_stock` flag has two valid shapes:
+            //  - on a change-of-ownership resale: dealer ticks "vehicle
+            //    was dealer stock" so the dealer-stock reg-doc slot gets
+            //    added to the checklist;
+            //  - on a dealer-stock request itself: the whole transaction
+            //    IS a dealer-stock event, so the flag is set implicitly.
+            // On any other request type we drop the flag so a stale UI
+            // tick doesn't attach the dealer-stock reg-doc slot to a
+            // renewal or duplicate pack.
             $isDealerStock = (bool) ($data['is_dealer_stock'] ?? false);
 
-            if ($requestType !== null && $requestType !== RequestType::ChangeOfOwnership) {
+            if ($requestType === RequestType::DealerStock) {
+                $isDealerStock = true;
+            } elseif ($requestType !== null && $requestType !== RequestType::ChangeOfOwnership) {
                 $isDealerStock = false;
+            }
+
+            // Dealer stock is always a business transaction - either the
+            // dealership itself or a fleet BusinessClient owns the vehicle
+            // from day one. Force owner_type=business so the UI never gets
+            // into a state where the dealer accidentally submits a
+            // dealer-stock request as an individual-owned vehicle.
+            $ownerType = $data['owner_type'] ?? null;
+            if ($requestType === RequestType::DealerStock) {
+                $ownerType = OwnerType::Business->value;
             }
 
             $application->fill([
@@ -129,7 +146,7 @@ class SaveApplicationDraft
                 'service_type' => $data['service_type'] ?? null,
                 'vehicle_category' => $data['vehicle_category'] ?? null,
                 'licence_category' => $this->resolveLicenceCategory($data, $application),
-                'owner_type' => $data['owner_type'] ?? null,
+                'owner_type' => $ownerType,
                 'province' => $data['province'] ?? null,
                 'is_financed' => $isFinanced,
                 'is_dealer_stock' => $isDealerStock,
@@ -307,6 +324,27 @@ class SaveApplicationDraft
                 'identifier' => $client?->registration_number,
                 'address' => $client?->address,
                 'business_client_id' => $client?->id,
+            ]);
+
+            return;
+        }
+
+        // Dealer stock into the dealership itself: no BusinessClient was
+        // picked because the dealership IS the owner. Write the owner
+        // party using the dealership's own account name so the reviewer
+        // workspace, RLV preview, and pack print still show a real owner
+        // instead of a blank slot.
+        if ($application->owner_type === OwnerType::Business
+            && $application->request_type === RequestType::DealerStock
+            && ! $application->business_client_id) {
+            $dealership = $application->clientAccount;
+
+            $application->parties()->updateOrCreate(['role' => 'owner'], [
+                'party_type' => 'business',
+                'name' => $dealership?->name,
+                'identifier' => $dealership?->brn,
+                'address' => null,
+                'business_client_id' => null,
             ]);
 
             return;

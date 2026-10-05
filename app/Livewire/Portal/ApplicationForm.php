@@ -191,11 +191,25 @@ class ApplicationForm extends Component
             $this->title_holder_business_client_id = '';
         }
 
-        // Dealer-stock is a change-of-ownership-only concept. Any switch
-        // away from that request type should clear the local flag so the
-        // UI matches what the backend will store.
-        if ($name === 'request_type' && $this->request_type !== RequestType::ChangeOfOwnership->value) {
+        // Dealer-stock resale (checkbox on change-of-ownership) only
+        // exists on that one request type. On a brand-new DealerStock
+        // request the flag is forced true server-side instead - the
+        // whole transaction IS a dealer-stock event, so we don't need a
+        // UI checkbox for it. Clear the flag locally for every OTHER
+        // request type so the UI matches what the backend will store.
+        if ($name === 'request_type'
+            && $this->request_type !== RequestType::ChangeOfOwnership->value
+            && $this->request_type !== RequestType::DealerStock->value) {
             $this->is_dealer_stock = false;
+        }
+
+        // Dealer stock is always a business transaction (dealership or
+        // fleet owns the vehicle). Snap owner_type to business the
+        // moment the user picks DealerStock so the "Owner" section
+        // renders the "Stock into" picker instead of flashing the
+        // individual-owner inputs before the next render cycle.
+        if ($name === 'request_type' && $this->request_type === RequestType::DealerStock->value) {
+            $this->owner_type = OwnerType::Business->value;
         }
 
         if (in_array($name, $watched, true)) {
@@ -215,6 +229,21 @@ class ApplicationForm extends Component
         }
 
         return RequestType::from($this->request_type)->requiresTitleHolder();
+    }
+
+    /**
+     * Whether the dealer picked "Dealer stock" as the request type.
+     * Collapses the owner section down to a single "Stock into" picker
+     * and hides the title-holder, financed, and dealer-stock-checkbox
+     * controls that don't apply.
+     */
+    public function isDealerStock(): bool
+    {
+        if ($this->request_type === '') {
+            return false;
+        }
+
+        return RequestType::from($this->request_type)->isDealerStock();
     }
 
     public function save(): void
@@ -345,6 +374,8 @@ class ApplicationForm extends Component
             'canUploadDocument' => fn ($document) => $user?->can('upload', $document) ?? false,
             'canDownloadDocument' => fn ($document) => $user?->can('download', $document) ?? false,
             'showsTitleHolderPrompt' => $this->requiresTitleHolder(),
+            'isDealerStock' => $this->isDealerStock(),
+            'dealership' => $user?->clientAccount,
             'estimate' => $estimate,
             'money' => Money::class,
         ]);
