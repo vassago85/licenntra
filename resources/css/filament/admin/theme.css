@@ -2,3 +2,65 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/components/portal/**/*';
+
+@theme {
+    /* Portal design tokens so the shared sidebar and chrome render correctly
+       inside the Filament panel. Mirrors resources/css/app.css. */
+    --font-sans: Arial, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --color-paper: #f6f8fa;
+    --color-ink: #172329;
+    --color-muted: #62717a;
+    --color-line: #dce3e8;
+    --color-surface: #ffffff;
+    --color-soft: #eaf4f0;
+    --color-accent: #146d61;
+    --color-danger: #ac403b;
+    --color-warn: #946018;
+}
+
+/*
+ * One sidebar for every user — hide Filament's native chrome and let the
+ * portal sidebar take over. The Filament layout stays functional underneath;
+ * it just loses its sidebar, topbar and (on desktop) left padding so the
+ * portal sidebar sits in the correct slot.
+ */
+.fi-sidebar,
+.fi-topbar,
+.fi-layout-sidebar-toggle-btn-ctn {
+    display: none !important;
+}
+
+.fi-main-ctn {
+    margin-inline-start: 0 !important;
+    padding-top: 0 !important;
+}
+
+@media (min-width: 1024px) {
+    .fi-main-ctn {
+        margin-inline-start: 176px !important;
+    }
+}
+
+/* Mobile hamburger that replaces Filament's hidden topbar toggle. */
+.licentra-shell-menu-btn {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    border: 1px solid var(--color-line);
+}
+
+@media (min-width: 1024px) {
+    .licentra-shell-menu-btn {
+        display: none;
+    }
+}

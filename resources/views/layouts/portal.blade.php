@@ -57,7 +57,7 @@
         </span>
     </div>
 
-    <div class="lg:grid lg:grid-cols-[176px_1fr]">
+    <div class="min-h-screen lg:pl-[176px]">
         <x-portal.sidebar :branding="$branding" />
 
         <div class="flex min-h-screen flex-col">
