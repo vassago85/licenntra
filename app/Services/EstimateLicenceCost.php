@@ -189,9 +189,16 @@ class EstimateLicenceCost
             $query->whereNull('tare_min_kg')->whereNull('tare_max_kg');
         }
 
+        // Prefer the specific (tare-bound) band over an unconstrained one;
+        // for tare-bound candidates prefer the LOWEST tare_min_kg so a tare
+        // sitting on a band boundary (e.g. 18 500 falling into both the
+        // 18 001-18 500 and 18 501-19 000 bands if their edges overlap)
+        // resolves to the lower band. The gazette rule "500 kg or part
+        // thereof" means a vehicle at exactly the top of a band belongs
+        // to that band, not the next one up.
         return $query
             ->orderByRaw('CASE WHEN tare_min_kg IS NULL THEN 1 ELSE 0 END')
-            ->orderByDesc('tare_min_kg')
+            ->orderBy('tare_min_kg')
             ->first();
     }
 

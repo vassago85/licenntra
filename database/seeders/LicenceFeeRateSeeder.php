@@ -171,7 +171,10 @@ class LicenceFeeRateSeeder extends Seeder
         $prevMax = 0;
 
         foreach ($tareMaxValues as $max) {
-            $min = $prevMax === 0 ? 0 : $prevMax;
+            // Bands are half-open at the top: 0-250, 251-500, 501-750, ...
+            // so the min of each band after the first is prevMax + 1, matching
+            // LicenceFeeBandSeeder's tare_min_kg values.
+            $min = $prevMax === 0 ? 0 : $prevMax + 1;
             $prevMax = $max;
 
             $value = $provinceBands[$max] ?? null;
@@ -199,7 +202,9 @@ class LicenceFeeRateSeeder extends Seeder
 
         for ($max = 12500; $max <= 32000; $max += 500) {
             $current += $stepRand;
-            $out[$category.'|'.($max - 500).'|'.$max] = $current;
+            // Bands above 12 000 kg use the same half-open rule: 12 001-12 500,
+            // 12 501-13 000, ..., matching LicenceFeeBandSeeder's tare_min_kg.
+            $out[$category.'|'.($max - 500 + 1).'|'.$max] = $current;
         }
     }
 

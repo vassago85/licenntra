@@ -176,23 +176,26 @@ class LicenceFeeBandSeeder extends Seeder
         $bands = [];
         $humanPrefix = $prefix;
 
-        // 250 kg steps, 0 -> 7 500 kg.
+        // 250 kg steps, 0 -> 7 500 kg. Bands are stored half-open at the top
+        // so that a tare of exactly 500 kg sits in 251-500, not 501-750 — the
+        // gazette's "part thereof" rule means every step up to and including
+        // the top of a band belongs to that band, not the next one.
         for ($max = 250; $max <= 7500; $max += 250) {
             $min = $max === 250 ? 0 : $max - 250 + 1;
-            $bands[] = [$category, $min === 0 ? 0 : $min - 1, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
+            $bands[] = [$category, $min, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
         }
 
         // 500 kg steps, 7 500 -> 12 000 kg (gazette switches to 500 kg bands at 7 500).
         for ($max = 8000; $max <= 12000; $max += 500) {
             $min = $max - 500 + 1;
-            $bands[] = [$category, $min - 1, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
+            $bands[] = [$category, $min, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
         }
 
         // 500 kg steps above 12 000 kg carrying the gazette's surcharge rule.
         // Capped at 32 000 kg which covers heavy rigid trucks and the heaviest trailers.
         for ($max = 12500; $max <= 32000; $max += 500) {
             $min = $max - 500 + 1;
-            $bands[] = [$category, $min - 1, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
+            $bands[] = [$category, $min, $max, $humanPrefix.' - '.$this->bandLabel($min, $max)];
         }
 
         return $bands;
