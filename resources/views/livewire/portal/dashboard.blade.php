@@ -210,8 +210,11 @@
                 <h2 class="border-b border-line px-4 py-3 text-sm font-semibold">Business clients · retention</h2>
                 @forelse ($retention as $client)
                     @php
-                        $daysLeft = $client->retention_expires_at ? now()->diffInDays($client->retention_expires_at, false) : null;
-                        $isExpiring = $daysLeft !== null && $daysLeft <= 30 && $daysLeft >= 0;
+                        $daysLeft = $client->retention_expires_at
+                            ? (int) floor(now()->diffInDays($client->retention_expires_at, false))
+                            : null;
+                        $isFuture = $daysLeft !== null && $daysLeft >= 0;
+                        $isExpiring = $isFuture && $daysLeft <= 30;
                     @endphp
                     <div class="flex flex-col gap-1 border-b border-line px-4 py-3 last:border-0">
                         <div class="text-sm font-medium">{{ $client->business_name }}</div>
@@ -219,7 +222,8 @@
                             @if ($client->legal_hold)
                                 Legal hold · retained indefinitely
                             @elseif ($client->retention_expires_at)
-                                Documents deleted on {{ $client->retention_expires_at->format('j M Y') }}
+                                {{ $isFuture ? 'Scheduled for deletion on' : 'Documents deleted on' }}
+                                {{ $client->retention_expires_at->format('j M Y') }}
                                 @if ($isExpiring)
                                     ({{ $daysLeft }} day{{ $daysLeft === 1 ? '' : 's' }})
                                 @else

@@ -388,7 +388,7 @@ class ApplicationShow extends Component
         // Did the reviewer actually record feedback for this application?
         // Without evidence we must not tell the dealer their "feedback is
         // addressed" - we might just have landed here with an empty slate.
-        $hadReviewerFeedback = $this->application->stageHistory()
+        $hadReviewerFeedback = $this->application->stageHistories()
             ->where('to_stage', ApplicationStage::ChangesRequested->value)
             ->whereNotNull('reason')
             ->exists()

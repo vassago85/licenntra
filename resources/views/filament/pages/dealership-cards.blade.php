@@ -22,6 +22,7 @@
                         wire:model.live="account_id"
                         class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                     >
+                        <option value="">— Pick a dealership —</option>
                         @foreach ($allDealerships as $id => $name)
                             <option value="{{ $id }}">{{ $name }}</option>
                         @endforeach
@@ -64,6 +65,11 @@
             </div>
         </div>
 
+        @if ($account === null)
+            <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                Pick a dealership above to see its active applications.
+            </div>
+        @else
         {{-- Summary strip --}}
         <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
             <div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
@@ -304,6 +310,7 @@
                     </div>
                 @endforeach
             </div>
+        @endif
         @endif
     </div>
 </x-filament-panels::page>

@@ -413,6 +413,16 @@ it('card board page is reachable by internal staff for a given dealership and 40
     $this->actingAs($this->admin)->get('/admin/dealership-cards?account_id=99999')->assertNotFound();
 });
 
+it('card board page renders a dealership picker when visited with no account_id instead of 404', function () {
+    // Previously the page 404d when visited without ?account_id= - which
+    // broke the sidebar link that intentionally omits it. The page now
+    // falls back to a picker.
+    $this->actingAs($this->admin)
+        ->get('/admin/dealership-cards')
+        ->assertSuccessful()
+        ->assertSee('Pick a dealership');
+});
+
 it('dealerships whose only outstanding work is a payment they still owe remain visible in the default view', function () {
     Application::query()->create([
         'reference' => 'OPS-'.uniqid(),

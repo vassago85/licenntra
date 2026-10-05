@@ -67,7 +67,12 @@ class DealershipCards extends Page
             request()->string('view')->value() ?: Session::get('dealership_cards.view', 'cards'),
         );
 
-        abort_unless($this->account(), 404);
+        // Only 404 when a specific account was requested but does not exist.
+        // Reaching this page with no account picked is a legitimate state -
+        // we render a dealership picker in that case.
+        if ($this->account_id !== null && $this->account() === null) {
+            abort(404);
+        }
     }
 
     public function updatedViewMode(string $value): void
@@ -134,7 +139,11 @@ class DealershipCards extends Page
             'assigned_to' => $this->mine && $user?->hasRole('reviewer') ? $user->id : null,
         ];
 
-        $cards = $service->applicationCards($account, $filters);
+        // No dealership picked yet: show just the picker.
+        // Every downstream variable has to be safe to render.
+        $cards = $account !== null
+            ? $service->applicationCards($account, $filters)
+            : collect();
 
         $stageOptions = collect(ApplicationStage::cases())
             ->reject(fn (ApplicationStage $s): bool => $s->isTerminal())

@@ -25,7 +25,7 @@
     if ($user) {
         $primaryRole = collect($user->getRoleNames())->first();
         $contextRole = match ($primaryRole) {
-            'super_admin' => 'Company superadmin',
+            'super_admin' => 'Super admin',
             'customer_admin' => 'Operations admin',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',

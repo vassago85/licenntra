@@ -326,9 +326,12 @@
         @if ($application->stage === \App\Enums\ApplicationStage::ChangesRequested)
             <section class="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                 <h2 class="font-semibold">Requested fixes</h2>
-                @if ($outstandingFixes->isEmpty())
+                @if ($outstandingFixes->isEmpty() && $hadReviewerFeedback)
                     <p class="mt-1">All reviewer feedback is addressed. You can send this back for review.</p>
                     <button type="button" wire:click="resubmit" class="mt-3 h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Send back for review</button>
+                @elseif ($outstandingFixes->isEmpty())
+                    <p class="mt-1">No specific fixes have been recorded by the reviewer. Open the draft to make the changes you discussed, or add a note below for clarification before resubmitting.</p>
+                    <a href="{{ route('applications.edit', $application) }}" class="mt-3 inline-flex h-9 items-center rounded-md border border-amber-300 bg-white px-3 text-sm font-semibold">Open draft</a>
                 @else
                     <p class="mt-1">The reviewer needs the following before this application can continue:</p>
                     <ul class="mt-2 space-y-2">
