@@ -91,16 +91,36 @@ class SaveApplicationDraft
             ]);
 
             $businessClientId = $this->resolveBusinessClient($actor, $data, $application);
-            $titleHolderId = $this->resolveTitleHolder($actor, $data, $application);
+
+            $requestType = isset($data['request_type']) && is_string($data['request_type']) && $data['request_type'] !== ''
+                ? RequestType::from($data['request_type'])
+                : null;
+
+            // Title holder is only ever captured for first registrations and
+            // ownership changes. On a renewal (or duplicate, deregistration,
+            // etc) eNaTIS already has the current title holder on record, so
+            // strip any stale UI state before it hits the row - this stops
+            // dealers accidentally shipping a disc renewal to a reviewer with
+            // "financed by Nedbank" leaking into the RLV pack, and also
+            // short-circuits inline "+ New title holder" record creation so
+            // we don't pollute the shared bank list on a renewal typo.
+            $isFinanced = (bool) ($data['is_financed'] ?? false);
+            $titleHolderId = null;
+
+            if ($requestType === null || $requestType->requiresTitleHolder()) {
+                $titleHolderId = $this->resolveTitleHolder($actor, $data, $application);
+            } else {
+                $isFinanced = false;
+            }
 
             $application->fill([
-                'request_type' => $data['request_type'] ?? null,
+                'request_type' => $requestType,
                 'service_type' => $data['service_type'] ?? null,
                 'vehicle_category' => $data['vehicle_category'] ?? null,
                 'licence_category' => $this->resolveLicenceCategory($data, $application),
                 'owner_type' => $data['owner_type'] ?? null,
                 'province' => $data['province'] ?? null,
-                'is_financed' => (bool) ($data['is_financed'] ?? false),
+                'is_financed' => $isFinanced,
                 'dangerous_goods' => (bool) ($data['dangerous_goods'] ?? false),
                 'business_client_id' => $businessClientId,
                 'title_holder_business_client_id' => $titleHolderId,

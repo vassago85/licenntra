@@ -83,9 +83,15 @@
                         @endforeach
                     </select>
                 </label>
-                <label class="flex items-end gap-2 text-sm">
-                    <input type="checkbox" wire:model.live="is_financed"> Financed, with a title holder
-                </label>
+                @if ($showsTitleHolderPrompt)
+                    <label class="flex items-end gap-2 text-sm">
+                        <input type="checkbox" wire:model.live="is_financed"> Financed, with a title holder
+                    </label>
+                @else
+                    <p class="self-end text-xs text-muted">
+                        Title holder not required for {{ $request_type ? \App\Enums\RequestType::from($request_type)->label() : 'this request' }} - eNaTIS already has it on record.
+                    </p>
+                @endif
             </div>
             @if ($owner_type === 'business')
                 <label class="block text-sm">Saved business client
@@ -114,7 +120,7 @@
                     <label class="text-sm sm:col-span-2">Address <input wire:model.blur="owner_address" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
                 </div>
             @endif
-            @if ($is_financed)
+            @if ($is_financed && $showsTitleHolderPrompt)
                 <label class="block text-sm">Title holder
                     <select wire:model.live="title_holder_business_client_id" class="mt-1 w-full rounded-md border border-line px-2 py-2">
                         <option value="">Choose</option>

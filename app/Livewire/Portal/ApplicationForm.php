@@ -178,9 +178,34 @@ class ApplicationForm extends Component
             return;
         }
 
+        // Switching to a request type where the title holder is irrelevant
+        // (renewal, duplicate disc, etc) should visibly drop the finance
+        // state so the dealer sees the same picture the DB is about to
+        // store. Without this the checkbox stays ticked and the dropdown
+        // keeps the previous title holder selected, even though the
+        // backend will null them out on save.
+        if ($name === 'request_type' && ! $this->requiresTitleHolder()) {
+            $this->is_financed = false;
+            $this->title_holder_business_client_id = '';
+        }
+
         if (in_array($name, $watched, true)) {
             $this->persist(false);
         }
+    }
+
+    /**
+     * Whether the currently chosen request type ever involves a title
+     * holder. Returns true when no request type has been chosen yet so
+     * the dealer still sees the control while they fill in the form.
+     */
+    public function requiresTitleHolder(): bool
+    {
+        if ($this->request_type === '') {
+            return true;
+        }
+
+        return RequestType::from($this->request_type)->requiresTitleHolder();
     }
 
     public function save(): void
@@ -274,6 +299,7 @@ class ApplicationForm extends Component
             'documents' => $documents,
             'canUploadDocument' => fn ($document) => $user?->can('upload', $document) ?? false,
             'canDownloadDocument' => fn ($document) => $user?->can('download', $document) ?? false,
+            'showsTitleHolderPrompt' => $this->requiresTitleHolder(),
             'estimate' => $estimate,
             'money' => Money::class,
         ]);
