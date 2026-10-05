@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\OffboardReason;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -14,16 +16,38 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'client_account_id', 'is_active'])]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'client_account_id',
+    'is_active',
+    'offboarded_at',
+    'offboard_reason',
+    'offboard_note',
+    'offboarded_by_id',
+    'anonymised_at',
+])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
+    /**
+     * How long an offboarded staff record is retained in identifiable form
+     * before the scheduled anonymisation sweep scrubs its PII.
+     */
+    public const RETENTION_YEARS = 5;
+
     public function clientAccount(): BelongsTo
     {
         return $this->belongsTo(ClientAccount::class);
+    }
+
+    public function offboardedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'offboarded_by_id');
     }
 
     public function isClient(): bool
@@ -36,15 +60,36 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasAnyRole(['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor']);
     }
 
+    public function isOffboarded(): bool
+    {
+        return $this->offboarded_at !== null;
+    }
+
+    public function isAnonymised(): bool
+    {
+        return $this->anonymised_at !== null;
+    }
+
+    public function retentionEndsAt(): ?CarbonImmutable
+    {
+        if ($this->offboarded_at === null) {
+            return null;
+        }
+
+        return CarbonImmutable::parse($this->offboarded_at)->addYears(self::RETENTION_YEARS);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_active && $this->hasAnyRole([
-            'super_admin',
-            'customer_admin',
-            'reviewer',
-            'finance',
-            'auditor',
-        ]);
+        return $this->is_active
+            && ! $this->isOffboarded()
+            && $this->hasAnyRole([
+                'super_admin',
+                'customer_admin',
+                'reviewer',
+                'finance',
+                'auditor',
+            ]);
     }
 
     /**
@@ -54,7 +99,9 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canConfigure(): bool
     {
-        return $this->is_active && $this->hasAnyRole(['super_admin', 'customer_admin']);
+        return $this->is_active
+            && ! $this->isOffboarded()
+            && $this->hasAnyRole(['super_admin', 'customer_admin']);
     }
 
     public function canAcceptQuotes(): bool
@@ -76,6 +123,9 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'is_active' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
+            'offboarded_at' => 'datetime',
+            'offboard_reason' => OffboardReason::class,
+            'anonymised_at' => 'datetime',
         ];
     }
 }

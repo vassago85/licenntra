@@ -44,7 +44,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::authenticateUsing(function (Request $request): ?User {
             $user = User::query()->where('email', Str::lower((string) $request->input(Fortify::username())))->first();
 
-            if ($user === null || ! $user->is_active) {
+            if ($user === null || ! $user->is_active || $user->isOffboarded()) {
                 return null;
             }
 
