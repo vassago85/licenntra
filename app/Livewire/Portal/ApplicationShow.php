@@ -6,6 +6,7 @@ use App\Actions\AcceptQuote;
 use App\Actions\AddApplicationNote;
 use App\Actions\MarkInvoicePaid;
 use App\Actions\MarkInvoiceUnpaid;
+use App\Actions\SendDeliverablesToCustomer;
 use App\Actions\StoreDeliverable;
 use App\Actions\StoreDocument;
 use App\Actions\StoreInvoice;
@@ -54,6 +55,18 @@ class ApplicationShow extends Component
     public ?int $invoicePayingId = null;
 
     public string $invoicePaidReference = '';
+
+    /** Deliverable ids the dealer picks for the next customer email. */
+    public array $sendDeliverableIds = [];
+
+    public string $sendRecipientEmail = '';
+
+    public string $sendMessage = '';
+
+    /** Flash message shown after a successful "sent to customer". */
+    public string $sendStatus = '';
+
+    public bool $showSendForm = false;
 
     public function mount(Application $application): void
     {
@@ -160,6 +173,61 @@ class ApplicationShow extends Component
 
         $deliverable->delete();
 
+        $this->application->refresh();
+    }
+
+    /**
+     * Open the inline "send to customer" form, pre-selecting every
+     * deliverable on the application and pre-filling the recipient
+     * email from the owner business client's proxy contact when it
+     * already looks like an email address.
+     */
+    public function openSendForm(): void
+    {
+        $this->authorize('sendToCustomer', [DeliverableDocument::class, $this->application]);
+
+        $this->sendStatus = '';
+        $this->showSendForm = true;
+        $this->sendDeliverableIds = $this->application->deliverables->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $proxyContact = (string) ($this->application->businessClient?->proxy_contact ?? '');
+
+        $this->sendRecipientEmail = str_contains($proxyContact, '@') ? $proxyContact : '';
+        $this->sendMessage = '';
+    }
+
+    public function closeSendForm(): void
+    {
+        $this->showSendForm = false;
+        $this->sendDeliverableIds = [];
+        $this->sendRecipientEmail = '';
+        $this->sendMessage = '';
+    }
+
+    public function sendDeliverablesToCustomer(): void
+    {
+        $this->authorize('sendToCustomer', [DeliverableDocument::class, $this->application]);
+
+        try {
+            $count = app(SendDeliverablesToCustomer::class)->handle(
+                $this->application,
+                auth()->user(),
+                $this->sendRecipientEmail,
+                array_map('intval', $this->sendDeliverableIds),
+                $this->sendMessage !== '' ? $this->sendMessage : null,
+            );
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->sendStatus = $count === 1
+            ? '1 document emailed to the customer.'
+            : $count.' documents emailed to the customer.';
+        $this->closeSendForm();
         $this->application->refresh();
     }
 
@@ -305,6 +373,7 @@ class ApplicationShow extends Component
             'quote' => $this->application->quotes()->where('status', 'sent')->latest('id')->first(),
             'deliverableKinds' => DeliverableKind::cases(),
             'canUploadDeliverable' => auth()->user()?->can('upload', [DeliverableDocument::class, $this->application]) ?? false,
+            'canSendToCustomer' => auth()->user()?->can('sendToCustomer', [DeliverableDocument::class, $this->application]) ?? false,
             'canUploadInvoice' => $canUploadInvoice,
             'dealershipUsers' => $dealershipUsers,
             'stockControllerId' => $stockControllerId,

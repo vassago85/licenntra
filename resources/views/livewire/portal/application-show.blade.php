@@ -63,7 +63,66 @@
 
         @if ($application->deliverables->isNotEmpty() || $canUploadDeliverable)
             <section class="rounded-md border border-line bg-white">
-                <h2 class="border-b border-line px-3 py-2 text-sm font-semibold">Returned from the authority</h2>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
+                    <h2 class="text-sm font-semibold">Returned from the authority</h2>
+                    @if ($canSendToCustomer && $application->deliverables->isNotEmpty() && ! $showSendForm)
+                        <button type="button" wire:click="openSendForm" class="h-8 rounded-md px-3 text-xs font-semibold text-white" style="background: var(--brand)">
+                            Email to customer
+                        </button>
+                    @endif
+                </div>
+
+                @if ($sendStatus !== '')
+                    <p class="mx-3 mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{{ $sendStatus }}</p>
+                @endif
+
+                @if ($showSendForm)
+                    <form wire:submit.prevent="sendDeliverablesToCustomer" class="space-y-3 border-b border-line bg-paper px-3 py-3 text-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Email to customer</p>
+                            <button type="button" wire:click="closeSendForm" class="text-xs text-muted hover:underline">Cancel</button>
+                        </div>
+
+                        <div>
+                            <p class="text-xs text-muted">Documents to attach</p>
+                            <div class="mt-1 space-y-1">
+                                @foreach ($application->deliverables as $d)
+                                    <label class="flex items-start gap-2 text-xs" wire:key="send-opt-{{ $d->id }}">
+                                        <input type="checkbox" wire:model="sendDeliverableIds" value="{{ $d->id }}" class="mt-0.5">
+                                        <span>
+                                            <span class="font-semibold">{{ $d->displayLabel() }}</span>
+                                            <span class="ml-1 text-muted">· {{ $d->original_filename }} · {{ number_format($d->size_bytes / 1024, 0) }} KB</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('deliverable_ids')
+                                <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <label class="block">
+                            <span class="text-xs text-muted">Customer email</span>
+                            <input type="email" wire:model="sendRecipientEmail" maxlength="254" required class="mt-1 h-9 w-full rounded-md border border-line bg-white px-2 text-sm" placeholder="customer@example.com">
+                            @error('recipient_email')
+                                <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
+                            @enderror
+                        </label>
+
+                        <label class="block">
+                            <span class="text-xs text-muted">Message to include (optional)</span>
+                            <textarea wire:model="sendMessage" rows="2" maxlength="2000" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-2 text-sm" placeholder="e.g. Your disc and NaTIS are attached. Keep the original NaTIS in the vehicle at all times."></textarea>
+                            @error('dealer_message')
+                                <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
+                            @enderror
+                        </label>
+
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Send email</button>
+                        </div>
+                    </form>
+                @endif
+
                 @if ($application->deliverables->isEmpty())
                     <p class="px-3 py-3 text-sm text-muted">No documents uploaded yet.</p>
                 @else
