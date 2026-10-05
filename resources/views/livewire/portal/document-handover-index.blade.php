@@ -3,7 +3,7 @@
         <div>
             <h1 class="text-xl font-semibold">Hand-overs</h1>
             <p class="text-sm text-muted">
-                Record every in-person visit where a licensing-authority representative delivered documents to or collected documents from the dealership. Print a POD or POC for the physical paper trail.
+                Record every in-person visit where a licensing-authority representative delivered documents to or collected documents from the dealership. Confirm the hand-over digitally when both parties are at the counter - a printed paper POD/POC is optional.
             </p>
         </div>
         <div class="flex flex-wrap gap-2">

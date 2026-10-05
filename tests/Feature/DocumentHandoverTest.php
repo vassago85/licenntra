@@ -305,3 +305,60 @@ it('the Livewire form confirms a hand-over end-to-end', function (): void {
 
     expect($handover->refresh()->isCompleted())->toBeTrue();
 });
+
+/**
+ * The paper POD/POC is explicitly a nice-to-have. A hand-over confirmed
+ * digitally - with nothing uploaded afterwards - is a complete record of
+ * truth. This test locks that contract in so nobody re-introduces a
+ * "must attach signed scan" requirement later.
+ */
+it('a digitally-confirmed hand-over is complete without any signed paper scan', function (): void {
+    auth()->login($this->userA);
+    $app = app(SaveApplicationDraft::class)->handle($this->userA, [
+        'request_type' => RequestType::LicenceRenewal->value,
+        'owner_type' => OwnerType::Individual->value,
+    ]);
+    $handover = app(SaveDocumentHandover::class)->handle($this->userA, [
+        'direction' => HandoverDirection::Collection->value,
+        'counterparty_name' => 'Thandi Mahlangu',
+        'dealer_person_name' => $this->userA->name,
+        'application_ids' => [$app->id],
+    ]);
+
+    Livewire::test(DocumentHandoverForm::class, ['handover' => $handover])
+        ->call('confirm')
+        ->assertHasNoErrors()
+        ->assertSee('Hand-over confirmed digitally')
+        ->assertSee('optional');
+
+    $fresh = $handover->refresh();
+
+    expect($fresh->isCompleted())->toBeTrue()
+        ->and($fresh->confirmed_at)->not->toBeNull()
+        ->and($fresh->signed_file_path)->toBeNull()
+        ->and($fresh->signed_file_uploaded_at)->toBeNull();
+});
+
+/**
+ * UI copy guard: the form must present printing and the signed scan as
+ * optional - not as a required next step. If somebody rewords it back to
+ * "you must print and sign", this test will fail.
+ */
+it('presents paper POD/POC and signed scan as optional on the form', function (): void {
+    auth()->login($this->userA);
+    $app = app(SaveApplicationDraft::class)->handle($this->userA, [
+        'request_type' => RequestType::LicenceRenewal->value,
+        'owner_type' => OwnerType::Individual->value,
+    ]);
+    $handover = app(SaveDocumentHandover::class)->handle($this->userA, [
+        'direction' => HandoverDirection::Delivery->value,
+        'counterparty_name' => 'Thandi Mahlangu',
+        'dealer_person_name' => $this->userA->name,
+        'application_ids' => [$app->id],
+    ]);
+
+    Livewire::test(DocumentHandoverForm::class, ['handover' => $handover])
+        ->assertSee('Print paper POD/POC (optional)')
+        ->assertSee('Confirm digitally')
+        ->assertSee('Not needed for the record');
+});

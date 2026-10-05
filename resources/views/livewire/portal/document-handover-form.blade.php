@@ -5,13 +5,13 @@
         </h1>
         <p class="text-sm text-muted">
             @if ($handover?->isCompleted())
-                Confirmed {{ $handover->confirmed_at?->format('d M Y H:i') }} - this hand-over is read-only. Print, download, or attach the signed scan below.
+                Confirmed digitally on {{ $handover->confirmed_at?->format('d M Y H:i') }} - this hand-over is read-only. A paper POD/POC is optional; print or attach a signed scan below if the dealership wants one on file.
             @elseif ($direction === 'collection')
-                Collection: documents the licensing-authority representative is picking up to lodge at the authority.
+                Collection: documents the licensing-authority representative is picking up to lodge at the authority. Confirm the hand-over digitally when they are at the counter - a printed POD is optional.
             @elseif ($direction === 'delivery')
-                Delivery: documents the licensing-authority representative is dropping off at the dealership.
+                Delivery: documents the licensing-authority representative is dropping off at the dealership. Confirm the hand-over digitally when they are at the counter - a printed POC is optional.
             @else
-                Capture everyone and everything that changes hands during the visit.
+                Capture everyone and everything that changes hands during the visit. The digital on-screen confirmation is the record of truth; printing paper is optional.
             @endif
         </p>
     </div>
@@ -89,21 +89,26 @@
             @unless ($handover?->isCompleted())
                 <button type="submit" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold">Save</button>
                 @if ($handover)
-                    <button type="button" wire:click="confirm" wire:confirm="Confirm this hand-over? It becomes read-only after." class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">
-                        Confirm hand-over (both parties agree)
+                    <button type="button" wire:click="confirm" wire:confirm="Confirm this hand-over digitally? It becomes read-only after." class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">
+                        Confirm digitally (both parties on-screen)
                     </button>
-                    <a href="{{ route('handovers.print', $handover) }}" target="_blank" rel="noopener" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold">Print POD/POC</a>
+                    <a href="{{ route('handovers.print', $handover) }}" target="_blank" rel="noopener" class="h-10 rounded-md border border-line bg-white px-3 text-sm text-muted hover:bg-paper">Print paper POD/POC (optional)</a>
                     <button type="button" wire:click="delete" wire:confirm="Delete this pending hand-over?" class="h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-900">Delete</button>
                 @endif
             @else
-                <a href="{{ route('handovers.print', $handover) }}" target="_blank" rel="noopener" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold">Print POD/POC</a>
+                <a href="{{ route('handovers.print', $handover) }}" target="_blank" rel="noopener" class="h-10 rounded-md border border-line bg-white px-3 text-sm text-muted hover:bg-paper">Print paper POD/POC (optional)</a>
             @endunless
         </div>
     </form>
 
     @if ($handover)
-        <section class="space-y-3 rounded-md border border-line bg-white p-3 text-sm">
-            <h2 class="text-sm font-semibold">Signed scan</h2>
+        <section class="space-y-3 rounded-md border border-dashed border-line bg-white p-3 text-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-semibold">Signed paper copy <span class="text-xs font-normal text-muted">(optional)</span></h2>
+                @if (! $handover->signed_file_path)
+                    <span class="rounded-full border border-line bg-paper px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">Not needed for the record</span>
+                @endif
+            </div>
             @if ($handover->signed_file_path)
                 <div class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                     <span>
@@ -113,7 +118,7 @@
                     <a href="{{ route('handovers.signed.download', $handover) }}" class="rounded border border-emerald-300 bg-white px-2 py-1 text-xs font-semibold hover:bg-emerald-100">Download</a>
                 </div>
             @else
-                <p class="text-xs text-muted">After both parties have signed the printed POD/POC, scan it back in so it lives next to this record.</p>
+                <p class="text-xs text-muted">The digital on-screen confirmation above is the record of truth. Only attach a signed paper copy here if the dealership wants a hard-copy trail (for example, old-school audit requirements).</p>
             @endif
             <div class="flex flex-wrap items-center gap-2">
                 <input type="file" wire:model="signedScan" accept=".pdf,.jpg,.jpeg,.png" class="min-w-0 text-xs">

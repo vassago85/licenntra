@@ -141,7 +141,7 @@ class DocumentHandoverForm extends Component
             return;
         }
 
-        session()->flash('status', 'Hand-over confirmed. Both sides can now file the signed copy.');
+        session()->flash('status', 'Hand-over confirmed digitally. A signed paper copy is optional - attach one below only if the dealership wants a hard copy on file.');
     }
 
     public function uploadSigned(): void
