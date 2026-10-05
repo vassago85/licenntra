@@ -4,14 +4,18 @@ namespace App\Livewire\Portal;
 
 use App\Actions\AcceptQuote;
 use App\Actions\AddApplicationNote;
+use App\Actions\MarkInvoicePaid;
+use App\Actions\MarkInvoiceUnpaid;
 use App\Actions\StoreDeliverable;
 use App\Actions\StoreDocument;
+use App\Actions\StoreInvoice;
 use App\Actions\TransitionApplication;
 use App\Enums\ApplicationStage;
 use App\Enums\DeliverableKind;
 use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\DeliverableDocument;
+use App\Models\Invoice;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +43,14 @@ class ApplicationShow extends Component
     public string $newDeliverableLabel = '';
 
     public string $newDeliverableNotes = '';
+
+    public ?TemporaryUploadedFile $newInvoice = null;
+
+    public string $newInvoiceNumber = '';
+
+    public ?int $invoicePayingId = null;
+
+    public string $invoicePaidReference = '';
 
     public function mount(Application $application): void
     {
@@ -148,6 +160,93 @@ class ApplicationShow extends Component
         $this->application->refresh();
     }
 
+    public function storeInvoice(): void
+    {
+        $this->authorize('upload', [Invoice::class, $this->application]);
+
+        if (! $this->newInvoice instanceof TemporaryUploadedFile) {
+            $this->addError('newInvoice', 'Choose a PDF, JPG, or PNG.');
+
+            return;
+        }
+
+        try {
+            app(StoreInvoice::class)->handle(
+                $this->application,
+                $this->newInvoice,
+                $this->newInvoiceNumber,
+                auth()->user(),
+            );
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->reset(['newInvoice', 'newInvoiceNumber']);
+        $this->application->refresh();
+    }
+
+    public function startInvoicePayment(int $invoiceId): void
+    {
+        $invoice = $this->application->invoices()->findOrFail($invoiceId);
+        $this->authorize('markPaid', $invoice);
+        $this->invoicePayingId = $invoice->id;
+        $this->invoicePaidReference = '';
+    }
+
+    public function cancelInvoicePayment(): void
+    {
+        $this->invoicePayingId = null;
+        $this->invoicePaidReference = '';
+    }
+
+    public function markInvoicePaid(): void
+    {
+        if ($this->invoicePayingId === null) {
+            return;
+        }
+
+        $invoice = $this->application->invoices()->findOrFail($this->invoicePayingId);
+        $this->authorize('markPaid', $invoice);
+
+        try {
+            app(MarkInvoicePaid::class)->handle(
+                $invoice,
+                auth()->user(),
+                $this->invoicePaidReference !== '' ? $this->invoicePaidReference : null,
+            );
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->invoicePayingId = null;
+        $this->invoicePaidReference = '';
+        $this->application->refresh();
+    }
+
+    public function markInvoiceUnpaid(int $invoiceId): void
+    {
+        $invoice = $this->application->invoices()->findOrFail($invoiceId);
+        $this->authorize('markUnpaid', $invoice);
+
+        app(MarkInvoiceUnpaid::class)->handle($invoice, auth()->user());
+
+        $this->application->refresh();
+    }
+
+    public function deleteInvoice(int $invoiceId): void
+    {
+        $invoice = $this->application->invoices()->findOrFail($invoiceId);
+        $this->authorize('delete', $invoice);
+
+        $invoice->delete();
+
+        $this->application->refresh();
+    }
+
     public function resubmit(): void
     {
         $this->authorize('update', $this->application);
@@ -169,6 +268,8 @@ class ApplicationShow extends Component
             'documents.documentType',
             'documents.currentVersion',
             'deliverables.uploader',
+            'invoices.uploader',
+            'invoices.paidBy',
             'vehicle',
             'quotes.lines',
             'notes.author',
@@ -182,6 +283,7 @@ class ApplicationShow extends Component
             'quote' => $this->application->quotes()->where('status', 'sent')->latest('id')->first(),
             'deliverableKinds' => DeliverableKind::cases(),
             'canUploadDeliverable' => auth()->user()?->can('upload', [DeliverableDocument::class, $this->application]) ?? false,
+            'canUploadInvoice' => auth()->user()?->can('upload', [Invoice::class, $this->application]) ?? false,
         ]);
     }
 }

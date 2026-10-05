@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DeliverableDownloadController;
 use App\Http\Controllers\DocumentDownloadController;
+use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
 use App\Livewire\Portal\ApplicationForm;
@@ -10,9 +11,11 @@ use App\Livewire\Portal\BusinessClientForm;
 use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
+use App\Livewire\Portal\FinanceInvoiceQueue;
 use App\Livewire\Portal\FleetReviewConfirm;
 use App\Livewire\Portal\FleetReviewQueue;
 use App\Livewire\Portal\FleetVehicleIndex;
+use App\Livewire\Portal\InvoiceIndex;
 use App\Livewire\Portal\LicenceCostEstimator;
 use App\Livewire\Portal\PaymentQueue;
 use App\Livewire\Portal\QuoteBuilder;
@@ -58,6 +61,9 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/business-clients/{businessClient}', BusinessClientShow::class)->name('business-clients.show');
 
     Route::get('/finance/payments', PaymentQueue::class)->name('finance.payments');
+    Route::get('/finance/invoices', FinanceInvoiceQueue::class)->name('finance.invoices');
+
+    Route::get('/invoices', InvoiceIndex::class)->name('invoices.index');
 
     Route::get('/account', AccountSettings::class)->name('account.settings');
     Route::get('/team', TeamIndex::class)->name('team.index');
@@ -69,4 +75,5 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
 
     Route::get('/documents/versions/{version}', DocumentDownloadController::class)->name('documents.download');
     Route::get('/deliverables/{deliverable}', DeliverableDownloadController::class)->name('deliverables.download');
+    Route::get('/invoices/{invoice}', InvoiceDownloadController::class)->name('invoices.download');
 });

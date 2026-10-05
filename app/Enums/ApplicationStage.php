@@ -123,4 +123,24 @@ enum ApplicationStage: string
             self::PaymentPending,
         ], true);
     }
+
+    /**
+     * True when the licensing company may upload an invoice against the
+     * application. Account-statement dealerships are typically invoiced the
+     * moment documents are handed over at PaymentVerified; pay-per-transaction
+     * customers are invoiced after their payment is verified. In both cases
+     * uploads are only sensible once we have crossed PaymentVerified.
+     */
+    public function canCarryInvoice(): bool
+    {
+        return in_array($this, [
+            self::PaymentVerified,
+            self::DatafixInProgress,
+            self::SubmittedToAuthority,
+            self::AuthorityQuery,
+            self::Approved,
+            self::ReadyForCollection,
+            self::Completed,
+        ], true);
+    }
 }

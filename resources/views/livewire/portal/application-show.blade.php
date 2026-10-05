@@ -132,6 +132,92 @@
             </section>
         @endif
 
+        @if ($application->invoices->isNotEmpty() || $canUploadInvoice)
+            <section class="rounded-md border border-line bg-white">
+                <h2 class="border-b border-line px-3 py-2 text-sm font-semibold">Invoices</h2>
+                @if ($application->invoices->isEmpty())
+                    <p class="px-3 py-3 text-sm text-muted">No invoices uploaded yet.</p>
+                @else
+                    <ul class="divide-y divide-line text-sm">
+                        @foreach ($application->invoices->sortByDesc('uploaded_at') as $invoice)
+                            <li class="px-3 py-3" wire:key="invoice-{{ $invoice->id }}">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="font-medium font-mono">{{ $invoice->invoice_number }}</p>
+                                        <p class="mt-0.5 text-xs text-muted">
+                                            {{ $invoice->original_filename }}
+                                            · {{ number_format($invoice->size_bytes / 1024, 0) }} KB
+                                            · {{ $invoice->uploaded_at?->format('d M Y H:i') }}
+                                            @if ($invoice->uploader)
+                                                · {{ $invoice->uploader->name }}
+                                            @endif
+                                        </p>
+                                        <p class="mt-1">
+                                            @if ($invoice->isPaid())
+                                                <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">Paid</span>
+                                                @if ($invoice->paid_at)
+                                                    <span class="ml-1 text-xs text-muted">{{ $invoice->paid_at->format('d M Y') }}</span>
+                                                @endif
+                                                @if ($invoice->paid_reference)
+                                                    <span class="ml-1 font-mono text-xs text-muted">{{ $invoice->paid_reference }}</span>
+                                                @endif
+                                            @else
+                                                <span class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">Outstanding</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-2">
+                                        @can('download', $invoice)
+                                            <a class="h-8 rounded-md border border-line px-2 py-1.5 text-xs" href="{{ route('invoices.download', $invoice) }}">Download</a>
+                                        @endcan
+                                        @if ($invoice->isPaid())
+                                            @can('markUnpaid', $invoice)
+                                                <button type="button" wire:click="markInvoiceUnpaid({{ $invoice->id }})" wire:confirm="Mark this invoice as unpaid?" class="h-8 rounded-md border border-line px-2 py-1.5 text-xs">Mark unpaid</button>
+                                            @endcan
+                                        @else
+                                            @can('markPaid', $invoice)
+                                                <button type="button" wire:click="startInvoicePayment({{ $invoice->id }})" class="h-8 rounded-md px-2 py-1.5 text-xs font-semibold text-white" style="background: var(--brand)">Mark paid</button>
+                                            @endcan
+                                        @endif
+                                        @can('delete', $invoice)
+                                            <button type="button" wire:click="deleteInvoice({{ $invoice->id }})" wire:confirm="Remove this invoice? This cannot be undone." class="h-8 rounded-md border border-line px-2 py-1.5 text-xs text-red-900">Remove</button>
+                                        @endcan
+                                    </div>
+                                </div>
+                                @if ($invoicePayingId === $invoice->id)
+                                    <form wire:submit="markInvoicePaid" class="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-line bg-paper px-3 py-2">
+                                        <label class="flex-1">
+                                            <span class="text-xs text-muted">Payment reference (optional)</span>
+                                            <input type="text" wire:model="invoicePaidReference" maxlength="100" class="mt-1 h-9 w-full rounded-md border border-line px-2 text-sm font-mono" placeholder="e.g. EFT-2026-00412">
+                                        </label>
+                                        <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Confirm paid</button>
+                                        <button type="button" wire:click="cancelInvoicePayment" class="h-9 rounded-md border border-line px-3 text-sm">Cancel</button>
+                                    </form>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if ($canUploadInvoice)
+                    <form wire:submit.prevent="storeInvoice" class="space-y-2 border-t border-line px-3 py-3 text-sm">
+                        <p class="text-xs font-semibold text-muted">Upload a tax invoice for this transaction</p>
+                        <label class="block">
+                            <span class="text-xs text-muted">Invoice number</span>
+                            <input type="text" wire:model="newInvoiceNumber" maxlength="40" class="mt-1 h-9 w-full rounded-md border border-line px-2 text-sm font-mono" placeholder="e.g. INV-2026-01284">
+                        </label>
+                        <label class="block">
+                            <span class="text-xs text-muted">File (PDF, JPG, or PNG, max 15 MB)</span>
+                            <input type="file" wire:model="newInvoice" accept="application/pdf,image/jpeg,image/png" class="mt-1 block w-full text-xs">
+                        </label>
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Upload invoice</button>
+                        </div>
+                    </form>
+                @endif
+            </section>
+        @endif
+
         @if ($quote)
             <section class="rounded-md border border-line bg-white p-3 text-sm">
                 <h2 class="font-semibold">Quote</h2>

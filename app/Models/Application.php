@@ -80,6 +80,11 @@ class Application extends Model
         return $this->hasMany(DeliverableDocument::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function datafix(): HasOne
     {
         return $this->hasOne(DatafixRecord::class);

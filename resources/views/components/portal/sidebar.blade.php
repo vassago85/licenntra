@@ -34,9 +34,11 @@
     $paymentsCount = null;
     $fleetVehiclesCount = null;
     $fleetReviewPendingCount = null;
+    $clientInvoicesOutstandingCount = null;
+    $financeInvoicesOutstandingCount = null;
     $quotesEnabled = \App\Services\FeatureFlags::quotesEnabled();
     $paymentTrackingRequired = \App\Services\FeatureFlags::paymentTrackingRequired();
-    $isFleetClient = $isClient && $user?->clientAccount?->type === \App\Enums\ClientAccountType::FleetOperator;
+    $isFleetClient = $isClient && ($user?->clientAccount?->hasType(\App\Enums\ClientAccountType::FleetOperator) ?? false);
 
     if ($isClient && $user?->client_account_id !== null) {
         $applicationsCount = \App\Models\Application::query()
@@ -58,6 +60,11 @@
                 ->whereIn('status', ['sent'])
                 ->count()
             : 0;
+
+        $clientInvoicesOutstandingCount = \App\Models\Invoice::query()
+            ->whereNull('paid_at')
+            ->whereHas('application', fn ($q) => $q->where('client_account_id', $user->client_account_id))
+            ->count();
     }
 
     if ($isStaff) {
@@ -75,6 +82,12 @@
         $fleetReviewPendingCount = \App\Models\FleetVehicleDocument::query()
             ->whereNull('confirmed_at')
             ->count();
+
+        if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin'])) {
+            $financeInvoicesOutstandingCount = \App\Models\Invoice::query()
+                ->whereNull('paid_at')
+                ->count();
+        }
     }
 
     if ($isFleetClient) {
@@ -168,6 +181,14 @@
             <x-portal.sidebar-link :href="route('estimate.index')" :active="$isCurrent('estimate.*')">
                 Licence cost estimate
             </x-portal.sidebar-link>
+            <x-portal.sidebar-link
+                :href="route('invoices.index')"
+                :active="$isCurrent('invoices.index')"
+                :count="$clientInvoicesOutstandingCount"
+                :countTone="$clientInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
+            >
+                Invoices
+            </x-portal.sidebar-link>
             @if ($isFleetClient)
                 <x-portal.sidebar-link
                     :href="route('fleet.vehicles.index')"
@@ -195,11 +216,21 @@
             @if ($paymentTrackingRequired && $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
                 <x-portal.sidebar-link
                     :href="route('finance.payments')"
-                    :active="$isCurrent('finance.*')"
+                    :active="$isCurrent('finance.payments')"
                     :count="$paymentsCount"
                     :countTone="$paymentsCount > 0 ? 'warning' : 'mono'"
                 >
                     Payments
+                </x-portal.sidebar-link>
+            @endif
+            @if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
+                <x-portal.sidebar-link
+                    :href="route('finance.invoices')"
+                    :active="$isCurrent('finance.invoices')"
+                    :count="$financeInvoicesOutstandingCount"
+                    :countTone="$financeInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
+                >
+                    Invoices
                 </x-portal.sidebar-link>
             @endif
             @if ($user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']))
