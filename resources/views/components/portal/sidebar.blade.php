@@ -312,6 +312,20 @@
     @if ($isAdmin)
         <div class="flex flex-col gap-1 border-t border-line pt-4">
             <span class="px-2 pb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Administration</span>
+            <x-portal.sidebar-link
+                :href="route('settings.branding')"
+                :active="$isCurrent('settings.branding')"
+                :icon="$icons['cog']"
+            >
+                Branding
+            </x-portal.sidebar-link>
+            <x-portal.sidebar-link
+                :href="route('settings.system')"
+                :active="$isCurrent('settings.system')"
+                :icon="$icons['shield']"
+            >
+                System settings
+            </x-portal.sidebar-link>
             <x-portal.sidebar-link :href="url('/admin')" :active="false" :icon="$icons['external']">
                 Admin console
             </x-portal.sidebar-link>

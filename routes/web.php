@@ -7,6 +7,8 @@ use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
+use App\Livewire\Portal\Admin\Branding as AdminBranding;
+use App\Livewire\Portal\Admin\SystemSettings as AdminSystemSettings;
 use App\Livewire\Portal\ApplicationForm;
 use App\Livewire\Portal\ApplicationShow;
 use App\Livewire\Portal\BusinessClientForm;
@@ -86,4 +88,16 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/documents/versions/{version}', DocumentDownloadController::class)->name('documents.download');
     Route::get('/deliverables/{deliverable}', DeliverableDownloadController::class)->name('deliverables.download');
     Route::get('/invoices/{invoice}', InvoiceDownloadController::class)->name('invoices.download');
+
+    /*
+    |----------------------------------------------------------------------
+    | Administration (super_admin / customer_admin only).
+    |
+    | Formerly lived in the Filament panel; moved into the portal shell
+    | so operators work in one UI instead of two. Role is enforced in
+    | each component's mount() via User::canConfigure().
+    |----------------------------------------------------------------------
+    */
+    Route::get('/settings/branding', AdminBranding::class)->name('settings.branding');
+    Route::get('/settings/system', AdminSystemSettings::class)->name('settings.system');
 });
