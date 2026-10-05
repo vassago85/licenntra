@@ -31,7 +31,12 @@
         <tbody>
             @forelse ($clients as $client)
                 <tr class="border-b border-line last:border-0">
-                    <td class="px-3 py-2"><a href="{{ route('business-clients.show', $client) }}" class="font-medium hover:underline">{{ $client->business_name }}</a></td>
+                    <td class="px-3 py-2">
+                        <a href="{{ route('business-clients.show', $client) }}" class="font-medium hover:underline">{{ $client->business_name }}</a>
+                        @if ($client->isShared())
+                            <span class="ml-1 inline-block rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-900" title="Visible across all dealerships">Shared</span>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">{{ str_replace('_', ' ', $client->usable_as) }}</td>
                     <td class="px-3 py-2 font-mono text-xs">{{ $client->retention_expires_at?->format('d M Y') ?? 'Not set' }}</td>
                     <td class="px-3 py-2">{{ $client->legal_hold ? 'Legal hold' : '—' }}</td>

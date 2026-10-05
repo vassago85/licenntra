@@ -119,6 +119,10 @@ class DemoSeeder extends Seeder
             'business_name' => 'Southern Cross Bank Vehicle Finance',
         ], [
             'usable_as' => 'title_holder',
+            // Banks are shared across every dealership on the platform
+            // so the next dealer onboarded sees Southern Cross on day one
+            // without re-typing it (and risking a typo).
+            'is_shared' => true,
             'address' => '1 Bank Lane, Johannesburg',
             'retention_period_months' => 24,
             'retention_expires_at' => now()->addMonths(20),
@@ -131,6 +135,7 @@ class DemoSeeder extends Seeder
             'business_name' => 'Meridian Asset Finance',
         ], [
             'usable_as' => 'title_holder',
+            'is_shared' => true,
             'address' => '44 Commissioner Street, Johannesburg',
             'retention_period_months' => 24,
             'retention_expires_at' => now()->addMonths(18),

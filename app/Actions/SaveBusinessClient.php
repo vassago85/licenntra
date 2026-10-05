@@ -33,7 +33,12 @@ class SaveBusinessClient
             ]);
         }
 
-        if ($client !== null && $client->client_account_id !== $actor->client_account_id) {
+        // Edits are allowed on either (a) records on the actor's own
+        // dealership, OR (b) shared records (title holders / finance
+        // houses). Everything else is forbidden.
+        if ($client !== null
+            && $client->client_account_id !== $actor->client_account_id
+            && ! $client->isShared()) {
             throw ValidationException::withMessages([
                 'business_name' => 'You can only edit business clients on your own account.',
             ]);
@@ -47,16 +52,32 @@ class SaveBusinessClient
             'proxy_id_number' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string', 'max:500'],
             'usable_as' => ['required', 'in:owner,title_holder,both'],
+            'is_shared' => ['boolean'],
             'status' => ['required', 'in:active,inactive'],
         ])->validate();
+
+        // Only title-holder-shaped records may be shared. Owner records
+        // contain the dealer's own customer data and must never leak across
+        // dealerships even if the UI tries to set is_shared=true.
+        $isShared = (bool) ($validated['is_shared'] ?? false)
+            && in_array($validated['usable_as'], ['title_holder', 'both'], true);
+
+        $validated['is_shared'] = $isShared;
 
         return DB::transaction(function () use ($actor, $validated, $client): BusinessClient {
             $creating = $client === null;
 
             $before = $creating ? null : $this->snapshot($client);
 
+            // On create: originator = actor's dealership.
+            // On update of a shared record created by another dealer:
+            //   preserve the originator so provenance is never lost.
+            $originatingAccountId = $creating
+                ? $actor->client_account_id
+                : $client->client_account_id;
+
             $attributes = array_merge($validated, [
-                'client_account_id' => $actor->client_account_id,
+                'client_account_id' => $originatingAccountId,
             ]);
 
             if ($creating) {
@@ -94,6 +115,7 @@ class SaveBusinessClient
             'proxy_id_number' => $client->proxy_id_number,
             'address' => $client->address,
             'usable_as' => $client->usable_as,
+            'is_shared' => $client->is_shared,
             'status' => $client->status,
         ];
     }

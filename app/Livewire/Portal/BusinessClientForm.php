@@ -36,6 +36,8 @@ class BusinessClientForm extends Component
 
     public string $usable_as = 'owner';
 
+    public bool $is_shared = false;
+
     public string $status = 'active';
 
     public function mount(?BusinessClient $businessClient = null): void
@@ -50,6 +52,7 @@ class BusinessClientForm extends Component
             $this->proxy_id_number = (string) ($businessClient->proxy_id_number ?? '');
             $this->address = (string) ($businessClient->address ?? '');
             $this->usable_as = (string) ($businessClient->usable_as ?? 'owner');
+            $this->is_shared = (bool) $businessClient->is_shared;
             $this->status = (string) ($businessClient->status ?? 'active');
 
             return;
@@ -77,6 +80,7 @@ class BusinessClientForm extends Component
                     'proxy_id_number' => trim($this->proxy_id_number) !== '' ? trim($this->proxy_id_number) : null,
                     'address' => trim($this->address) !== '' ? trim($this->address) : null,
                     'usable_as' => $this->usable_as,
+                    'is_shared' => $this->is_shared,
                     'status' => $this->status,
                 ],
                 $this->businessClient,

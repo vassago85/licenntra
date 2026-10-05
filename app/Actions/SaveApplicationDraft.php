@@ -225,6 +225,10 @@ class SaveApplicationDraft
                 'proxy_id_number' => $data['new_title_holder_proxy_id_number'] ?? null,
                 'address' => $data['new_title_holder_address'] ?? null,
                 'usable_as' => 'title_holder',
+                // Finance houses / banks are shared across dealerships by
+                // default - everyone uses the same handful. Dealers can
+                // un-share from the Business clients CRUD screen later.
+                'is_shared' => true,
                 'status' => 'active',
             ]);
 
@@ -234,6 +238,12 @@ class SaveApplicationDraft
         return $this->ownedBusinessClientId($data['title_holder_business_client_id'] ?? $application->title_holder_business_client_id);
     }
 
+    /**
+     * Resolve a BusinessClient id the actor can legitimately reference -
+     * either on their own dealership or a shared title holder. The
+     * BusinessClient global scope already filters BusinessClient::find()
+     * to that visible set.
+     */
     private function ownedBusinessClientId(mixed $id): ?int
     {
         if ($id === null || $id === '') {
@@ -244,7 +254,7 @@ class SaveApplicationDraft
 
         if ($client === null) {
             throw ValidationException::withMessages([
-                'business_client_id' => 'Choose a business client on this account.',
+                'business_client_id' => 'Choose a business client you can access.',
             ]);
         }
 

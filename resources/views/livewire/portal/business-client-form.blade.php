@@ -50,7 +50,7 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     <label class="block text-sm">
                         <span class="text-muted">Use <span class="text-red-700">*</span></span>
-                        <select wire:model="usable_as" class="mt-1 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+                        <select wire:model.live="usable_as" class="mt-1 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
                             <option value="owner">Owner</option>
                             <option value="title_holder">Title holder</option>
                             <option value="both">Both (owner and title holder)</option>
@@ -68,6 +68,18 @@
                         @error('status') <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
                     </label>
                 </div>
+
+                @if (in_array($usable_as, ['title_holder', 'both'], true))
+                    <label class="flex items-start gap-2 rounded-md border border-dashed border-line bg-paper p-3 text-sm">
+                        <input type="checkbox" wire:model="is_shared" class="mt-0.5">
+                        <span>
+                            <span class="font-semibold">Share with other dealerships</span>
+                            <span class="mt-1 block text-xs text-muted">
+                                Finance houses and banks are typically re-used across dealerships. Ticking this makes the record visible (and editable) by every dealership on the platform. Owner records can never be shared.
+                            </span>
+                        </span>
+                    </label>
+                @endif
             </div>
         </section>
 

@@ -19,7 +19,10 @@ class BusinessClientPolicy
         }
 
         if ($user->isClient()) {
-            return $user->client_account_id === $businessClient->client_account_id;
+            // Own-account records always, plus shared title holders /
+            // finance houses that any dealership can see.
+            return $user->client_account_id === $businessClient->client_account_id
+                || $businessClient->isShared();
         }
 
         return $user->isLicensingStaff();
