@@ -7,6 +7,7 @@ use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
+use App\Livewire\Portal\Admin\AuditLog as AdminAuditLog;
 use App\Livewire\Portal\Admin\Branding as AdminBranding;
 use App\Livewire\Portal\Admin\SystemSettings as AdminSystemSettings;
 use App\Livewire\Portal\ApplicationForm;
@@ -100,4 +101,5 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     */
     Route::get('/settings/branding', AdminBranding::class)->name('settings.branding');
     Route::get('/settings/system', AdminSystemSettings::class)->name('settings.system');
+    Route::get('/audit', AdminAuditLog::class)->name('audit.index');
 });

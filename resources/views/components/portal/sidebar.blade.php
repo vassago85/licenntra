@@ -114,7 +114,7 @@
         || $isPath('admin/fee-table*') || $isPath('admin/fee-lines*')
         || $isPath('admin/document-types*') || $isPath('admin/document-rules*')
         || $isCurrent('settings.*');
-    $complianceActive = $isPath('admin/audit-events*');
+    $complianceActive = $isCurrent('audit.*');
     $platformActive = $isPath('admin/platform-billing*');
 
     /** First printable character of the brand, used in the sidebar mark. */
@@ -472,8 +472,8 @@
                 </button>
                 <div x-show="open" x-cloak class="flex flex-col gap-1">
                     <x-portal.sidebar-link
-                        :href="url('/admin/audit-events')"
-                        :active="request()->is('admin/audit-events*')"
+                        :href="route('audit.index')"
+                        :active="$isCurrent('audit.*')"
                         :icon="$icons['shield']"
                     >
                         Audit log

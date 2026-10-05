@@ -203,7 +203,7 @@ it('lets an auditor read and blocks every write', function () {
     $this->get(route('applications.quote', $this->application))->assertForbidden();
     $this->get(route('finance.payments'))->assertForbidden();
     $this->get('/admin')->assertOk();
-    $this->get('/admin/audit-events')->assertOk();
+    $this->get(route('audit.index'))->assertOk();
     $this->get('/admin/fee-lines')->assertForbidden();
     $this->get('/admin/users')->assertForbidden();
 

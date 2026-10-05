@@ -83,7 +83,7 @@ class UnifiedSidebarTest extends TestCase
         $user = $this->staff('auditor');
 
         $this->actingAs($user)->get(route('review.queue'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get('/admin/audit-events')->assertOk()->assertSee(self::SIDEBAR_MARKER);
+        $this->actingAs($user)->get(route('audit.index'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
     }
 
     public function test_developer_sees_the_shared_sidebar_on_platform_billing(): void
