@@ -4,6 +4,7 @@
     $branding = $branding ?? \App\Models\BrandingSetting::current();
     $isClient = $user?->isClient() ?? false;
     $isStaff = $user?->isLicensingStaff() ?? false;
+    $isDeveloper = $user?->hasRole('developer') ?? false;
     $isAdmin = $user?->hasAnyRole(['super_admin', 'customer_admin']) ?? false;
     $canAudit = $user?->hasAnyRole(['super_admin', 'customer_admin', 'auditor']) ?? false;
     $canPlatform = $user?->hasAnyRole(['super_admin', 'developer']) ?? false;
@@ -16,7 +17,7 @@
         $roleSummary = $user->hasRole('client_admin') ? 'Admin' : 'User';
         $typeLabel = $user->clientAccount->type?->label() ?? 'Client';
         $accountSummary = $typeLabel.' · '.$user->name.' ('.$roleSummary.')';
-    } elseif ($isStaff) {
+    } elseif ($isStaff || $isDeveloper) {
         $accountName = $user->name;
         $primaryRole = collect($user->getRoleNames())->first();
         $accountSummary = match ($primaryRole) {
@@ -25,6 +26,7 @@
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
             'auditor' => 'Auditor',
+            'developer' => 'Platform developer',
             default => ucfirst((string) $primaryRole),
         };
     }
@@ -152,6 +154,8 @@
                         Client portal
                     @elseif ($isStaff)
                         Licensing operations
+                    @elseif ($isDeveloper)
+                        Platform
                     @else
                         Portal
                     @endif
