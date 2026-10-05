@@ -61,7 +61,6 @@
             <label class="text-sm">Engine number <input wire:model.blur="engine_number" class="mt-1 w-full rounded-md border border-line px-2 py-2 font-mono"></label>
             <label class="text-sm">Body <input wire:model.blur="body_type" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
             <label class="text-sm">Tare kg <input wire:model.blur="tare_kg" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
-            <label class="text-sm">GVM kg <input wire:model.blur="gvm_kg" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
         </section>
 
         <section class="space-y-3 rounded-md border border-line bg-white p-3">

@@ -39,7 +39,7 @@ class SaveApplicationDraft
             ]);
         }
 
-        foreach (['request_type', 'service_type', 'vehicle_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'year', 'tare_kg', 'gvm_kg'] as $key) {
+        foreach (['request_type', 'service_type', 'vehicle_category', 'owner_type', 'province', 'business_client_id', 'title_holder_business_client_id', 'vin', 'vehicle_register_number', 'engine_number', 'make', 'model', 'body_type', 'owner_name', 'owner_identifier', 'owner_address', 'new_business_name', 'new_registration_number', 'new_proxy_name', 'new_proxy_id_number', 'new_address', 'year', 'tare_kg'] as $key) {
             if (array_key_exists($key, $data) && is_string($data[$key]) && trim($data[$key]) === '') {
                 $data[$key] = null;
             }
@@ -63,7 +63,6 @@ class SaveApplicationDraft
             'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
             'body_type' => ['nullable', 'string', 'max:80'],
             'tare_kg' => ['nullable', 'integer', 'min:0'],
-            'gvm_kg' => ['nullable', 'integer', 'min:0'],
             'owner_name' => ['nullable', 'string', 'max:160'],
             'owner_identifier' => ['nullable', 'string', 'max:32'],
             'owner_address' => ['nullable', 'string', 'max:500'],
@@ -107,7 +106,6 @@ class SaveApplicationDraft
                 'year' => $data['year'] ?? null,
                 'body_type' => $data['body_type'] ?? null,
                 'tare_kg' => $data['tare_kg'] ?? null,
-                'gvm_kg' => $data['gvm_kg'] ?? null,
             ];
 
             $vehicle = $application->vehicle;

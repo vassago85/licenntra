@@ -75,8 +75,6 @@ class ApplicationForm extends Component
 
     public string $tare_kg = '';
 
-    public string $gvm_kg = '';
-
     public function mount(?Application $application = null): void
     {
         if ($application === null) {
@@ -266,7 +264,6 @@ class ApplicationForm extends Component
             'year' => $this->year === '' ? null : (int) $this->year,
             'body_type' => $this->body_type,
             'tare_kg' => $this->tare_kg === '' ? null : (int) $this->tare_kg,
-            'gvm_kg' => $this->gvm_kg === '' ? null : (int) $this->gvm_kg,
         ];
     }
 
@@ -293,7 +290,6 @@ class ApplicationForm extends Component
         $this->year = (string) ($vehicle?->year ?? '');
         $this->body_type = (string) ($vehicle?->body_type ?? '');
         $this->tare_kg = (string) ($vehicle?->tare_kg ?? '');
-        $this->gvm_kg = (string) ($vehicle?->gvm_kg ?? '');
         $this->owner_name = (string) ($owner?->name ?? '');
         $this->owner_identifier = (string) ($owner?->identifier ?? '');
         $this->owner_address = (string) ($owner?->address ?? '');
