@@ -58,6 +58,14 @@
             @if ($dangerous_goods)
                 <p class="text-xs text-muted sm:col-span-2">The certificate of fitness must be stamped Dangerous goods.</p>
             @endif
+            @if ($request_type === 'change_of_ownership')
+                <label class="flex items-end gap-2 text-sm sm:col-span-2">
+                    <input type="checkbox" wire:model.live="is_dealer_stock"> Vehicle was dealer stock (currently registered to this dealership)
+                </label>
+                @if ($is_dealer_stock)
+                    <p class="text-xs text-muted sm:col-span-2">The dealer-stock reg doc from your stock file must be collected alongside the original NaTIS before the pack goes to the licensing authority.</p>
+                @endif
+            @endif
         </section>
 
         <section class="grid gap-3 rounded-md border border-line bg-white p-3 sm:grid-cols-2">

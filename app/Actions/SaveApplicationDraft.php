@@ -54,6 +54,7 @@ class SaveApplicationDraft
             'owner_type' => ['nullable', Rule::enum(OwnerType::class)],
             'province' => ['nullable', Rule::enum(Province::class)],
             'is_financed' => ['boolean'],
+            'is_dealer_stock' => ['boolean'],
             'dangerous_goods' => ['boolean'],
             'business_client_id' => ['nullable', 'integer'],
             'title_holder_business_client_id' => ['nullable', 'integer'],
@@ -113,6 +114,16 @@ class SaveApplicationDraft
                 $isFinanced = false;
             }
 
+            // Dealer-stock resales only exist as a concept on a change of
+            // ownership. On any other request type we drop the flag so a
+            // stale UI tick doesn't attach the dealer-stock reg-doc slot
+            // to a renewal or duplicate pack.
+            $isDealerStock = (bool) ($data['is_dealer_stock'] ?? false);
+
+            if ($requestType !== null && $requestType !== RequestType::ChangeOfOwnership) {
+                $isDealerStock = false;
+            }
+
             $application->fill([
                 'request_type' => $requestType,
                 'service_type' => $data['service_type'] ?? null,
@@ -121,6 +132,7 @@ class SaveApplicationDraft
                 'owner_type' => $data['owner_type'] ?? null,
                 'province' => $data['province'] ?? null,
                 'is_financed' => $isFinanced,
+                'is_dealer_stock' => $isDealerStock,
                 'dangerous_goods' => (bool) ($data['dangerous_goods'] ?? false),
                 'business_client_id' => $businessClientId,
                 'title_holder_business_client_id' => $titleHolderId,

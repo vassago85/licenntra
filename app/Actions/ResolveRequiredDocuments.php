@@ -64,7 +64,8 @@ class ResolveRequiredDocuments
             && $this->same($rule->vehicle_category?->value, $application->vehicle_category?->value)
             && $this->same($rule->owner_type?->value, $application->owner_type?->value)
             && $this->same($rule->province?->value, $application->province?->value)
-            && ($rule->is_financed === null || (bool) $rule->is_financed === $application->is_financed);
+            && ($rule->is_financed === null || (bool) $rule->is_financed === $application->is_financed)
+            && ($rule->is_dealer_stock === null || (bool) $rule->is_dealer_stock === $application->is_dealer_stock);
     }
 
     private function same(?string $ruleValue, ?string $applicationValue): bool

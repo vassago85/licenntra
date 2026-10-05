@@ -48,6 +48,8 @@ class ApplicationForm extends Component
 
     public bool $is_financed = false;
 
+    public bool $is_dealer_stock = false;
+
     public bool $dangerous_goods = false;
 
     public string $business_client_id = '';
@@ -167,7 +169,7 @@ class ApplicationForm extends Component
     {
         $watched = [
             'request_type', 'service_type', 'vehicle_category', 'licence_category', 'owner_type', 'province',
-            'is_financed', 'dangerous_goods', 'business_client_id', 'title_holder_business_client_id',
+            'is_financed', 'is_dealer_stock', 'dangerous_goods', 'business_client_id', 'title_holder_business_client_id',
         ];
 
         if ($name === 'business_client_id' && $this->business_client_id === 'new') {
@@ -187,6 +189,13 @@ class ApplicationForm extends Component
         if ($name === 'request_type' && ! $this->requiresTitleHolder()) {
             $this->is_financed = false;
             $this->title_holder_business_client_id = '';
+        }
+
+        // Dealer-stock is a change-of-ownership-only concept. Any switch
+        // away from that request type should clear the local flag so the
+        // UI matches what the backend will store.
+        if ($name === 'request_type' && $this->request_type !== RequestType::ChangeOfOwnership->value) {
+            $this->is_dealer_stock = false;
         }
 
         if (in_array($name, $watched, true)) {
@@ -422,6 +431,7 @@ class ApplicationForm extends Component
             'owner_type' => $this->owner_type,
             'province' => $this->province,
             'is_financed' => $this->is_financed,
+            'is_dealer_stock' => $this->is_dealer_stock,
             'dangerous_goods' => $this->dangerous_goods,
             'business_client_id' => $this->business_client_id === 'new' ? null : $this->business_client_id,
             'title_holder_business_client_id' => $this->title_holder_business_client_id === 'new' ? null : $this->title_holder_business_client_id,
@@ -463,6 +473,7 @@ class ApplicationForm extends Component
         $this->owner_type = $application?->owner_type?->value ?? '';
         $this->province = $application?->province?->value ?? '';
         $this->is_financed = (bool) $application?->is_financed;
+        $this->is_dealer_stock = (bool) $application?->is_dealer_stock;
         $this->dangerous_goods = (bool) $application?->dangerous_goods;
         $this->business_client_id = (string) ($application?->business_client_id ?? '');
         $this->title_holder_business_client_id = (string) ($application?->title_holder_business_client_id ?? '');

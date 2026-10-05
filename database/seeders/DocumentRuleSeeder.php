@@ -28,6 +28,11 @@ class DocumentRuleSeeder extends Seeder
             // scan to progress the pack, then ticks "original received"
             // once the seller has physically handed it over.
             ['code' => 'original_natis', 'name' => 'Original NaTIS (RC1)', 'is_identity_document' => false, 'max_age_days' => null, 'requires_original' => true],
+            // When reselling a vehicle out of dealer stock, the dealer-stock
+            // registration document (the NaTIS/RC1 in the dealership's own
+            // name) must also be collected from the stock file and shipped
+            // alongside the pack to the licensing authority.
+            ['code' => 'dealer_stock_reg_doc', 'name' => 'Dealer stock registration doc', 'is_identity_document' => false, 'max_age_days' => null, 'requires_original' => true],
         ];
 
         $ids = [];
@@ -82,6 +87,13 @@ class DocumentRuleSeeder extends Seeder
             ['title_holder_brn', 'change_of_ownership', null, null, 'title_holder', 'required', 90, true],
             ['title_holder_proxy_id', 'change_of_ownership', null, null, 'title_holder', 'required', 100, true],
             ['original_natis', 'change_of_ownership', null, null, 'vehicle', 'required', 5],
+
+            // Dealer-stock resale: in addition to the "normal" change of
+            // ownership checklist above, the dealer must also forward the
+            // dealer-stock registration document (RC1 in the dealership's
+            // name). Keyed with is_dealer_stock=true so it only applies
+            // when the dealer ticks the "Vehicle was dealer stock" box.
+            ['dealer_stock_reg_doc', 'change_of_ownership', null, null, 'vehicle', 'required', 6, null, true],
         ];
 
         foreach ($rules as $index => $rule) {
@@ -93,6 +105,7 @@ class DocumentRuleSeeder extends Seeder
                     'owner_type' => $rule[3],
                     'party_role' => $rule[4],
                     'is_financed' => $rule[7] ?? null,
+                    'is_dealer_stock' => $rule[8] ?? null,
                 ],
                 [
                     'requirement' => $rule[5],

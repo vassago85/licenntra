@@ -18,7 +18,7 @@ class DocumentRule extends Model
 
     protected $fillable = [
         'document_type_id', 'request_type', 'vehicle_category', 'owner_type', 'province',
-        'is_financed', 'party_role', 'requirement', 'sort_order', 'active',
+        'is_financed', 'is_dealer_stock', 'party_role', 'requirement', 'sort_order', 'active',
     ];
 
     public function documentType(): BelongsTo
@@ -37,6 +37,7 @@ class DocumentRule extends Model
             'owner_type' => OwnerType::class,
             'province' => Province::class,
             'active' => 'boolean',
+            'is_dealer_stock' => 'boolean',
         ];
     }
 }
