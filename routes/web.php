@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DeliverableDownloadController;
 use App\Http\Controllers\DocumentDownloadController;
+use App\Http\Controllers\HandoverPrintController;
+use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
@@ -11,6 +13,8 @@ use App\Livewire\Portal\BusinessClientForm;
 use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
+use App\Livewire\Portal\DocumentHandoverForm;
+use App\Livewire\Portal\DocumentHandoverIndex;
 use App\Livewire\Portal\FinanceInvoiceQueue;
 use App\Livewire\Portal\FleetReviewConfirm;
 use App\Livewire\Portal\FleetReviewQueue;
@@ -72,6 +76,12 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/fleet-vehicles', FleetVehicleIndex::class)->name('fleet.vehicles.index');
     Route::get('/fleet-vehicles/review', FleetReviewQueue::class)->name('fleet.review.queue');
     Route::get('/fleet-vehicles/review/{document}', FleetReviewConfirm::class)->name('fleet.review.show');
+
+    Route::get('/handovers', DocumentHandoverIndex::class)->name('handovers.index');
+    Route::get('/handovers/create', DocumentHandoverForm::class)->name('handovers.create');
+    Route::get('/handovers/{handover}/edit', DocumentHandoverForm::class)->name('handovers.edit');
+    Route::get('/handovers/{handover}/print', HandoverPrintController::class)->name('handovers.print');
+    Route::get('/handovers/{handover}/signed', HandoverSignedDownloadController::class)->name('handovers.signed.download');
 
     Route::get('/documents/versions/{version}', DocumentDownloadController::class)->name('documents.download');
     Route::get('/deliverables/{deliverable}', DeliverableDownloadController::class)->name('deliverables.download');

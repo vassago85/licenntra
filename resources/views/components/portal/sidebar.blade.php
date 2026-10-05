@@ -181,6 +181,9 @@
             <x-portal.sidebar-link :href="route('estimate.index')" :active="$isCurrent('estimate.*')">
                 Licence cost estimate
             </x-portal.sidebar-link>
+            <x-portal.sidebar-link :href="route('handovers.index')" :active="$isCurrent('handovers.*')">
+                Hand-overs
+            </x-portal.sidebar-link>
             <x-portal.sidebar-link
                 :href="route('invoices.index')"
                 :active="$isCurrent('invoices.index')"
