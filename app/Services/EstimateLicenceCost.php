@@ -41,6 +41,8 @@ class EstimateLicenceCost
      *     licence_fee_tax_treatment: TaxTreatment,
      *     admin_charge_cents: int,
      *     admin_charge_tax_treatment: TaxTreatment,
+     *     rtmc_transaction_fee_cents: int,
+     *     rtmc_transaction_fee_tax_treatment: TaxTreatment,
      *     vat_basis_points: int,
      *     vat_cents: int,
      *     total_cents: int
@@ -106,6 +108,10 @@ class EstimateLicenceCost
         $adminTax = TaxTreatment::tryFrom((string) ($settings->admin_charge_tax_treatment ?? TaxTreatment::Standard->value))
             ?? TaxTreatment::Standard;
 
+        $rtmc = $this->resolveRtmcLine($version);
+        $rtmcCents = $rtmc !== null ? (int) $rtmc->amount_cents : 0;
+        $rtmcTax = $rtmc?->tax_treatment ?? TaxTreatment::Exempt;
+
         $vatBasisPoints = (int) $settings->vat_basis_points;
 
         $taxable = 0;
@@ -115,10 +121,13 @@ class EstimateLicenceCost
         if ($adminTax === TaxTreatment::Standard) {
             $taxable += $adminCents;
         }
+        if ($rtmcTax === TaxTreatment::Standard) {
+            $taxable += $rtmcCents;
+        }
 
         $vatCents = (int) round($taxable * $vatBasisPoints / 10000);
 
-        $total = $licenceCents + $adminCents + $vatCents;
+        $total = $licenceCents + $adminCents + $rtmcCents + $vatCents;
 
         return [
             'status' => LicenceEstimate::STATUS_ESTIMATED,
@@ -139,10 +148,28 @@ class EstimateLicenceCost
             'licence_fee_tax_treatment' => $licenceTax,
             'admin_charge_cents' => $adminCents,
             'admin_charge_tax_treatment' => $adminTax,
+            'rtmc_transaction_fee_cents' => $rtmcCents,
+            'rtmc_transaction_fee_tax_treatment' => $rtmcTax,
             'vat_basis_points' => $vatBasisPoints,
             'vat_cents' => $vatCents,
             'total_cents' => $total,
         ];
+    }
+
+    /**
+     * The R72 national RTMC transaction fee lives on every fee version as a
+     * FeeLine with code 'rtmc_transaction_fee'. It is a straight pass-through
+     * to the licensing authority — not provincial, not VATable — so we lift
+     * it off the version by code rather than running it through the band
+     * resolver. If the version has no RTMC line (seed drift, legacy data),
+     * the estimator silently omits it rather than guessing.
+     */
+    private function resolveRtmcLine(FeeTableVersion $version): ?FeeLine
+    {
+        return $version->lines()
+            ->where('code', 'rtmc_transaction_fee')
+            ->where('amount_cents', '>', 0)
+            ->first();
     }
 
     /**
@@ -244,6 +271,8 @@ class EstimateLicenceCost
             'licence_fee_tax_treatment' => TaxTreatment::Exempt,
             'admin_charge_cents' => (int) ($settings->admin_charge_cents ?? 0),
             'admin_charge_tax_treatment' => TaxTreatment::tryFrom((string) ($settings->admin_charge_tax_treatment ?? TaxTreatment::Standard->value)) ?? TaxTreatment::Standard,
+            'rtmc_transaction_fee_cents' => 0,
+            'rtmc_transaction_fee_tax_treatment' => TaxTreatment::Exempt,
             'vat_basis_points' => (int) $settings->vat_basis_points,
             'vat_cents' => 0,
             'total_cents' => 0,

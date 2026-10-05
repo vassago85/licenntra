@@ -158,6 +158,20 @@
                                 <td class="px-3 py-2 text-right">{{ $moneyRands($result['admin_charge_cents']) }}</td>
                             </tr>
                             <tr>
+                                <td class="px-3 py-2">
+                                    RTMC transaction fee
+                                    <span class="block text-xs text-muted">National R72 pass-through on every licence transaction</span>
+                                </td>
+                                <td class="px-3 py-2 text-xs text-muted">{{ ucfirst(($result['rtmc_transaction_fee_tax_treatment'] ?? \App\Enums\TaxTreatment::Exempt)->value) }}</td>
+                                <td class="px-3 py-2 text-right">
+                                    @if ($isConfirmationRequired)
+                                        <span class="text-amber-900">&mdash;</span>
+                                    @else
+                                        {{ $moneyRands($result['rtmc_transaction_fee_cents'] ?? 0) }}
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="px-3 py-2">VAT ({{ number_format($result['vat_basis_points'] / 100, 1) }}%)</td>
                                 <td class="px-3 py-2 text-xs text-muted">On taxable items</td>
                                 <td class="px-3 py-2 text-right">

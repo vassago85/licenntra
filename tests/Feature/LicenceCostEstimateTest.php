@@ -225,10 +225,81 @@ it('adds the admin charge and VAT exactly once', function () {
     );
 
     // Licence 100000 exempt, admin 15000 standard, VAT 15% → 2250, total 117250.
+    // No RTMC line exists on this skeletal fee version, so RTMC must stay 0.
     expect($result['licence_fee_cents'])->toBe(100000)
         ->and($result['admin_charge_cents'])->toBe(15000)
+        ->and($result['rtmc_transaction_fee_cents'])->toBe(0)
         ->and($result['vat_cents'])->toBe(2250)
         ->and($result['total_cents'])->toBe(117250);
+});
+
+it('adds the R72 RTMC national transaction fee when it is present on the fee version', function () {
+    $version = seedActiveFeeVersion(Province::Gauteng, [
+        ['category' => LicenceFeeCategory::MotorCar, 'cents' => 100000, 'tax' => TaxTreatment::Exempt, 'tare_min' => null, 'tare_max' => null],
+    ]);
+
+    // Attach the national R72 pass-through to the version. Exempt from VAT.
+    $version->lines()->create([
+        'code' => 'rtmc_transaction_fee',
+        'label' => 'RTMC transaction fee',
+        'amount_cents' => 7200,
+        'client_visible' => true,
+        'tax_treatment' => TaxTreatment::Exempt->value,
+        'period' => FeePeriod::OnceOff->value,
+        'licence_category' => LicenceFeeCategory::TransactionFee->value,
+    ]);
+
+    $result = $this->service->compute(
+        Province::Gauteng,
+        LicenceFeeCategory::MotorCar,
+        null,
+        Carbon::now(),
+    );
+
+    // Licence 100000 exempt, admin 15000 standard, RTMC 7200 exempt,
+    // VAT 15% on 15000 → 2250, total 100000 + 15000 + 7200 + 2250 = 124450.
+    expect($result['licence_fee_cents'])->toBe(100000)
+        ->and($result['admin_charge_cents'])->toBe(15000)
+        ->and($result['rtmc_transaction_fee_cents'])->toBe(7200)
+        ->and($result['rtmc_transaction_fee_tax_treatment'])->toBe(TaxTreatment::Exempt)
+        ->and($result['vat_cents'])->toBe(2250)
+        ->and($result['total_cents'])->toBe(124450);
+});
+
+it('persists the R72 RTMC line in the saved estimate snapshot', function () {
+    $version = seedActiveFeeVersion(Province::Gauteng, [
+        ['category' => LicenceFeeCategory::MotorCar, 'cents' => 70000, 'tax' => TaxTreatment::Exempt, 'tare_min' => 1001, 'tare_max' => 1500],
+    ]);
+    $version->lines()->create([
+        'code' => 'rtmc_transaction_fee',
+        'label' => 'RTMC transaction fee',
+        'amount_cents' => 7200,
+        'client_visible' => true,
+        'tax_treatment' => TaxTreatment::Exempt->value,
+        'period' => FeePeriod::OnceOff->value,
+        'licence_category' => LicenceFeeCategory::TransactionFee->value,
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(LicenceCostEstimator::class)
+        ->set('province', Province::Gauteng->value)
+        ->set('licence_category', LicenceFeeCategory::MotorCar->value)
+        ->set('tare_kg', 1200)
+        ->set('applicable_date', Carbon::now()->toDateString())
+        ->call('calculate')
+        ->call('save');
+
+    $estimate = LicenceEstimate::query()->firstOrFail();
+
+    expect($estimate->rtmc_transaction_fee_cents)->toBe(7200)
+        ->and($estimate->rtmc_transaction_fee_tax_treatment)->toBe(TaxTreatment::Exempt)
+        // The snapshot must not change if the licensing company later edits
+        // the RTMC line on the active version.
+        ->and($estimate->total_cents)->toBeGreaterThanOrEqual(70000 + 7200);
+
+    $version->lines()->where('code', 'rtmc_transaction_fee')->update(['amount_cents' => 9999]);
+
+    expect($estimate->refresh()->rtmc_transaction_fee_cents)->toBe(7200);
 });
 
 it('applies the configured tax treatment to each charge', function () {

@@ -54,6 +54,7 @@ it('prices a 12 000 kg rigid vehicle at the base amount (R 32 112) with zero sur
     expect($result['licence_fee_cents'])->toBe(32112_00);
     expect($result['fee_line_tare_min_kg'])->toBeLessThanOrEqual(12000);
     expect($result['fee_line_tare_max_kg'])->toBe(12000);
+    expect($result['rtmc_transaction_fee_cents'])->toBe(7200);
 });
 
 it('prices an 18 500 kg rigid vehicle at base + 13 surcharge steps (R 66 588) - 13 x R 2 652', function (): void {
@@ -68,6 +69,7 @@ it('prices an 18 500 kg rigid vehicle at base + 13 surcharge steps (R 66 588) - 
     expect($result['status'])->toBe(LicenceEstimate::STATUS_ESTIMATED);
     expect($result['licence_fee_cents'])->toBe(66588_00);
     expect($result['fee_line_tare_max_kg'])->toBe(18500);
+    expect($result['rtmc_transaction_fee_cents'])->toBe(7200);
 });
 
 it('prices a 19 000 kg rigid vehicle at base + 14 surcharge steps (R 69 240)', function (): void {
@@ -82,6 +84,7 @@ it('prices a 19 000 kg rigid vehicle at base + 14 surcharge steps (R 69 240)', f
     expect($result['status'])->toBe(LicenceEstimate::STATUS_ESTIMATED);
     expect($result['licence_fee_cents'])->toBe(69240_00);
     expect($result['fee_line_tare_max_kg'])->toBe(19000);
+    expect($result['rtmc_transaction_fee_cents'])->toBe(7200);
 });
 
 it('does not leave gaps between adjacent bands - every integer tare from 12 000 to 13 500 kg resolves to exactly one band', function (): void {
