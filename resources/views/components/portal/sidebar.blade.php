@@ -222,17 +222,18 @@
         @endif
     </nav>
 
-    <div class="mt-auto flex flex-col gap-2 border-t border-line px-2 pt-4 text-xs text-muted">
-        @auth
+    @auth
+        <div class="flex flex-col gap-2 border-t border-line px-2 pt-4 text-xs text-muted">
             <div class="truncate" title="{{ $user->email }}">{{ $user->email }}</div>
             <a href="{{ route('account.settings') }}" class="font-medium text-ink hover:underline @if ($isCurrent('account.*')) underline @endif">Account settings</a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="font-medium text-ink hover:underline">Sign out</button>
             </form>
-        @endauth
-        <div class="pt-1">Powered by Licentra</div>
-    </div>
+        </div>
+    @endauth
+
+    <div class="mt-auto px-2 pt-4 text-xs text-muted">Powered by Licentra</div>
 </aside>
 
 <div
