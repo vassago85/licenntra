@@ -324,7 +324,29 @@
         @endif
 
         @if ($application->stage === \App\Enums\ApplicationStage::ChangesRequested)
-            <button type="button" wire:click="resubmit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Send back for review</button>
+            <section class="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <h2 class="font-semibold">Requested fixes</h2>
+                @if ($outstandingFixes->isEmpty())
+                    <p class="mt-1">All reviewer feedback is addressed. You can send this back for review.</p>
+                    <button type="button" wire:click="resubmit" class="mt-3 h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Send back for review</button>
+                @else
+                    <p class="mt-1">The reviewer needs the following before this application can continue:</p>
+                    <ul class="mt-2 space-y-2">
+                        @foreach ($outstandingFixes as $fix)
+                            <li class="rounded-md border border-amber-200 bg-white px-2 py-2">
+                                <p class="font-semibold">{{ $fix->label() }}</p>
+                                @if ($fix->status === \App\Enums\DocumentStatus::Rejected)
+                                    <p class="text-xs">Rejected{{ $fix->rejection_reason ? ' — '.$fix->rejection_reason->label() : '' }}@if ($fix->reviewer_comment): {{ $fix->reviewer_comment }}@endif</p>
+                                @else
+                                    <p class="text-xs">Not yet uploaded.</p>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                    <a href="{{ route('applications.edit', $application) }}" class="mt-3 inline-flex h-9 items-center rounded-md border border-amber-300 bg-white px-3 text-sm font-semibold">Open draft to upload / fix</a>
+                    <button type="button" class="mt-3 ml-2 h-9 cursor-not-allowed rounded-md px-3 text-sm font-semibold text-white opacity-50" style="background: var(--brand)" disabled title="Resolve the outstanding fixes before sending back for review">Send back for review</button>
+                @endif
+            </section>
         @endif
 
         <section class="rounded-md border border-line bg-white p-3">

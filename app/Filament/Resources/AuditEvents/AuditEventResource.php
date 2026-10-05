@@ -103,7 +103,7 @@ class AuditEventResource extends Resource
                     ->label('Role')
                     ->options([
                         'super_admin' => 'Super admin',
-                        'customer_admin' => 'Customer admin',
+                        'customer_admin' => 'Operations admin',
                         'reviewer' => 'Reviewer',
                         'finance' => 'Finance',
                         'auditor' => 'Auditor',

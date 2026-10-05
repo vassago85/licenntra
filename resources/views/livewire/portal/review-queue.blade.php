@@ -6,6 +6,29 @@
     </div>
 </div>
 
+<div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Awaiting review</p>
+        <p class="mt-1 text-xl font-semibold">{{ $stats['awaiting_review'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">Submitted or in document review</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">With client</p>
+        <p class="mt-1 text-xl font-semibold">{{ $stats['with_client'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">Waiting on changes requested</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Assigned to me</p>
+        <p class="mt-1 text-xl font-semibold">{{ $stats['assigned_to_me'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">Your personal workload</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">SLA at risk</p>
+        <p class="mt-1 text-xl font-semibold {{ $stats['sla_at_risk'] > 0 ? 'text-[#9E2419]' : '' }}">{{ $stats['sla_at_risk'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">Past or near the handling target</p>
+    </div>
+</div>
+
 <div class="mb-3 flex flex-wrap gap-2">
     <select wire:model.live="stage" class="h-9 rounded-md border border-line bg-white px-2 text-sm">
         <option value="">All stages</option>

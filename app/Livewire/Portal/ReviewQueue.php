@@ -70,6 +70,37 @@ class ReviewQueue extends Component
         return view('livewire.portal.review-queue', [
             'rows' => $rows,
             'stages' => ApplicationStage::cases(),
+            'stats' => $this->stats(),
         ]);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function stats(): array
+    {
+        $active = Application::query()
+            ->where('stage', '!=', ApplicationStage::Draft)
+            ->whereNotIn('stage', [
+                ApplicationStage::Completed,
+                ApplicationStage::Cancelled,
+                ApplicationStage::Archived,
+            ]);
+
+        return [
+            'awaiting_review' => (clone $active)
+                ->whereIn('stage', [ApplicationStage::Submitted, ApplicationStage::DocumentReview])
+                ->count(),
+            'with_client' => (clone $active)
+                ->where('stage', ApplicationStage::ChangesRequested)
+                ->count(),
+            'assigned_to_me' => (clone $active)
+                ->where('assigned_reviewer_id', auth()->id())
+                ->count(),
+            'sla_at_risk' => (clone $active)
+                ->get()
+                ->filter(fn (Application $a): bool => $a->slaFlag() !== null)
+                ->count(),
+        ];
     }
 }

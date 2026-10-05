@@ -8,6 +8,29 @@
     <p class="mb-4 rounded-md border border-line bg-white px-3 py-2 text-sm text-red-800">{{ $errors->first() }}</p>
 @endif
 
+<div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Awaiting verification</p>
+        <p class="mt-1 text-xl font-semibold">{{ $stats['count'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">application{{ $stats['count'] === 1 ? '' : 's' }}</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Expected total</p>
+        <p class="mt-1 text-xl font-semibold font-mono">{{ $money::rands($stats['total_cents']) }}</p>
+        <p class="mt-0.5 text-xs text-muted">across all pending</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Dealerships owing</p>
+        <p class="mt-1 text-xl font-semibold">{{ $stats['accounts'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">distinct accounts in the queue</p>
+    </div>
+    <div class="rounded-md border border-line bg-white p-3">
+        <p class="text-xs uppercase tracking-wide text-muted">Oldest wait</p>
+        <p class="mt-1 text-xl font-semibold {{ $stats['oldest_days'] >= 3 ? 'text-[#9E2419]' : '' }}">{{ $stats['oldest_days'] }}</p>
+        <p class="mt-0.5 text-xs text-muted">day{{ $stats['oldest_days'] === 1 ? '' : 's' }} since last update</p>
+    </div>
+</div>
+
 <section class="rounded-md border border-line bg-white">
     <table class="w-full text-left text-sm">
         <thead class="text-xs text-muted">

@@ -64,23 +64,18 @@ it('lets a client_admin add a business client from the portal form', function ()
         ->and($created->usable_as)->toBe('owner');
 });
 
-it('lets a plain client_user add a business client - not just the admin', function (): void {
-    Livewire::actingAs($this->normalUser)
-        ->test(BusinessClientForm::class)
-        ->set('business_name', 'Beta Haulage')
-        ->set('usable_as', 'both')
-        ->set('status', 'active')
-        ->call('save')
-        ->assertRedirect();
-
-    $created = BusinessClient::query()->where('business_name', 'Beta Haulage')->firstOrFail();
-
-    expect($created->client_account_id)->toBe($this->dealer->id)
-        ->and($created->usable_as)->toBe('both');
+it('blocks a plain client_user from adding a business client (new strict policy)', function (): void {
+    // Under the strict policy only client_admins (and licensing staff)
+    // may create business clients. A dealer sales user can still pick
+    // existing records on an application form but cannot spawn new
+    // owner / finance-house rows that leak across the dealership.
+    $this->actingAs($this->normalUser)
+        ->get(route('business-clients.create'))
+        ->assertForbidden();
 });
 
 it('rejects an empty business name', function (): void {
-    Livewire::actingAs($this->normalUser)
+    Livewire::actingAs($this->admin)
         ->test(BusinessClientForm::class)
         ->set('business_name', '')
         ->call('save')
@@ -90,7 +85,7 @@ it('rejects an empty business name', function (): void {
 });
 
 it('always writes the new client under the actor\'s own account - never another dealer\'s', function (): void {
-    Livewire::actingAs($this->normalUser)
+    Livewire::actingAs($this->admin)
         ->test(BusinessClientForm::class)
         ->set('business_name', 'Scope Test')
         ->set('usable_as', 'owner')
@@ -106,7 +101,7 @@ it('always writes the new client under the actor\'s own account - never another 
         ->and($created->client_account_id)->not->toBe($this->otherDealer->id);
 });
 
-it('lets a client_user edit an existing business client on their own account', function (): void {
+it('blocks a client_user from editing an existing business client (new strict policy)', function (): void {
     $client = BusinessClient::query()->create([
         'client_account_id' => $this->dealer->id,
         'business_name' => 'Old Name',
@@ -114,7 +109,20 @@ it('lets a client_user edit an existing business client on their own account', f
         'status' => 'active',
     ]);
 
-    Livewire::actingAs($this->normalUser)
+    $this->actingAs($this->normalUser)
+        ->get(route('business-clients.edit', $client))
+        ->assertForbidden();
+});
+
+it('lets a client_admin edit an existing business client on their own account', function (): void {
+    $client = BusinessClient::query()->create([
+        'client_account_id' => $this->dealer->id,
+        'business_name' => 'Old Name',
+        'usable_as' => 'owner',
+        'status' => 'active',
+    ]);
+
+    Livewire::actingAs($this->admin)
         ->test(BusinessClientForm::class, ['businessClient' => $client])
         ->assertSet('business_name', 'Old Name')
         ->set('business_name', 'Renamed Logistics')
@@ -167,22 +175,38 @@ it('records an audit event on both create and update', function (): void {
         ->toBeTrue('update must leave an audit trail');
 });
 
-it('shows the Add client button on the index for a normal client_user', function (): void {
+it('hides the Add client button from a normal client_user and shows it to a client_admin', function (): void {
+    // client_user: no Add CTA, policy denies create.
     $this->actingAs($this->normalUser)
         ->get(route('business-clients.index'))
         ->assertOk()
-        ->assertSee('Add client')
-        ->assertSee(route('business-clients.create'));
+        ->assertDontSee('+ Add client');
+
+    // client_admin: Add CTA is visible.
+    $this->actingAs($this->admin)
+        ->get(route('business-clients.index'))
+        ->assertOk()
+        ->assertSee('+ Add client');
 });
 
-it('refuses the create route to a non-client user (e.g. a reviewer)', function (): void {
-    $reviewer = User::factory()->create([
+it('refuses the create route to read-only staff (finance, auditor)', function (): void {
+    $finance = User::factory()->create([
         'client_account_id' => null,
         'is_active' => true,
     ]);
-    $reviewer->assignRole('reviewer');
+    $finance->assignRole('finance');
 
-    $this->actingAs($reviewer)
+    $this->actingAs($finance)
+        ->get(route('business-clients.create'))
+        ->assertForbidden();
+
+    $auditor = User::factory()->create([
+        'client_account_id' => null,
+        'is_active' => true,
+    ]);
+    $auditor->assignRole('auditor');
+
+    $this->actingAs($auditor)
         ->get(route('business-clients.create'))
         ->assertForbidden();
 });

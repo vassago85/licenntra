@@ -10,9 +10,10 @@ use App\Actions\SendDeliverablesToCustomer;
 use App\Actions\StoreDeliverable;
 use App\Actions\StoreDocument;
 use App\Actions\StoreInvoice;
-use App\Actions\TransitionApplication;
+use App\Actions\SubmitApplication;
 use App\Enums\ApplicationStage;
 use App\Enums\DeliverableKind;
+use App\Enums\DocumentStatus;
 use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Models\DeliverableDocument;
@@ -324,11 +325,16 @@ class ApplicationShow extends Component
         $this->authorize('update', $this->application);
 
         try {
-            $this->application = app(TransitionApplication::class)->handle(
+            // Route through SubmitApplication (not TransitionApplication) so
+            // the resubmit path enforces the same required-document guard
+            // as a brand-new submit. Without this, a dealer could re-send
+            // a changes-requested record without actually fixing anything.
+            $this->application = app(SubmitApplication::class)->handle(
                 $this->application,
-                ApplicationStage::DocumentReview,
                 auth()->user(),
             );
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
         } catch (InvalidTransition $exception) {
             $this->addError('submit', $exception->getMessage());
         }
@@ -367,6 +373,18 @@ class ApplicationShow extends Component
             }
         }
 
+        // On a Changes-requested record we surface the exact documents the
+        // reviewer rejected (or that were never uploaded) so the dealer
+        // knows what to fix and the Send-back button can be gated. These
+        // are the documents SubmitApplication will refuse to progress.
+        $outstandingFixes = $this->application->documents
+            ->where('required', true)
+            ->filter(fn ($d): bool => in_array($d->status, [
+                DocumentStatus::Missing,
+                DocumentStatus::Rejected,
+            ], true))
+            ->values();
+
         return view('livewire.portal.application-show', [
             'stages' => ApplicationStage::cases(),
             'money' => Money::class,
@@ -377,6 +395,7 @@ class ApplicationShow extends Component
             'canUploadInvoice' => $canUploadInvoice,
             'dealershipUsers' => $dealershipUsers,
             'stockControllerId' => $stockControllerId,
+            'outstandingFixes' => $outstandingFixes,
         ]);
     }
 }

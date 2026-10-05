@@ -11,7 +11,7 @@
             'tone' => 'danger',
         ],
         [
-            'label' => 'Customer admin',
+            'label' => 'Operations admin',
             'email' => 'customer.admin@licentra.test',
             'role' => 'customer_admin',
             'summary' => 'Runs day-to-day operations: review queue, document accept/reject, payment verification, team management, identity-document downloads.',

@@ -22,7 +22,7 @@
         $primaryRole = collect($user->getRoleNames())->first();
         $accountSummary = match ($primaryRole) {
             'super_admin' => 'Super admin',
-            'customer_admin' => 'Customer admin',
+            'customer_admin' => 'Operations admin',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
             'auditor' => 'Auditor',
@@ -103,6 +103,19 @@
     }
 
     $isCurrent = fn (string $pattern): bool => request()->routeIs($pattern);
+    $isPath = fn (string $pattern): bool => request()->is($pattern);
+
+    /** Auto-expand a section if any of its routes is active. */
+    $operationsActive = $isCurrent('review.*') || $isCurrent('finance.*') || $isCurrent('fleet.review.*')
+        || $isPath('admin/outstanding-tasks*') || $isPath('admin/dealership-cards*');
+    $portalActive = $isCurrent('applications.*') || $isCurrent('business-clients.*') || $isCurrent('estimate.*')
+        || $isCurrent('handovers.*') || $isCurrent('invoices.*') || $isCurrent('fleet.vehicles.*') || $isCurrent('team.*');
+    $adminActive = $isPath('admin/users*') || $isPath('admin/client-accounts*')
+        || $isPath('admin/fee-table*') || $isPath('admin/fee-lines*')
+        || $isPath('admin/document-types*') || $isPath('admin/document-rules*')
+        || $isCurrent('settings.*');
+    $complianceActive = $isPath('admin/audit-events*');
+    $platformActive = $isPath('admin/platform-billing*');
 
     /** First printable character of the brand, used in the sidebar mark. */
     $brandMark = strtoupper(mb_substr($branding->company_name ?? 'L', 0, 1));
@@ -134,9 +147,40 @@
     ];
 @endphp
 
+{{-- Collapsible section component for Alpine. Safe to run whether or not
+     Alpine has already initialised. --}}
+<script>
+    (function () {
+        const register = () => {
+            if (!window.Alpine || window.__licentraSidebarRegistered) {
+                return;
+            }
+            window.__licentraSidebarRegistered = true;
+            window.Alpine.data('sidebarSection', (key, forcedActive = false, defaultOpen = true) => ({
+                open: forcedActive
+                    ? true
+                    : (localStorage.getItem('licentra-sb-' + key) ?? (defaultOpen ? '1' : '0')) === '1',
+                toggle() {
+                    this.open = !this.open;
+                    try {
+                        localStorage.setItem('licentra-sb-' + key, this.open ? '1' : '0');
+                    } catch (e) {
+                        /* storage disabled — collapse state becomes session-only. */
+                    }
+                },
+            }));
+        };
+        if (window.Alpine) {
+            register();
+        } else {
+            document.addEventListener('alpine:init', register);
+        }
+    })();
+</script>
+
 <aside
     @keydown.escape.window="open = false"
-    class="fixed inset-y-0 left-0 z-30 flex w-[220px] flex-col gap-5 border-r border-line bg-surface px-3 py-5 transition-transform lg:w-[176px] lg:translate-x-0"
+    class="fixed inset-y-0 left-0 z-30 flex w-[220px] flex-col gap-4 overflow-y-auto border-r border-line bg-surface px-3 py-5 transition-transform lg:w-[176px] lg:translate-x-0"
     :class="open ? 'translate-x-0' : '-translate-x-full'"
     aria-label="Primary navigation"
 >
@@ -184,227 +228,283 @@
         </div>
     @endif
 
-    <nav class="flex flex-col gap-1 overflow-y-auto pr-1">
+    <div class="flex flex-1 flex-col gap-3">
         @if ($isClient)
-            <x-portal.sidebar-link
-                :href="route('applications.index')"
-                :active="$isCurrent('applications.index')"
-                :icon="$icons['dashboard']"
+            <section
+                x-data="sidebarSection('portal', {{ $portalActive ? 'true' : 'false' }})"
+                class="flex flex-col gap-1"
             >
-                Dashboard
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('applications.index')"
-                :active="false"
-                :count="$applicationsCount"
-                countTone="mono"
-                :icon="$icons['list']"
-            >
-                Applications
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('applications.create')"
-                :active="$isCurrent('applications.create')"
-                :icon="$icons['plus']"
-            >
-                New application
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('business-clients.index')"
-                :active="$isCurrent('business-clients.*')"
-                :count="$businessClientsCount"
-                countTone="mono"
-                :icon="$icons['users']"
-            >
-                Business clients
-            </x-portal.sidebar-link>
-            @if ($quotesEnabled && $quotesCount > 0)
-                <x-portal.sidebar-link
-                    :href="route('applications.index').'?tab=needs_action'"
-                    :active="false"
-                    :count="$quotesCount"
-                    countTone="warning"
-                    :icon="$icons['invoice']"
-                >
-                    Quotes awaiting you
-                </x-portal.sidebar-link>
-            @endif
-            <x-portal.sidebar-link
-                :href="route('estimate.index')"
-                :active="$isCurrent('estimate.*')"
-                :icon="$icons['calculator']"
-            >
-                Licence cost estimate
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('handovers.index')"
-                :active="$isCurrent('handovers.*')"
-                :icon="$icons['package']"
-            >
-                Hand-overs
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('invoices.index')"
-                :active="$isCurrent('invoices.index')"
-                :count="$clientInvoicesOutstandingCount"
-                :countTone="$clientInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
-                :icon="$icons['invoice']"
-            >
-                Invoices
-            </x-portal.sidebar-link>
-            @if ($isFleetClient)
-                <x-portal.sidebar-link
-                    :href="route('fleet.vehicles.index')"
-                    :active="$isCurrent('fleet.vehicles.*')"
-                    :count="$fleetVehiclesCount"
-                    countTone="mono"
-                    :icon="$icons['truck']"
-                >
-                    Fleet vehicles
-                </x-portal.sidebar-link>
-            @endif
-            @if ($user?->hasRole('client_admin'))
-                <x-portal.sidebar-link
-                    :href="route('team.index')"
-                    :active="$isCurrent('team.*')"
-                    :icon="$icons['users']"
-                >
-                    Team
-                </x-portal.sidebar-link>
-            @endif
+                <button type="button" @click="toggle" :aria-expanded="open" class="flex items-center justify-between gap-2 rounded-[4px] px-2 py-1 text-left hover:bg-paper">
+                    <span class="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Portal</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3 w-3 text-muted transition-transform" :class="open ? 'rotate-0' : '-rotate-90'">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="flex flex-col gap-1">
+                    <x-portal.sidebar-link
+                        :href="route('applications.index')"
+                        :active="$isCurrent('applications.index')"
+                        :icon="$icons['dashboard']"
+                    >
+                        Dashboard
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('applications.index')"
+                        :active="false"
+                        :count="$applicationsCount"
+                        countTone="mono"
+                        :icon="$icons['list']"
+                    >
+                        Applications
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('applications.create')"
+                        :active="$isCurrent('applications.create')"
+                        :icon="$icons['plus']"
+                    >
+                        New application
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('business-clients.index')"
+                        :active="$isCurrent('business-clients.*')"
+                        :count="$businessClientsCount"
+                        countTone="mono"
+                        :icon="$icons['users']"
+                    >
+                        Business clients
+                    </x-portal.sidebar-link>
+                    @if ($quotesEnabled && $quotesCount > 0)
+                        <x-portal.sidebar-link
+                            :href="route('applications.index').'?tab=needs_action'"
+                            :active="false"
+                            :count="$quotesCount"
+                            countTone="warning"
+                            :icon="$icons['invoice']"
+                        >
+                            Quotes awaiting you
+                        </x-portal.sidebar-link>
+                    @endif
+                    <x-portal.sidebar-link
+                        :href="route('estimate.index')"
+                        :active="$isCurrent('estimate.*')"
+                        :icon="$icons['calculator']"
+                    >
+                        Licence cost estimate
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('handovers.index')"
+                        :active="$isCurrent('handovers.*')"
+                        :icon="$icons['package']"
+                    >
+                        Hand-overs
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('invoices.index')"
+                        :active="$isCurrent('invoices.index')"
+                        :count="$clientInvoicesOutstandingCount"
+                        :countTone="$clientInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
+                        :icon="$icons['invoice']"
+                    >
+                        Invoices
+                    </x-portal.sidebar-link>
+                    @if ($isFleetClient)
+                        <x-portal.sidebar-link
+                            :href="route('fleet.vehicles.index')"
+                            :active="$isCurrent('fleet.vehicles.*')"
+                            :count="$fleetVehiclesCount"
+                            countTone="mono"
+                            :icon="$icons['truck']"
+                        >
+                            Fleet vehicles
+                        </x-portal.sidebar-link>
+                    @endif
+                    @if ($user?->hasRole('client_admin'))
+                        <x-portal.sidebar-link
+                            :href="route('team.index')"
+                            :active="$isCurrent('team.*')"
+                            :icon="$icons['users']"
+                        >
+                            Team
+                        </x-portal.sidebar-link>
+                    @endif
+                </div>
+            </section>
         @elseif ($isStaff)
-            <x-portal.sidebar-link
-                :href="route('review.queue')"
-                :active="$isCurrent('review.*')"
-                :count="$reviewQueueCount"
-                :countTone="$reviewQueueCount > 0 ? 'warning' : 'mono'"
-                :icon="$icons['queue']"
+            <section
+                x-data="sidebarSection('operations', {{ $operationsActive ? 'true' : 'false' }})"
+                class="flex flex-col gap-1"
             >
-                Review queue
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="url('/admin/outstanding-tasks')"
-                :active="request()->is('admin/outstanding-tasks*')"
-                :icon="$icons['list']"
-            >
-                Outstanding tasks
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="url('/admin/dealership-cards')"
-                :active="request()->is('admin/dealership-cards*')"
-                :icon="$icons['briefcase']"
-            >
-                Dealership cards
-            </x-portal.sidebar-link>
-            @if ($paymentTrackingRequired && $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
-                <x-portal.sidebar-link
-                    :href="route('finance.payments')"
-                    :active="$isCurrent('finance.payments')"
-                    :count="$paymentsCount"
-                    :countTone="$paymentsCount > 0 ? 'warning' : 'mono'"
-                    :icon="$icons['cash']"
-                >
-                    Payments
-                </x-portal.sidebar-link>
-            @endif
-            @if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
-                <x-portal.sidebar-link
-                    :href="route('finance.invoices')"
-                    :active="$isCurrent('finance.invoices')"
-                    :count="$financeInvoicesOutstandingCount"
-                    :countTone="$financeInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
-                    :icon="$icons['invoice']"
-                >
-                    Invoices
-                </x-portal.sidebar-link>
-            @endif
-            @if ($user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']))
-                <x-portal.sidebar-link
-                    :href="route('fleet.review.queue')"
-                    :active="$isCurrent('fleet.review.*')"
-                    :count="$fleetReviewPendingCount"
-                    :countTone="$fleetReviewPendingCount > 0 ? 'warning' : 'mono'"
-                    :icon="$icons['truck']"
-                >
-                    Fleet licence review
-                </x-portal.sidebar-link>
-            @endif
+                <button type="button" @click="toggle" :aria-expanded="open" class="flex items-center justify-between gap-2 rounded-[4px] px-2 py-1 text-left hover:bg-paper">
+                    <span class="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Operations</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3 w-3 text-muted transition-transform" :class="open ? 'rotate-0' : '-rotate-90'">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="flex flex-col gap-1">
+                    <x-portal.sidebar-link
+                        :href="route('review.queue')"
+                        :active="$isCurrent('review.*')"
+                        :count="$reviewQueueCount"
+                        :countTone="$reviewQueueCount > 0 ? 'warning' : 'mono'"
+                        :icon="$icons['queue']"
+                    >
+                        Review queue
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="url('/admin/outstanding-tasks')"
+                        :active="request()->is('admin/outstanding-tasks*')"
+                        :icon="$icons['list']"
+                    >
+                        Outstanding tasks
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="url('/admin/dealership-cards')"
+                        :active="request()->is('admin/dealership-cards*')"
+                        :icon="$icons['briefcase']"
+                    >
+                        Dealership cards
+                    </x-portal.sidebar-link>
+                    @if ($paymentTrackingRequired && $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
+                        <x-portal.sidebar-link
+                            :href="route('finance.payments')"
+                            :active="$isCurrent('finance.payments')"
+                            :count="$paymentsCount"
+                            :countTone="$paymentsCount > 0 ? 'warning' : 'mono'"
+                            :icon="$icons['cash']"
+                        >
+                            Payments
+                        </x-portal.sidebar-link>
+                    @endif
+                    @if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
+                        <x-portal.sidebar-link
+                            :href="route('finance.invoices')"
+                            :active="$isCurrent('finance.invoices')"
+                            :count="$financeInvoicesOutstandingCount"
+                            :countTone="$financeInvoicesOutstandingCount > 0 ? 'warning' : 'mono'"
+                            :icon="$icons['invoice']"
+                        >
+                            Invoices
+                        </x-portal.sidebar-link>
+                    @endif
+                    @if ($user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']))
+                        <x-portal.sidebar-link
+                            :href="route('fleet.review.queue')"
+                            :active="$isCurrent('fleet.review.*')"
+                            :count="$fleetReviewPendingCount"
+                            :countTone="$fleetReviewPendingCount > 0 ? 'warning' : 'mono'"
+                            :icon="$icons['truck']"
+                        >
+                            Fleet licence review
+                        </x-portal.sidebar-link>
+                    @endif
+                </div>
+            </section>
         @endif
-    </nav>
 
-    @if ($isAdmin)
-        <div class="flex flex-col gap-1 border-t border-line pt-4">
-            <span class="px-2 pb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Administration</span>
-            <x-portal.sidebar-link
-                :href="url('/admin/users')"
-                :active="request()->is('admin/users*')"
-                :icon="$icons['users']"
+        @if ($isAdmin)
+            <section
+                x-data="sidebarSection('admin', {{ $adminActive ? 'true' : 'false' }})"
+                class="flex flex-col gap-1 border-t border-line pt-3"
             >
-                Users
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="url('/admin/client-accounts')"
-                :active="request()->is('admin/client-accounts*')"
-                :icon="$icons['briefcase']"
-            >
-                Client accounts
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="url('/admin/fee-tables')"
-                :active="request()->is('admin/fee-table*') || request()->is('admin/fee-lines*')"
-                :icon="$icons['tag']"
-            >
-                Fee tables
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="url('/admin/document-types')"
-                :active="request()->is('admin/document-types*') || request()->is('admin/document-rules*')"
-                :icon="$icons['book']"
-            >
-                Document library
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('settings.branding')"
-                :active="$isCurrent('settings.branding')"
-                :icon="$icons['cog']"
-            >
-                Branding
-            </x-portal.sidebar-link>
-            <x-portal.sidebar-link
-                :href="route('settings.system')"
-                :active="$isCurrent('settings.system')"
-                :icon="$icons['shield']"
-            >
-                System settings
-            </x-portal.sidebar-link>
-        </div>
-    @endif
+                <button type="button" @click="toggle" :aria-expanded="open" class="flex items-center justify-between gap-2 rounded-[4px] px-2 py-1 text-left hover:bg-paper">
+                    <span class="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Administration</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3 w-3 text-muted transition-transform" :class="open ? 'rotate-0' : '-rotate-90'">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="flex flex-col gap-1">
+                    <x-portal.sidebar-link
+                        :href="url('/admin/users')"
+                        :active="request()->is('admin/users*')"
+                        :icon="$icons['users']"
+                    >
+                        Users
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="url('/admin/client-accounts')"
+                        :active="request()->is('admin/client-accounts*')"
+                        :icon="$icons['briefcase']"
+                    >
+                        Client accounts
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="url('/admin/fee-tables')"
+                        :active="request()->is('admin/fee-table*') || request()->is('admin/fee-lines*')"
+                        :icon="$icons['tag']"
+                    >
+                        Fee tables
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="url('/admin/document-types')"
+                        :active="request()->is('admin/document-types*') || request()->is('admin/document-rules*')"
+                        :icon="$icons['book']"
+                    >
+                        Document library
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('settings.branding')"
+                        :active="$isCurrent('settings.branding')"
+                        :icon="$icons['cog']"
+                    >
+                        Branding
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
+                        :href="route('settings.system')"
+                        :active="$isCurrent('settings.system')"
+                        :icon="$icons['shield']"
+                    >
+                        System settings
+                    </x-portal.sidebar-link>
+                </div>
+            </section>
+        @endif
 
-    @if ($canAudit)
-        <div class="flex flex-col gap-1 border-t border-line pt-4">
-            <span class="px-2 pb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Compliance</span>
-            <x-portal.sidebar-link
-                :href="url('/admin/audit-events')"
-                :active="request()->is('admin/audit-events*')"
-                :icon="$icons['shield']"
+        @if ($canAudit)
+            <section
+                x-data="sidebarSection('compliance', {{ $complianceActive ? 'true' : 'false' }})"
+                class="flex flex-col gap-1 border-t border-line pt-3"
             >
-                Audit log
-            </x-portal.sidebar-link>
-        </div>
-    @endif
+                <button type="button" @click="toggle" :aria-expanded="open" class="flex items-center justify-between gap-2 rounded-[4px] px-2 py-1 text-left hover:bg-paper">
+                    <span class="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Compliance</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3 w-3 text-muted transition-transform" :class="open ? 'rotate-0' : '-rotate-90'">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="flex flex-col gap-1">
+                    <x-portal.sidebar-link
+                        :href="url('/admin/audit-events')"
+                        :active="request()->is('admin/audit-events*')"
+                        :icon="$icons['shield']"
+                    >
+                        Audit log
+                    </x-portal.sidebar-link>
+                </div>
+            </section>
+        @endif
 
-    @if ($canPlatform)
-        <div class="flex flex-col gap-1 border-t border-line pt-4">
-            <span class="px-2 pb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Platform</span>
-            <x-portal.sidebar-link
-                :href="url('/admin/platform-billing')"
-                :active="request()->is('admin/platform-billing*')"
-                :icon="$icons['card']"
+        @if ($canPlatform)
+            <section
+                x-data="sidebarSection('platform', {{ $platformActive ? 'true' : 'false' }})"
+                class="flex flex-col gap-1 border-t border-line pt-3"
             >
-                Platform billing
-            </x-portal.sidebar-link>
-        </div>
-    @endif
+                <button type="button" @click="toggle" :aria-expanded="open" class="flex items-center justify-between gap-2 rounded-[4px] px-2 py-1 text-left hover:bg-paper">
+                    <span class="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Platform</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3 w-3 text-muted transition-transform" :class="open ? 'rotate-0' : '-rotate-90'">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="flex flex-col gap-1">
+                    <x-portal.sidebar-link
+                        :href="url('/admin/platform-billing')"
+                        :active="request()->is('admin/platform-billing*')"
+                        :icon="$icons['card']"
+                    >
+                        Platform billing
+                    </x-portal.sidebar-link>
+                </div>
+            </section>
+        @endif
+    </div>
 
     @auth
         <div class="mt-auto flex flex-col gap-2 border-t border-line px-2 pt-3 text-[11px] text-muted">
@@ -417,7 +517,7 @@
         </div>
     @endauth
 
-    <div class="px-2 pt-2 text-[11px] leading-tight text-muted">
+    <div class="px-2 pt-1 text-[11px] leading-tight text-muted">
         Powered by Licentra
         <small class="block text-[10px] text-muted">Charsley Digital</small>
     </div>

@@ -28,13 +28,31 @@ class BusinessClientPolicy
         return $user->isLicensingStaff();
     }
 
+    /**
+     * Only dealership managers (client_admin) and licensing operations
+     * staff (reviewer / customer_admin / super_admin) may add a business
+     * client. A plain client_user (dealer sales user) can reference
+     * existing records on an application form but cannot spawn new
+     * owner/finance-house rows that would leak across the dealership.
+     * Finance and auditor are read-only roles.
+     */
     public function create(User $user): bool
     {
-        return $user->is_active && $user->isClient();
+        if (! $user->is_active) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])
+            || ($user->isClient() && $user->hasRole('client_admin'));
     }
 
     public function update(User $user, BusinessClient $businessClient): bool
     {
-        return $this->view($user, $businessClient) && ($user->isClient() || $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']));
+        if (! $this->view($user, $businessClient)) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])
+            || ($user->isClient() && $user->hasRole('client_admin'));
     }
 }

@@ -290,6 +290,32 @@ class UnifiedSidebarTest extends TestCase
         $this->get(route('applications.index'))->assertRedirect(route('login'));
     }
 
+    /* ---------------------------------------------------------------
+     * Collapsible sections: every section has a header toggle so the
+     * user can hide what they don't use.
+     * ------------------------------------------------------------- */
+
+    public function test_each_section_renders_a_collapsible_header_for_staff(): void
+    {
+        $response = $this->actingAs($this->staff('super_admin'))
+            ->get(route('review.queue'))
+            ->assertOk();
+
+        // Alpine data component wires every section.
+        $response->assertSee("sidebarSection('operations'", escape: false);
+        $response->assertSee("sidebarSection('admin'", escape: false);
+        $response->assertSee("sidebarSection('compliance'", escape: false);
+    }
+
+    public function test_the_client_portal_section_is_collapsible(): void
+    {
+        $response = $this->actingAs($this->client('client_admin'))
+            ->get(route('applications.index'))
+            ->assertOk();
+
+        $response->assertSee("sidebarSection('portal'", escape: false);
+    }
+
     private function staff(string $role): User
     {
         $user = User::factory()->create(['is_active' => true]);

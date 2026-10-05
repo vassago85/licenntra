@@ -8,6 +8,7 @@ use App\Exceptions\InvalidTransition;
 use App\Models\Application;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -84,14 +85,43 @@ class PaymentQueue extends Component
 
     public function render(): View
     {
+        $rows = Application::query()
+            ->with(['clientAccount', 'vehicle'])
+            ->where('stage', ApplicationStage::PaymentPending)
+            ->latest('updated_at')
+            ->get();
+
         return view('livewire.portal.payment-queue', [
-            'rows' => Application::query()
-                ->with(['clientAccount', 'vehicle'])
-                ->where('stage', ApplicationStage::PaymentPending)
-                ->latest('updated_at')
-                ->get(),
+            'rows' => $rows,
             'money' => Money::class,
+            'stats' => $this->stats($rows),
         ]);
+    }
+
+    /**
+     * @param  Collection<int, Application>  $rows
+     * @return array<string, int>
+     */
+    private function stats(Collection $rows): array
+    {
+        $totalCents = $rows->sum(fn (Application $a) => (int) ($a->fee_snapshot['total_cents'] ?? 0));
+
+        $oldestDays = $rows
+            ->map(fn (Application $a) => $a->updated_at?->diffInDays(now()) ?? 0)
+            ->max() ?? 0;
+
+        $accounts = $rows
+            ->pluck('client_account_id')
+            ->filter()
+            ->unique()
+            ->count();
+
+        return [
+            'count' => $rows->count(),
+            'total_cents' => (int) $totalCents,
+            'oldest_days' => (int) $oldestDays,
+            'accounts' => $accounts,
+        ];
     }
 
     private function toCents(string $rands): int

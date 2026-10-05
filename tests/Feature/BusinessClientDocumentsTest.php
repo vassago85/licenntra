@@ -40,17 +40,22 @@ beforeEach(function (): void {
         'markup_basis_points' => 0,
     ]);
 
+    // Business-client paperwork is a client_admin privilege under the new
+    // strict policy: a plain client_user can select existing records on
+    // application forms but cannot create, edit, or upload documents
+    // against them. The upload / replace / download semantics are
+    // identical for both roles, so we test them with the admin role.
     $this->userA = User::factory()->create([
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
     ]);
-    $this->userA->assignRole('client_user');
+    $this->userA->assignRole('client_admin');
 
     $this->userB = User::factory()->create([
         'client_account_id' => $this->dealerB->id,
         'is_active' => true,
     ]);
-    $this->userB->assignRole('client_user');
+    $this->userB->assignRole('client_admin');
 
     $this->businessClient = BusinessClient::query()->create([
         'client_account_id' => $this->dealerA->id,

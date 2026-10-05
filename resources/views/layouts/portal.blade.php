@@ -26,7 +26,7 @@
         $primaryRole = collect($user->getRoleNames())->first();
         $contextRole = match ($primaryRole) {
             'super_admin' => 'Company superadmin',
-            'customer_admin' => 'Customer admin',
+            'customer_admin' => 'Operations admin',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
             'auditor' => 'Auditor',

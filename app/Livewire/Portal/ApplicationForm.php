@@ -165,13 +165,14 @@ class ApplicationForm extends Component
         $this->redirectRoute('applications.edit', $saved);
     }
 
+    /**
+     * React to form changes. This method ONLY keeps dependent fields in
+     * sync with the user's selection; it NEVER writes to the database.
+     * Drafts are created exclusively on explicit {@see save()} / {@see submit()}
+     * so a partially-filled form cannot spawn ghost rows.
+     */
     public function updated(string $name): void
     {
-        $watched = [
-            'request_type', 'service_type', 'vehicle_category', 'licence_category', 'owner_type', 'province',
-            'is_financed', 'is_dealer_stock', 'dangerous_goods', 'business_client_id', 'title_holder_business_client_id',
-        ];
-
         if ($name === 'business_client_id' && $this->business_client_id === 'new') {
             return;
         }
@@ -210,10 +211,6 @@ class ApplicationForm extends Component
         // individual-owner inputs before the next render cycle.
         if ($name === 'request_type' && $this->request_type === RequestType::DealerStock->value) {
             $this->owner_type = OwnerType::Business->value;
-        }
-
-        if (in_array($name, $watched, true)) {
-            $this->persist(false);
         }
     }
 

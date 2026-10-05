@@ -35,20 +35,24 @@
     <section class="rounded-md border border-line bg-white p-3 text-sm">
         <h2 class="font-semibold">Retention consent</h2>
         <p class="mt-2 text-muted">{{ $settings->retention_wording }}</p>
-        <form wire:submit="saveConsent" class="mt-3 space-y-3">
-            <label class="block">Period
-                <select wire:model="period_months" class="mt-1 h-9 w-full rounded-md border border-line px-2">
-                    @foreach ($options as $months)
-                        <option value="{{ $months }}">{{ $months }} months</option>
-                    @endforeach
-                </select>
-            </label>
-            <label class="flex items-start gap-2">
-                <input type="checkbox" wire:model="consent" class="mt-1">
-                <span>I confirm I have this business's authorisation to keep these documents for the selected period.</span>
-            </label>
-            <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Save consent</button>
-        </form>
+        @can('update', $businessClient)
+            <form wire:submit="saveConsent" class="mt-3 space-y-3">
+                <label class="block">Period
+                    <select wire:model="period_months" class="mt-1 h-9 w-full rounded-md border border-line px-2">
+                        @foreach ($options as $months)
+                            <option value="{{ $months }}">{{ $months }} months</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="flex items-start gap-2">
+                    <input type="checkbox" wire:model="consent" class="mt-1">
+                    <span>I confirm I have this business's authorisation to keep these documents for the selected period.</span>
+                </label>
+                <button type="submit" class="h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Save consent</button>
+            </form>
+        @else
+            <p class="mt-3 rounded-md border border-line bg-paper px-2 py-2 text-xs text-muted">Only your dealership's client admin can record retention consent.</p>
+        @endcan
         <ul class="mt-4 space-y-1 text-xs text-muted">
             @foreach ($consents as $consent)
                 <li class="font-mono">{{ $consent->confirmed_at?->format('d M Y') }} · {{ $consent->period_months }} months · wording {{ $consent->wording_version }}</li>
