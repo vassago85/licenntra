@@ -385,6 +385,15 @@ class ApplicationShow extends Component
             ], true))
             ->values();
 
+        // Did the reviewer actually record feedback for this application?
+        // Without evidence we must not tell the dealer their "feedback is
+        // addressed" - we might just have landed here with an empty slate.
+        $hadReviewerFeedback = $this->application->stageHistory()
+            ->where('to_stage', ApplicationStage::ChangesRequested->value)
+            ->whereNotNull('reason')
+            ->exists()
+            || $this->application->notes()->where('visibility', 'client')->exists();
+
         return view('livewire.portal.application-show', [
             'stages' => ApplicationStage::cases(),
             'money' => Money::class,
@@ -396,6 +405,7 @@ class ApplicationShow extends Component
             'dealershipUsers' => $dealershipUsers,
             'stockControllerId' => $stockControllerId,
             'outstandingFixes' => $outstandingFixes,
+            'hadReviewerFeedback' => $hadReviewerFeedback,
         ]);
     }
 }
