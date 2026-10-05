@@ -55,5 +55,76 @@
             @endforeach
         </ul>
     </section>
+
+    <section class="rounded-md border border-line bg-white p-3 text-sm lg:col-span-2">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+                <h2 class="font-semibold">Documents</h2>
+                <p class="text-xs text-muted">BRN certificate, proxy ID, proof of address, ID copy, and any supporting paperwork. Replacing a document keeps earlier versions on file for audit.</p>
+            </div>
+            @can('update', $businessClient)
+                <span class="rounded-full border border-line bg-paper px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">PDF / JPG / PNG · 15 MB max</span>
+            @endcan
+        </div>
+
+        <ul class="mt-3 space-y-2">
+            @forelse ($documents as $document)
+                @php($version = $document->currentVersion)
+                <li class="rounded-md border border-line bg-paper p-3" wire:key="bc-doc-{{ $document->id }}">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0 space-y-0.5">
+                            <p class="text-sm font-semibold">{{ $document->documentType?->name ?? 'Document' }}</p>
+                            @if ($version)
+                                <p class="text-xs text-muted">
+                                    <span class="font-mono">{{ $version->original_filename }}</span>
+                                    · {{ number_format(($version->size ?? 0) / 1024, 0) }} KB
+                                    · uploaded {{ $version->created_at?->format('d M Y H:i') }}
+                                    @if ($version->uploader) by {{ $version->uploader->name }} @endif
+                                </p>
+                            @else
+                                <p class="text-xs text-muted">No file on record yet.</p>
+                            @endif
+                        </div>
+                        @if ($version)
+                            <a href="{{ route('documents.download', $version) }}" class="h-8 shrink-0 rounded-md border border-line bg-white px-3 text-xs font-semibold leading-8 hover:bg-paper">Download</a>
+                        @endif
+                    </div>
+
+                    @can('update', $businessClient)
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <input type="file" wire:model="replacementFiles.{{ $document->id }}" accept=".pdf,.jpg,.jpeg,.png" class="min-w-0 text-xs">
+                            <button type="button" wire:click="replaceDocument({{ $document->id }})" class="h-8 shrink-0 rounded-md border border-line bg-white px-3 text-xs font-semibold hover:bg-paper">
+                                {{ $version ? 'Replace' : 'Upload' }}
+                            </button>
+                        </div>
+                        @error('replacementFiles.'.$document->id)
+                            <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
+                        @enderror
+                    @endcan
+                </li>
+            @empty
+                <li class="rounded-md border border-dashed border-line bg-paper p-3 text-center text-xs text-muted">No documents on file yet.</li>
+            @endforelse
+        </ul>
+
+        @can('update', $businessClient)
+            <div class="mt-4 rounded-md border border-dashed border-line bg-paper p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted">Add a document</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_auto]">
+                    <select wire:model="uploadTypeCode" class="h-9 w-full rounded-md border border-line bg-white px-2 text-sm">
+                        <option value="">Document type</option>
+                        @foreach ($availableTypes as $type)
+                            <option value="{{ $type->code }}">{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="file" wire:model="uploadFile" accept=".pdf,.jpg,.jpeg,.png" class="min-w-0 text-xs">
+                    <button type="button" wire:click="uploadDocument" class="h-9 shrink-0 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Upload</button>
+                </div>
+                @error('uploadFile')
+                    <p class="mt-1 text-xs text-red-800">{{ $message }}</p>
+                @enderror
+            </div>
+        @endcan
+    </section>
 </div>
 </div>
