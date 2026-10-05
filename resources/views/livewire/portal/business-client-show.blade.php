@@ -1,9 +1,21 @@
 <div>
-<div class="mb-4">
-    <a href="{{ route('business-clients.index') }}" class="text-sm text-muted">Business clients</a>
-    <h1 class="text-xl font-semibold">{{ $businessClient->business_name }}</h1>
-    <p class="text-sm text-muted">{{ str_replace('_', ' ', $businessClient->usable_as) }} · {{ $businessClient->status }}</p>
+<div class="mb-4 flex items-start justify-between gap-4">
+    <div>
+        <a href="{{ route('business-clients.index') }}" class="text-sm text-muted">Business clients</a>
+        <h1 class="text-xl font-semibold">{{ $businessClient->business_name }}</h1>
+        <p class="text-sm text-muted">{{ str_replace('_', ' ', $businessClient->usable_as) }} · {{ $businessClient->status }}</p>
+    </div>
+    @can('update', $businessClient)
+        <a href="{{ route('business-clients.edit', $businessClient) }}"
+           class="h-9 rounded-md border border-line bg-white px-3 text-sm font-semibold leading-9">Edit</a>
+    @endcan
 </div>
+
+@if (session('status'))
+    <div class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        {{ session('status') }}
+    </div>
+@endif
 
 @if ($errors->any())
     <p class="mb-4 rounded-md border border-line bg-white px-3 py-2 text-sm text-red-800">{{ $errors->first() }}</p>

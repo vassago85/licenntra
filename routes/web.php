@@ -6,6 +6,7 @@ use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
 use App\Livewire\Portal\ApplicationForm;
 use App\Livewire\Portal\ApplicationShow;
+use App\Livewire\Portal\BusinessClientForm;
 use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
@@ -52,6 +53,8 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/review/{application}', ReviewWorkspace::class)->name('review.show');
 
     Route::get('/business-clients', BusinessClientIndex::class)->name('business-clients.index');
+    Route::get('/business-clients/create', BusinessClientForm::class)->name('business-clients.create');
+    Route::get('/business-clients/{businessClient}/edit', BusinessClientForm::class)->name('business-clients.edit');
     Route::get('/business-clients/{businessClient}', BusinessClientShow::class)->name('business-clients.show');
 
     Route::get('/finance/payments', PaymentQueue::class)->name('finance.payments');
