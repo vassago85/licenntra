@@ -1,0 +1,251 @@
+@php
+    $counterTones = [
+        'danger' => 'text-red-800',
+        'warning' => 'text-amber-800',
+        'info' => 'text-blue-800',
+        'neutral' => 'text-ink',
+    ];
+@endphp
+<div class="space-y-6">
+    <div>
+        <h1 class="text-xl font-semibold">Overview</h1>
+        <p class="text-sm text-muted">What needs doing across every dealership{{ $seesMoney ? ', and where the money stands' : '' }}.</p>
+    </div>
+
+    <section aria-label="Operations">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach ($counters as $counter)
+                <a href="{{ $counter['url'] }}" class="rounded-md border border-line bg-white p-3 hover:border-ink">
+                    <p class="text-xs uppercase tracking-wide text-muted">{{ $counter['label'] }}</p>
+                    <p class="mt-1 text-xl font-semibold {{ $counter['count'] > 0 ? ($counterTones[$counter['tone']] ?? 'text-ink') : 'text-ink' }}">{{ $counter['count'] }}</p>
+                    <p class="mt-0.5 text-xs text-muted">{{ $counter['description'] }}</p>
+                </a>
+            @endforeach
+        </div>
+    </section>
+
+    @if ($seesMoney && $summary)
+        @php
+            $delta = $summary['verified_this_month_cents'] - $summary['verified_last_month_cents'];
+        @endphp
+        <section aria-label="Money">
+            <h2 class="mb-2 text-sm font-semibold">Money</h2>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <a href="{{ route('finance.invoices') }}" class="rounded-md border border-line bg-white p-3 hover:border-ink">
+                    <p class="text-xs uppercase tracking-wide text-muted">Outstanding</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums {{ $summary['outstanding_cents'] > 0 ? 'text-amber-800' : '' }}">{{ \App\Support\Money::rands($summary['outstanding_cents']) }}</p>
+                    <p class="mt-0.5 text-xs text-muted">
+                        @if ($summary['oldest_days'] === null)
+                            Nothing owed right now
+                        @else
+                            Oldest {{ $summary['oldest_days'] }} days · {{ $summary['account_count'] }} {{ \Illuminate\Support\Str::plural('account', $summary['account_count']) }}
+                        @endif
+                    </p>
+                </a>
+                <div class="rounded-md border border-line bg-white p-3">
+                    <p class="text-xs uppercase tracking-wide text-muted">Verified this month</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums">{{ \App\Support\Money::rands($summary['verified_this_month_cents']) }}</p>
+                    <p class="mt-0.5 text-xs text-muted">{{ $delta >= 0 ? '+' : '−' }}{{ \App\Support\Money::rands(abs($delta)) }} vs last month</p>
+                </div>
+                <div class="rounded-md border border-line bg-white p-3">
+                    <p class="text-xs uppercase tracking-wide text-muted">Open quotes</p>
+                    <p class="mt-1 text-xl font-semibold">{{ $summary['open_quote_count'] }}</p>
+                    <p class="mt-0.5 text-xs text-muted">{{ $summary['open_quote_count'] > 0 ? \App\Support\Money::rands($summary['open_quote_cents']).' if accepted' : 'None awaiting a decision' }}</p>
+                </div>
+                <div class="rounded-md border border-line bg-white p-3">
+                    <p class="text-xs uppercase tracking-wide text-muted">Last payment</p>
+                    <p class="mt-1 text-xl font-semibold">{{ $summary['last_payment']?->verified_at?->diffForHumans() ?? 'None yet' }}</p>
+                    <p class="mt-0.5 text-xs text-muted">
+                        @if ($summary['last_payment'])
+                            {{ \App\Support\Money::rands($summary['last_payment']->amount_cents) }} · {{ $summary['last_payment']->application?->reference ?? 'App #'.$summary['last_payment']->application_id }}
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </section>
+    @endif
+
+    <section aria-label="Dealerships needing action" class="overflow-hidden rounded-md border border-line bg-white">
+        <div class="flex items-center justify-between border-b border-line px-3 py-2">
+            <h2 class="text-sm font-semibold">Dealerships needing action</h2>
+            <a href="{{ route('dealerships.board') }}" class="text-xs text-muted hover:underline">Dealership board →</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-paper text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                        <th class="px-3 py-2 font-medium">Dealership</th>
+                        <th class="px-3 py-2 text-right font-medium">Docs to approve</th>
+                        <th class="px-3 py-2 text-right font-medium">Owed by dealer</th>
+                        <th class="px-3 py-2 text-right font-medium">Ready to submit</th>
+                        <th class="px-3 py-2 text-right font-medium">Overdue</th>
+                        <th class="px-3 py-2 font-medium">Oldest task</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                    @forelse ($dealerships as $row)
+                        @php
+                            $owedByDealer = $row['waiting_on_dealership_docs'] + $row['quotes_awaiting_dealership'] + $row['payments_owed_by_dealership'];
+                            $oldestDays = $row['oldest_outstanding_at']?->diffInDays(now());
+                        @endphp
+                        <tr wire:key="dealership-{{ $row['id'] }}">
+                            <td class="px-3 py-2">
+                                <a href="{{ $workload->cardsUrl($row['account']) }}" class="font-medium hover:underline">{{ $row['name'] }}</a>
+                                <div class="text-xs text-muted">{{ $row['type']?->label() }} · {{ $row['active_applications'] }} active</div>
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums">
+                                <a href="{{ $workload->tabUrl(\App\Services\OperationsWorkloadService::TAB_APPROVALS, ['account_id' => $row['id'], 'kind' => \App\Services\OperationsWorkloadService::KIND_DOCUMENT]) }}" class="{{ $row['awaiting_document_approval'] > 0 ? 'font-semibold text-amber-800' : 'text-muted' }} hover:underline">{{ $row['awaiting_document_approval'] }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums">
+                                <a href="{{ $workload->tabUrl(\App\Services\OperationsWorkloadService::TAB_WAITING_ON_DEALERSHIP, ['account_id' => $row['id']]) }}" class="{{ $owedByDealer > 0 ? 'text-blue-800' : 'text-muted' }} hover:underline">{{ $owedByDealer }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums">
+                                <a href="{{ $workload->tabUrl(\App\Services\OperationsWorkloadService::TAB_READY_TO_SUBMIT, ['account_id' => $row['id']]) }}" class="{{ $row['ready_for_authority_submission'] > 0 ? 'text-blue-800' : 'text-muted' }} hover:underline">{{ $row['ready_for_authority_submission'] }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums">
+                                <a href="{{ $workload->tabUrl(\App\Services\OperationsWorkloadService::TAB_ALL, ['account_id' => $row['id'], 'overdue' => 1]) }}" class="{{ $row['overdue'] > 0 ? 'font-semibold text-red-800' : 'text-muted' }} hover:underline">{{ $row['overdue'] }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-xs {{ $oldestDays === null ? 'text-muted' : ($oldestDays > 10 ? 'text-red-800' : ($oldestDays > 5 ? 'text-amber-800' : '')) }}">
+                                {{ $row['oldest_outstanding_at']?->diffForHumans() ?? '—' }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-3 py-8 text-center text-muted">No dealership needs action right now.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @if ($seesMoney)
+        <div class="grid gap-6 xl:grid-cols-2">
+            <section aria-label="Customers owing" class="overflow-hidden rounded-md border border-line bg-white">
+                <h2 class="border-b border-line px-3 py-2 text-sm font-semibold">Customers — outstanding payments</h2>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-paper text-xs uppercase tracking-wide text-muted">
+                        <tr>
+                            <th class="px-3 py-2 font-medium">Account</th>
+                            <th class="px-3 py-2 text-right font-medium">Outstanding</th>
+                            <th class="px-3 py-2 font-medium">Oldest</th>
+                            <th class="px-3 py-2 text-right font-medium">Paid 90d</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        @forelse ($customerBalances as $row)
+                            <tr wire:key="balance-{{ $row['account']->id }}">
+                                <td class="px-3 py-2">
+                                    <div class="font-medium">{{ $row['account']->name }}</div>
+                                    <div class="text-xs text-muted">{{ $row['open_quotes'] }} open {{ \Illuminate\Support\Str::plural('quote', $row['open_quotes']) }}</div>
+                                </td>
+                                <td class="px-3 py-2 text-right tabular-nums {{ $row['outstanding_cents'] > 0 ? 'font-medium text-amber-800' : 'text-muted' }}">{{ \App\Support\Money::rands($row['outstanding_cents']) }}</td>
+                                <td class="px-3 py-2 text-xs {{ ($row['oldest_days'] ?? 0) > 60 ? 'text-red-800' : (($row['oldest_days'] ?? 0) > 30 ? 'text-amber-800' : 'text-muted') }}">{{ $row['oldest_days'] !== null ? $row['oldest_days'].' days' : '—' }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums text-emerald-800">{{ \App\Support\Money::rands($row['verified_90d_cents']) }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="px-3 py-8 text-center text-muted">Nothing owed. Every accepted quote is paid.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </section>
+
+            <section aria-label="Top customers" class="overflow-hidden rounded-md border border-line bg-white">
+                <h2 class="border-b border-line px-3 py-2 text-sm font-semibold">Top customers — last 90 days</h2>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-paper text-xs uppercase tracking-wide text-muted">
+                        <tr>
+                            <th class="px-3 py-2 font-medium">#</th>
+                            <th class="px-3 py-2 font-medium">Account</th>
+                            <th class="px-3 py-2 text-right font-medium">Apps</th>
+                            <th class="px-3 py-2 text-right font-medium">Revenue</th>
+                            <th class="px-3 py-2 text-right font-medium">Avg</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        @forelse ($topCustomers as $index => $row)
+                            <tr wire:key="top-{{ $row['account']->id }}">
+                                <td class="px-3 py-2 font-mono text-xs text-muted">{{ $index + 1 }}</td>
+                                <td class="px-3 py-2 font-medium">{{ $row['account']->name }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ $row['applications'] }}</td>
+                                <td class="px-3 py-2 text-right font-medium tabular-nums">{{ \App\Support\Money::rands($row['revenue_cents']) }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums text-muted">{{ $row['average_cents'] !== null ? \App\Support\Money::rands($row['average_cents']) : '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="px-3 py-8 text-center text-muted">No verified revenue in the last 90 days.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <section aria-label="Transactions" class="overflow-hidden rounded-md border border-line bg-white">
+            <div class="flex items-center justify-between border-b border-line px-3 py-2">
+                <h2 class="text-sm font-semibold">Transactions</h2>
+                @if (\App\Services\FeatureFlags::paymentTrackingRequired())
+                    <a href="{{ route('finance.payments') }}" class="text-xs text-muted hover:underline">Payments →</a>
+                @endif
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-paper text-xs uppercase tracking-wide text-muted">
+                        <tr>
+                            <th class="px-3 py-2 font-medium">Captured</th>
+                            <th class="px-3 py-2 font-medium">Account</th>
+                            <th class="px-3 py-2 font-medium">Application</th>
+                            <th class="px-3 py-2 font-medium">Method / reference</th>
+                            <th class="px-3 py-2 font-medium">Status</th>
+                            <th class="px-3 py-2 text-right font-medium">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        @forelse ($transactions as $payment)
+                            <tr wire:key="payment-{{ $payment->id }}">
+                                <td class="px-3 py-2 text-xs">{{ $payment->created_at?->format('d M H:i') }}</td>
+                                <td class="px-3 py-2 text-xs">{{ $payment->application?->clientAccount?->name ?? '—' }}</td>
+                                <td class="px-3 py-2 font-mono text-xs">
+                                    @if ($payment->application)
+                                        <a href="{{ route('review.show', $payment->application) }}" class="hover:underline">{{ $payment->application->reference }}</a>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 text-xs">{{ $payment->method ?? '—' }} <span class="font-mono text-muted">{{ $payment->reference }}</span></td>
+                                <td class="px-3 py-2 text-xs">
+                                    @if ($payment->verified_at)
+                                        <span class="text-emerald-700">Verified</span>
+                                        <span class="text-muted">by {{ $payment->verifier?->name ?? '—' }}</span>
+                                    @else
+                                        <span class="text-amber-800">Awaiting verification</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 text-right font-medium tabular-nums">{{ \App\Support\Money::rands($payment->amount_cents) }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="px-3 py-8 text-center text-muted">No transactions yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
+
+    <section aria-label="Recent activity" class="overflow-hidden rounded-md border border-line bg-white">
+        <div class="flex items-center justify-between border-b border-line px-3 py-2">
+            <h2 class="text-sm font-semibold">Recent activity</h2>
+            @if (auth()->user()->hasRole('owner'))
+                <a href="{{ route('audit.index') }}" class="text-xs text-muted hover:underline">Audit log →</a>
+            @endif
+        </div>
+        <ul class="divide-y divide-line text-sm">
+            @forelse ($activity as $event)
+                <li wire:key="event-{{ $event->id }}" class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-3 py-2">
+                    <span class="w-24 shrink-0 text-xs text-muted">{{ $event->occurred_at?->format('d M H:i') }}</span>
+                    <span class="font-medium">{{ $event->actor?->name ?? 'System' }}</span>
+                    <span class="grow">{{ $event->summary }}</span>
+                    <span class="font-mono text-xs text-muted">{{ class_basename((string) $event->subject_type) }} #{{ $event->subject_id }}</span>
+                </li>
+            @empty
+                <li class="px-3 py-8 text-center text-muted">No activity yet.</li>
+            @endforelse
+        </ul>
+    </section>
+</div>

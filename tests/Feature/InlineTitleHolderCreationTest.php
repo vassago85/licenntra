@@ -34,7 +34,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->user->assignRole('client_user');
+    $this->user->assignRole('customer_user');
 });
 
 it('creates a new title holder business client when the inline form is filled in', function (): void {

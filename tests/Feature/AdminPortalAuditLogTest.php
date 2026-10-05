@@ -18,22 +18,16 @@ uses(RefreshDatabase::class);
 /*
 |------------------------------------------------------------------------
 | The former Filament "Audit log" resource now lives in the portal shell
-| at /audit. Read-only; visible to super_admin, customer_admin and
-| auditor only. Reviewers and finance should get 403.
+| at /audit. Read-only; visible to the owner only. Reviewers and finance
+| should get 403.
 |------------------------------------------------------------------------
 */
 
 beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
 
-    $this->superAdmin = User::factory()->create(['is_active' => true]);
-    $this->superAdmin->assignRole('super_admin');
-
-    $this->customerAdmin = User::factory()->create(['is_active' => true]);
-    $this->customerAdmin->assignRole('customer_admin');
-
-    $this->auditor = User::factory()->create(['is_active' => true]);
-    $this->auditor->assignRole('auditor');
+    $this->owner = User::factory()->create(['is_active' => true]);
+    $this->owner->assignRole('owner');
 
     $this->reviewer = User::factory()->create(['is_active' => true]);
     $this->reviewer->assignRole('reviewer');
@@ -73,12 +67,10 @@ function makeAuditEvent(array $overrides = []): AuditEvent
 |------------------------------------------------------------------------
 */
 
-it('lets super_admin, customer_admin and auditor reach the audit log', function (): void {
-    foreach (['superAdmin', 'customerAdmin', 'auditor'] as $prop) {
-        $this->actingAs($this->{$prop})
-            ->get(route('audit.index'))
-            ->assertOk();
-    }
+it('lets the owner reach the audit log', function (): void {
+    $this->actingAs($this->owner)
+        ->get(route('audit.index'))
+        ->assertOk();
 });
 
 it('forbids a reviewer from the audit log', function (): void {
@@ -113,7 +105,7 @@ it('renders audit events newest first', function (): void {
         'summary' => 'Newest entry.',
     ]);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->assertSeeInOrder(['Newest entry.', 'Oldest entry.']);
@@ -123,7 +115,7 @@ it('filters by action', function (): void {
     makeAuditEvent(['action' => 'application.stage_changed', 'summary' => 'Stage change entry.']);
     makeAuditEvent(['action' => 'document.rejected', 'summary' => 'Rejection entry.']);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->set('actionFilter', 'document.rejected')
@@ -135,7 +127,7 @@ it('filters by actor role', function (): void {
     makeAuditEvent(['actor_role' => 'reviewer', 'summary' => 'Reviewer did something.']);
     makeAuditEvent(['actor_role' => 'finance', 'summary' => 'Finance did something.']);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->set('actorRoleFilter', 'finance')
@@ -147,7 +139,7 @@ it('hides system entries when the include-system toggle is off', function (): vo
     makeAuditEvent(['is_system' => true, 'summary' => 'System housekeeping.']);
     makeAuditEvent(['is_system' => false, 'summary' => 'User action.']);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->set('includeSystem', false)
@@ -162,7 +154,7 @@ it('searches actor name and summary', function (): void {
     makeAuditEvent(['actor_user_id' => $alice->id, 'summary' => 'Approved an invoice.']);
     makeAuditEvent(['summary' => 'Dispatched a notification.']);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->set('search', 'Alice')
@@ -191,7 +183,7 @@ it('renders a link to the application for Application-subject events using the p
         'summary' => 'Application audit entry.',
     ]);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->assertSee('LIC-AUD-00042')
@@ -205,7 +197,7 @@ it('falls back to a generic class #id label for non-Application subjects', funct
         'summary' => 'Payment audit entry.',
     ]);
 
-    $this->actingAs($this->auditor);
+    $this->actingAs($this->owner);
 
     Livewire::test(AuditLog::class)
         ->assertSee('Payment #7');

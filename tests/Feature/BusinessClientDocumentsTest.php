@@ -49,13 +49,13 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
     ]);
-    $this->userA->assignRole('client_admin');
+    $this->userA->assignRole('customer_admin');
 
     $this->userB = User::factory()->create([
         'client_account_id' => $this->dealerB->id,
         'is_active' => true,
     ]);
-    $this->userB->assignRole('client_admin');
+    $this->userB->assignRole('customer_admin');
 
     $this->businessClient = BusinessClient::query()->create([
         'client_account_id' => $this->dealerA->id,

@@ -41,7 +41,7 @@ beforeEach(function (): void {
 function invoiceUser(string $role, ?int $accountId = null): User
 {
     $user = User::factory()->create([
-        'client_account_id' => str_starts_with($role, 'client') ? $accountId : null,
+        'client_account_id' => str_starts_with($role, 'customer') ? $accountId : null,
         'is_active' => true,
     ]);
     $user->assignRole($role);
@@ -122,7 +122,7 @@ it('rejects duplicate invoice numbers', function (): void {
 });
 
 it('rejects non-PDF/image uploads', function (): void {
-    $finance = invoiceUser('customer_admin');
+    $finance = invoiceUser('owner');
 
     Livewire::actingAs($finance)
         ->test(ApplicationShow::class, ['application' => $this->application])
@@ -148,7 +148,7 @@ it('forbids a reviewer from uploading an invoice', function (): void {
 });
 
 it('forbids a client user from uploading an invoice', function (): void {
-    $client = invoiceUser('client_user', $this->account->id);
+    $client = invoiceUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(ApplicationShow::class, ['application' => $this->application])
@@ -207,7 +207,7 @@ it('lets finance mark an invoice paid and then unpaid, writing audit events', fu
 });
 
 it('forbids a client from marking an invoice paid', function (): void {
-    $client = invoiceUser('client_user', $this->account->id);
+    $client = invoiceUser('customer_user', $this->account->id);
 
     $invoice = Invoice::query()->create([
         'application_id' => $this->application->id,
@@ -240,7 +240,7 @@ it('lets the owning dealer download their invoice and denies strangers', functio
         'uploaded_at' => now(),
     ]);
 
-    $client = invoiceUser('client_user', $this->account->id);
+    $client = invoiceUser('customer_user', $this->account->id);
 
     $this->actingAs($client)
         ->get(route('invoices.download', $invoice))
@@ -252,7 +252,7 @@ it('lets the owning dealer download their invoice and denies strangers', functio
         'actor_user_id' => $client->id,
     ]);
 
-    $stranger = invoiceUser('client_user', $this->otherAccount->id);
+    $stranger = invoiceUser('customer_user', $this->otherAccount->id);
 
     $this->actingAs($stranger)
         ->get(route('invoices.download', $invoice))
@@ -297,7 +297,7 @@ it('shows the dealer only their own invoices on the account-wide index with corr
         'uploaded_at' => now(),
     ]);
 
-    $client = invoiceUser('client_user', $this->account->id);
+    $client = invoiceUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(InvoiceIndex::class)
@@ -344,7 +344,7 @@ it('shows the finance queue every invoice with per-account outstanding totals', 
 });
 
 it('forbids a client from reaching the finance invoice queue', function (): void {
-    $client = invoiceUser('client_user', $this->account->id);
+    $client = invoiceUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(FinanceInvoiceQueue::class)

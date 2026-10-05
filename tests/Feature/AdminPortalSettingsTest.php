@@ -26,10 +26,10 @@ beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
 
     $this->superAdmin = User::factory()->create(['is_active' => true]);
-    $this->superAdmin->assignRole('super_admin');
+    $this->superAdmin->assignRole('owner');
 
     $this->customerAdmin = User::factory()->create(['is_active' => true]);
-    $this->customerAdmin->assignRole('customer_admin');
+    $this->customerAdmin->assignRole('owner');
 
     $this->reviewer = User::factory()->create(['is_active' => true]);
     $this->reviewer->assignRole('reviewer');
@@ -169,6 +169,40 @@ it('saves system settings and converts VAT percent to basis points', function ()
     expect($settings->vat_basis_points)->toBe(1500)
         ->and($settings->retention_period_options)->toBe([3, 6, 12, 24])
         ->and($settings->notifications_enabled)->toBeTrue();
+});
+
+it('lets the owner switch quotes and payment tracking on and off', function (): void {
+    $this->actingAs($this->superAdmin);
+    SystemSettingModel::current()->update([
+        'idle_timeout_minutes' => 30,
+        'absolute_timeout_minutes' => 480,
+        'retention_period_options' => [3, 6, 12, 24],
+        'retention_max_months' => 24,
+        'archive_after_days' => 90,
+        'retention_wording' => 'Consent wording.',
+    ]);
+
+    Livewire::test(SystemSettings::class)
+        ->assertSet('quotes_enabled', false)
+        ->assertSet('payment_tracking_required', false)
+        ->set('quotes_enabled', true)
+        ->set('payment_tracking_required', true)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $settings = SystemSettingModel::current();
+
+    expect($settings->quotes_enabled)->toBeTrue()
+        ->and($settings->payment_tracking_required)->toBeTrue();
+
+    Livewire::test(SystemSettings::class)
+        ->assertSet('quotes_enabled', true)
+        ->assertSet('payment_tracking_required', true)
+        ->set('payment_tracking_required', false)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(SystemSettingModel::current()->payment_tracking_required)->toBeFalse();
 });
 
 it('rejects an absolute timeout that is not larger than the idle timeout', function (): void {

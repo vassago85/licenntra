@@ -39,7 +39,7 @@ class TransitionApplication
 
         return DB::transaction(function () use ($application, $from, $to, $actor, $reason, $isSystem): Application {
             if ($to === ApplicationStage::PaymentPending) {
-                $application->fee_snapshot = app(CalculateFees::class)->snapshot($application);
+                $application->fee_snapshot = app(CalculateFees::class)->billingSnapshot($application);
             }
 
             $application->stage = $to;
@@ -141,6 +141,7 @@ class TransitionApplication
     {
         if ($isSystem && in_array($to, [
             ApplicationStage::DocumentReview,
+            ApplicationStage::QuoteAccepted,
             ApplicationStage::PaymentVerified,
             ApplicationStage::Archived,
         ], true)) {
@@ -155,7 +156,7 @@ class TransitionApplication
             throw new InvalidTransition('This user is inactive.');
         }
 
-        if ($actor->hasAnyRole(['super_admin', 'customer_admin'])) {
+        if ($actor->hasAnyRole(['owner'])) {
             return;
         }
 
@@ -164,14 +165,14 @@ class TransitionApplication
         }
 
         $allowed = match ($from->value.'>'.$to->value) {
-            'draft>submitted', 'changes_requested>document_review', 'quote_sent>cancelled' => ['client_admin', 'client_user'],
-            'quote_sent>quote_accepted' => ['client_admin', 'client_user'],
+            'draft>submitted', 'changes_requested>document_review', 'quote_sent>cancelled' => ['customer_admin', 'customer_user'],
+            'quote_sent>quote_accepted' => ['customer_admin', 'customer_user'],
             'payment_pending>payment_verified' => ['finance'],
             default => ['reviewer'],
         };
 
         if ($to === ApplicationStage::Cancelled && $from->isBeforeAuthority()) {
-            $allowed = ['client_admin', 'reviewer'];
+            $allowed = ['customer_admin', 'reviewer'];
         }
 
         if (! $actor->hasAnyRole($allowed)) {
@@ -225,11 +226,13 @@ class TransitionApplication
         if ($to === ApplicationStage::PaymentPending) {
             // Only enforce the quote-first rule when quoting is enabled for
             // this deployment. When quotes are off, DocumentReview advances
-            // straight to PaymentPending for every request type.
+            // straight to PaymentPending for every request type. Clients on
+            // a standing agreement are already priced, so they skip it too.
             if (
                 FeatureFlags::quotesEnabled()
                 && $application->request_type?->needsQuoteByDefault()
                 && $from === ApplicationStage::DocumentReview
+                && ! $application->clientAccount?->has_standing_agreement
             ) {
                 throw new InvalidTransition('Imports and exports need a quote before payment.');
             }

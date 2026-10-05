@@ -12,6 +12,7 @@ use App\Models\ClientAccount;
 use App\Models\DocumentType;
 use App\Models\DocumentVersion;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -73,14 +74,14 @@ beforeEach(function () {
 });
 
 it('gives identity and unmask permissions only to licensing reviewers and admins', function () {
-    foreach (['super_admin', 'customer_admin', 'reviewer'] as $role) {
+    foreach (['owner', 'reviewer'] as $role) {
         $user = rbacUser($role);
 
         expect($user->can('documents.identity.download'))->toBeTrue()
             ->and($user->can('identifiers.unmask'))->toBeTrue();
     }
 
-    foreach (['finance', 'auditor', 'client_admin', 'client_user'] as $role) {
+    foreach (['finance', 'customer_admin', 'customer_user'] as $role) {
         $user = rbacUser($role, $this->dealer->id);
 
         expect($user->can('documents.identity.download'))->toBeFalse()
@@ -98,7 +99,7 @@ it('sends guests to sign in and keeps registration closed', function () {
 });
 
 it('limits a client admin to their own account', function () {
-    $this->actingAs(rbacUser('client_admin', $this->dealer->id));
+    $this->actingAs(rbacUser('customer_admin', $this->dealer->id));
 
     $this->get(route('dashboard'))->assertRedirect(route('applications.index'));
     $this->get(route('applications.index'))->assertOk();
@@ -119,8 +120,8 @@ it('limits a client admin to their own account', function () {
 });
 
 it('stops a client user from accepting quotes unless the account allows it', function () {
-    $denied = rbacUser('client_user', $this->dealer->id);
-    $allowed = rbacUser('client_user', $this->other->id);
+    $denied = rbacUser('customer_user', $this->dealer->id);
+    $allowed = rbacUser('customer_user', $this->other->id);
 
     expect($denied->can('acceptQuote', $this->quoted))->toBeFalse()
         ->and($allowed->can('acceptQuote', $this->foreign->forceFill(['stage' => ApplicationStage::QuoteSent])))->toBeTrue();
@@ -150,7 +151,7 @@ it('lets a reviewer work the queue and blocks admin, finance, and other clients 
     $this->get(route('applications.quote', $this->application))->assertOk();
     $this->get(route('finance.payments'))->assertForbidden();
     $this->get('/admin')->assertOk();
-    $this->get('/admin/outstanding-tasks')->assertOk();
+    $this->get(route('tasks.outstanding'))->assertOk();
     $this->get('/admin/fee-lines')->assertForbidden();
     $this->get('/admin/users')->assertForbidden();
     $this->get(route('business-clients.index'))->assertOk();
@@ -161,11 +162,30 @@ it('lets a reviewer work the queue and blocks admin, finance, and other clients 
         ->toBe('You cannot make this stage change.');
 });
 
+it('sends finance to payments when tracking is on and to the overview when it is off', function () {
+    $this->actingAs(rbacUser('finance'));
+
+    try {
+        FeatureFlags::swapPaymentTrackingRequired(true);
+        $this->get(route('dashboard'))->assertRedirect(route('finance.payments'));
+
+        FeatureFlags::swapPaymentTrackingRequired(false);
+        $this->get(route('dashboard'))->assertRedirect(route('admin.overview'));
+    } finally {
+        FeatureFlags::swapPaymentTrackingRequired(null);
+    }
+});
+
+it('sends the platform developer to platform billing after sign-in', function () {
+    $this->actingAs(rbacUser('developer'))
+        ->get(route('dashboard'))
+        ->assertRedirect(route('platform.billing'));
+});
+
 it('lets finance verify payment and keeps them out of review actions and admin', function () {
     $finance = rbacUser('finance');
     $this->actingAs($finance);
 
-    $this->get(route('dashboard'))->assertRedirect(route('finance.payments'));
     $this->get(route('finance.payments'))->assertOk();
     $this->get(route('review.queue'))->assertOk();
     $this->get(route('review.show', $this->application))->assertOk();
@@ -173,7 +193,7 @@ it('lets finance verify payment and keeps them out of review actions and admin',
     $this->get(route('applications.create'))->assertForbidden();
     $this->get(route('applications.edit', $this->draft))->assertForbidden();
     $this->get('/admin')->assertOk();
-    $this->get('/admin/outstanding-tasks')->assertOk();
+    $this->get(route('tasks.outstanding'))->assertOk();
     $this->get('/admin/fee-lines')->assertForbidden();
     $this->get('/admin/users')->assertForbidden();
 
@@ -189,32 +209,7 @@ it('lets finance verify payment and keeps them out of review actions and admin',
         ->assertForbidden();
 });
 
-it('lets an auditor read and blocks every write', function () {
-    $auditor = rbacUser('auditor');
-    $this->actingAs($auditor);
-
-    $this->get(route('dashboard'))->assertRedirect(route('review.queue'));
-    $this->get(route('review.queue'))->assertOk();
-    $this->get(route('review.show', $this->application))->assertOk();
-    $this->get(route('applications.show', $this->foreign))->assertOk();
-    $this->get(route('business-clients.show', $this->foreignBusiness))->assertOk();
-    $this->get(route('applications.create'))->assertForbidden();
-    $this->get(route('applications.edit', $this->draft))->assertForbidden();
-    $this->get(route('applications.quote', $this->application))->assertForbidden();
-    $this->get(route('finance.payments'))->assertForbidden();
-    $this->get('/admin')->assertOk();
-    $this->get(route('audit.index'))->assertOk();
-    $this->get('/admin/fee-lines')->assertForbidden();
-    $this->get('/admin/users')->assertForbidden();
-
-    expect($auditor->can('review', $this->application))->toBeFalse()
-        ->and($auditor->can('verifyPayment', $this->payable))->toBeFalse()
-        ->and($auditor->can('update', $this->business))->toBeFalse()
-        ->and(stageDenial($auditor, $this->application, ApplicationStage::ChangesRequested))
-        ->toBe('You cannot make this stage change.');
-});
-
-it('opens admin, finance, and review to customer and super admins', function (string $role) {
+it('opens admin, finance, and review to the owner', function (string $role) {
     $admin = rbacUser($role);
     $this->actingAs($admin);
 
@@ -230,7 +225,7 @@ it('opens admin, finance, and review to customer and super admins', function (st
         ->and($admin->can('verifyPayment', $this->payable))->toBeTrue()
         ->and(stageDenial($admin, $this->application, ApplicationStage::ChangesRequested))
         ->not->toBe('You cannot make this stage change.');
-})->with(['customer_admin', 'super_admin']);
+})->with(['owner']);
 
 it('rejects a user with no role', function () {
     $user = User::factory()->create(['is_active' => true]);
@@ -245,7 +240,7 @@ it('rejects a user with no role', function () {
 });
 
 it('blocks an inactive user at login and on every portal', function () {
-    $user = rbacUser('customer_admin', active: false);
+    $user = rbacUser('owner', active: false);
 
     $this->post('/login', [
         'email' => $user->email,
@@ -264,32 +259,30 @@ it('blocks an inactive user at login and on every portal', function () {
 it('downloads identity documents only for roles that hold the permission', function (string $role, bool $identity, int $status) {
     Storage::fake('documents');
     $version = rbacVersion($this->application, $identity);
-    $accountId = str_starts_with($role, 'client') ? $this->dealer->id : null;
+    $accountId = str_starts_with($role, 'customer') ? $this->dealer->id : null;
 
     $this->actingAs(rbacUser($role, $accountId))
         ->get(route('documents.download', $version))
         ->assertStatus($status);
 })->with([
-    'client admin identity' => ['client_admin', true, 403],
-    'client admin vehicle file' => ['client_admin', false, 200],
+    'customer admin identity' => ['customer_admin', true, 403],
+    'customer admin vehicle file' => ['customer_admin', false, 200],
     'reviewer identity' => ['reviewer', true, 200],
     'finance identity' => ['finance', true, 403],
     'finance vehicle file' => ['finance', false, 200],
-    'auditor identity' => ['auditor', true, 403],
-    'customer admin identity' => ['customer_admin', true, 200],
-    'super admin identity' => ['super_admin', true, 200],
+    'owner identity' => ['owner', true, 200],
 ]);
 
 it('hides another account file from the client that owns the request', function () {
     Storage::fake('documents');
     $version = rbacVersion($this->foreign, false);
 
-    $this->actingAs(rbacUser('client_admin', $this->dealer->id))
+    $this->actingAs(rbacUser('customer_admin', $this->dealer->id))
         ->get(route('documents.download', $version))
         ->assertNotFound();
 });
 
-it('lets a reviewer accept a document and refuses the same action to an auditor', function () {
+it('lets a reviewer accept a document and refuses the same action to finance', function () {
     $document = rbacDocument($this->application);
 
     Livewire::actingAs(rbacUser('reviewer'))
@@ -298,7 +291,7 @@ it('lets a reviewer accept a document and refuses the same action to an auditor'
 
     expect($document->refresh()->status)->toBe(DocumentStatus::Accepted);
 
-    Livewire::actingAs(rbacUser('auditor'))
+    Livewire::actingAs(rbacUser('finance'))
         ->test(ReviewWorkspace::class, ['application' => $this->application])
         ->call('acceptDocument', $document->id)
         ->assertForbidden();
@@ -309,7 +302,7 @@ it('lets a reviewer accept a document and refuses the same action to an auditor'
 function rbacUser(string $role, ?int $accountId = null, bool $active = true): User
 {
     $user = User::factory()->create([
-        'client_account_id' => str_starts_with($role, 'client') ? $accountId : null,
+        'client_account_id' => str_starts_with($role, 'customer') ? $accountId : null,
         'is_active' => $active,
     ]);
     $user->assignRole($role);

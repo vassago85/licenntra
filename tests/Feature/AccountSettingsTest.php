@@ -32,7 +32,7 @@ class AccountSettingsTest extends TestCase
             'email' => 'dawn@example.test',
             'is_active' => true,
         ]);
-        $user->assignRole('client_user');
+        $user->assignRole('customer_user');
 
         $this->actingAs($user)
             ->get('/account')
@@ -66,7 +66,7 @@ class AccountSettingsTest extends TestCase
     {
         User::factory()->create(['email' => 'taken@example.test', 'is_active' => true]);
         $me = User::factory()->create(['email' => 'me@example.test', 'is_active' => true]);
-        $me->assignRole('client_admin');
+        $me->assignRole('customer_admin');
 
         Livewire::actingAs($me)
             ->test(Settings::class)
@@ -82,7 +82,7 @@ class AccountSettingsTest extends TestCase
             'password' => Hash::make('correct-horse-battery'),
             'is_active' => true,
         ]);
-        $user->assignRole('client_admin');
+        $user->assignRole('customer_admin');
 
         Livewire::actingAs($user)
             ->test(Settings::class)
@@ -101,7 +101,7 @@ class AccountSettingsTest extends TestCase
             'password' => Hash::make('correct-horse-battery'),
             'is_active' => true,
         ]);
-        $user->assignRole('client_admin');
+        $user->assignRole('customer_admin');
 
         Livewire::actingAs($user)
             ->test(Settings::class)
@@ -120,7 +120,7 @@ class AccountSettingsTest extends TestCase
             'password' => Hash::make('old-password-ok'),
             'is_active' => true,
         ]);
-        $user->assignRole('client_user');
+        $user->assignRole('customer_user');
 
         Livewire::actingAs($user)
             ->test(Settings::class)

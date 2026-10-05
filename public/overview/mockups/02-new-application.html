@@ -50,6 +50,8 @@
   .nav-link:hover { background: var(--paper); color: var(--ink); }
   .nav-link.active { background: var(--brand-wash); color: var(--brand); font-weight: 600; }
   .nav-count { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); }
+  .nav-count.warn { color: #6e4b00; font-weight: 600; }
+  .nav-section { padding: 0 8px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .sidebar-footer { margin-top: auto; padding: 16px 6px 0; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
   .sidebar-footer .email { font-size: 10px; }
   .sidebar-footer a { color: var(--ink); font-weight: 500; }
@@ -102,7 +104,7 @@
 
 <div class="topstrip">
   <span><a href="../index.html">Licentra</a><span class="sep">/</span>Client workspace</span>
-  <span class="right">Example Licensing <strong>Client portal</strong></span>
+  <span class="right">Example Licensing <strong>Client workspace</strong></span>
 </div>
 
 <div class="layout">
@@ -121,11 +123,15 @@
       <span class="r">Dealer · Thandi Mokoena (Admin)</span>
     </div>
     <nav class="sidebar-nav">
+      <span class="nav-section">Portal</span>
       <a class="nav-link" href="01-client-dashboard.html">Dashboard</a>
       <a class="nav-link" href="01-client-dashboard.html"><span>Applications</span><span class="nav-count">18</span></a>
       <a class="nav-link active" href="#">New application</a>
       <a class="nav-link" href="#"><span>Business clients</span><span class="nav-count">4</span></a>
+      <a class="nav-link" href="#"><span>Quotes awaiting you</span><span class="nav-count warn">1</span></a>
       <a class="nav-link" href="#">Licence cost estimate</a>
+      <a class="nav-link" href="#">Hand-overs</a>
+      <a class="nav-link" href="#"><span>Invoices</span><span class="nav-count">2</span></a>
       <a class="nav-link" href="#">Team</a>
     </nav>
     <div class="sidebar-footer">
@@ -154,12 +160,16 @@
               <span>Request</span>
               <select>
                 <option>New registration</option>
-                <option>Change of ownership</option>
                 <option>Licence renewal</option>
+                <option>Change of ownership</option>
+                <option>Dealer stock</option>
                 <option>Duplicate disc</option>
-                <option>Data change</option>
+                <option>Deregistration</option>
+                <option>Data fix</option>
+                <option>MIB</option>
                 <option>Import</option>
                 <option>Export</option>
+                <option>Custom</option>
               </select>
             </label>
             <label class="field">

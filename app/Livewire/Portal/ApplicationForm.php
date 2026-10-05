@@ -254,9 +254,10 @@ class ApplicationForm extends Component
      * dealer doesn't have to leave the page they're filling in. Mirrors
      * the same flow used on ApplicationShow and goes through the same
      * StoreDocument action, so audit logging and scan dispatching are
-     * identical.
+     * identical. Not named `upload` because Livewire's client-side `$wire.upload()`
+     * would shadow it in `wire:click` expressions.
      */
-    public function upload(int $documentId): void
+    public function uploadDocument(int $documentId): void
     {
         if ($this->application === null) {
             $this->addError('upload', 'Save the draft first before uploading documents.');

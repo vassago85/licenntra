@@ -41,14 +41,14 @@ class ApplicationPolicy
             return in_array($application->stage, [ApplicationStage::Draft, ApplicationStage::ChangesRequested], true);
         }
 
-        return $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']);
+        return $user->hasAnyRole(['reviewer', 'owner']);
     }
 
     public function review(User $user, Application $application): bool
     {
         return $user->is_active
             && $this->view($user, $application)
-            && $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']);
+            && $user->hasAnyRole(['reviewer', 'owner']);
     }
 
     public function acceptQuote(User $user, Application $application): bool
@@ -63,6 +63,6 @@ class ApplicationPolicy
     {
         return $user->is_active
             && $this->view($user, $application)
-            && $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']);
+            && $user->hasAnyRole(['finance', 'owner']);
     }
 }

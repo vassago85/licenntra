@@ -43,7 +43,7 @@ class InstallLicentra extends Command
             'email_verified_at' => now(),
             'client_account_id' => null,
         ]);
-        $user->syncRoles(['customer_admin']);
+        $user->syncRoles(['owner']);
 
         $this->info('Licentra is installed. Sign in at /login or /admin.');
 

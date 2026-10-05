@@ -4,7 +4,7 @@ use App\Enums\ApplicationStage;
 use App\Enums\OwnerType;
 use App\Enums\RequestType;
 use App\Enums\VehicleCategory;
-use App\Filament\Pages\PlatformBilling;
+use App\Livewire\Portal\Admin\PlatformBilling;
 use App\Models\Application;
 use App\Models\AuditEvent;
 use App\Models\ClientAccount;
@@ -19,9 +19,9 @@ uses(RefreshDatabase::class);
 
 /**
  * Charsley Digital charges the licensing company owner a per-completed-
- * transaction fee. The developer sets the fee; the owner (super_admin)
- * reads the running counter and the resulting bill. Everyone else is
- * locked out of the page entirely.
+ * transaction fee. The developer sets the fee; the owner reads the
+ * running counter and the resulting bill. Everyone else is locked out
+ * of the page entirely.
  */
 beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
@@ -35,12 +35,15 @@ beforeEach(function (): void {
     ]);
 
     $this->owner = User::factory()->create(['is_active' => true]);
-    $this->owner->assignRole('super_admin');
+    $this->owner->assignRole('owner');
 
     $this->developer = User::factory()->create(['is_active' => true]);
     $this->developer->assignRole('developer');
 
-    $this->customerAdmin = User::factory()->create(['is_active' => true]);
+    $this->customerAdmin = User::factory()->create([
+        'is_active' => true,
+        'client_account_id' => $this->dealer->id,
+    ]);
     $this->customerAdmin->assignRole('customer_admin');
 
     $this->finance = User::factory()->create(['is_active' => true]);
@@ -140,22 +143,22 @@ it('forbids the owner from changing the fee even if they call saveFee directly',
     expect(SystemSetting::current()->platform_fee_per_transaction_cents)->toBe(1500);
 });
 
-it('forbids a customer_admin from even seeing the Platform billing page', function (): void {
-    $this->actingAs($this->customerAdmin);
-
-    expect(PlatformBilling::canAccess())->toBeFalse();
+it('forbids a dealer admin (customer_admin) from even seeing the Platform billing page', function (): void {
+    $this->actingAs($this->customerAdmin)
+        ->get(route('platform.billing'))
+        ->assertForbidden();
 });
 
 it('forbids a finance user from seeing the Platform billing page', function (): void {
-    $this->actingAs($this->finance);
-
-    expect(PlatformBilling::canAccess())->toBeFalse();
+    $this->actingAs($this->finance)
+        ->get(route('platform.billing'))
+        ->assertForbidden();
 });
 
 it('lets the owner see the page but renders the fee input as disabled', function (): void {
-    $this->actingAs($this->owner);
-
-    expect(PlatformBilling::canAccess())->toBeTrue();
+    $this->actingAs($this->owner)
+        ->get(route('platform.billing'))
+        ->assertOk();
 
     Livewire::test(PlatformBilling::class)
         ->assertSee('Read-only')

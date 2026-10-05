@@ -53,7 +53,7 @@ beforeEach(function (): void {
     $this->reviewer->assignRole('reviewer');
 
     $this->admin = User::factory()->create(['is_active' => true]);
-    $this->admin->assignRole('super_admin');
+    $this->admin->assignRole('owner');
 });
 
 afterEach(function (): void {
@@ -401,16 +401,16 @@ it('card board page is reachable by internal staff for a given dealership and 40
     $finance->assignRole('finance');
 
     $client = User::factory()->create(['client_account_id' => $this->dealership->id, 'is_active' => true]);
-    $client->assignRole('client_admin');
+    $client->assignRole('customer_admin');
 
-    $url = '/admin/dealership-cards?account_id='.$this->dealership->id;
+    $url = route('dealerships.board', ['account_id' => $this->dealership->id]);
 
     $this->actingAs($reviewer)->get($url)->assertSuccessful();
     $this->actingAs($finance)->get($url)->assertSuccessful();
     $this->actingAs($this->admin)->get($url)->assertSuccessful();
     $this->actingAs($client)->get($url)->assertForbidden();
 
-    $this->actingAs($this->admin)->get('/admin/dealership-cards?account_id=99999')->assertNotFound();
+    $this->actingAs($this->admin)->get(route('dealerships.board', ['account_id' => 99999]))->assertNotFound();
 });
 
 it('card board page renders a dealership picker when visited with no account_id instead of 404', function () {
@@ -418,7 +418,7 @@ it('card board page renders a dealership picker when visited with no account_id 
     // broke the sidebar link that intentionally omits it. The page now
     // falls back to a picker.
     $this->actingAs($this->admin)
-        ->get('/admin/dealership-cards')
+        ->get(route('dealerships.board'))
         ->assertSuccessful()
         ->assertSee('Pick a dealership');
 });
@@ -685,12 +685,12 @@ it('config resources are forbidden to reviewers and finance users', function () 
 
 it('client users and client admins are forbidden to reach any admin panel URL', function () {
     $clientAdmin = User::factory()->create(['client_account_id' => $this->dealership->id, 'is_active' => true]);
-    $clientAdmin->assignRole('client_admin');
+    $clientAdmin->assignRole('customer_admin');
 
     $clientUser = User::factory()->create(['client_account_id' => $this->dealership->id, 'is_active' => true]);
-    $clientUser->assignRole('client_user');
+    $clientUser->assignRole('customer_user');
 
-    foreach (['/admin', '/admin/outstanding-tasks', '/admin/fee-lines'] as $url) {
+    foreach (['/admin', route('tasks.outstanding'), '/admin/fee-lines'] as $url) {
         $this->actingAs($clientAdmin)->get($url)->assertForbidden();
         $this->actingAs($clientUser)->get($url)->assertForbidden();
     }
@@ -698,10 +698,10 @@ it('client users and client admins are forbidden to reach any admin panel URL', 
 
 it('outstanding tasks workspace is reachable by every internal staff role but not by clients', function () {
     $dealer = User::factory()->create(['client_account_id' => $this->dealership->id, 'is_active' => true]);
-    $dealer->assignRole('client_admin');
+    $dealer->assignRole('customer_admin');
 
     $clientUser = User::factory()->create(['client_account_id' => $this->dealership->id, 'is_active' => true]);
-    $clientUser->assignRole('client_user');
+    $clientUser->assignRole('customer_user');
 
     $reviewer = User::factory()->create(['is_active' => true]);
     $reviewer->assignRole('reviewer');
@@ -710,11 +710,11 @@ it('outstanding tasks workspace is reachable by every internal staff role but no
     $finance->assignRole('finance');
 
     // Clients - from the public portal perspective - must never reach the admin panel.
-    $this->actingAs($dealer)->get('/admin/outstanding-tasks')->assertForbidden();
-    $this->actingAs($clientUser)->get('/admin/outstanding-tasks')->assertForbidden();
+    $this->actingAs($dealer)->get(route('tasks.outstanding'))->assertForbidden();
+    $this->actingAs($clientUser)->get(route('tasks.outstanding'))->assertForbidden();
 
     // Internal operations staff and admins should all land successfully.
-    $this->actingAs($reviewer)->get('/admin/outstanding-tasks')->assertSuccessful();
-    $this->actingAs($finance)->get('/admin/outstanding-tasks')->assertSuccessful();
-    $this->actingAs($this->admin)->get('/admin/outstanding-tasks')->assertSuccessful();
+    $this->actingAs($reviewer)->get(route('tasks.outstanding'))->assertSuccessful();
+    $this->actingAs($finance)->get(route('tasks.outstanding'))->assertSuccessful();
+    $this->actingAs($this->admin)->get(route('tasks.outstanding'))->assertSuccessful();
 });

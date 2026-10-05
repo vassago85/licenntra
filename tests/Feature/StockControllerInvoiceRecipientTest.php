@@ -46,28 +46,28 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
     ]);
-    $this->admin->assignRole('client_admin');
+    $this->admin->assignRole('customer_admin');
 
     $this->stockGuy = User::factory()->create([
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
         'name' => 'Jane Stockroom',
     ]);
-    $this->stockGuy->assignRole('client_user');
+    $this->stockGuy->assignRole('customer_user');
 
     $this->financeAssistant = User::factory()->create([
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
         'name' => 'Phil Debtor',
     ]);
-    $this->financeAssistant->assignRole('client_user');
+    $this->financeAssistant->assignRole('customer_user');
 
     $this->otherDealerUser = User::factory()->create([
         'client_account_id' => $this->dealerB->id,
         'is_active' => true,
         'name' => 'Rival Rachel',
     ]);
-    $this->otherDealerUser->assignRole('client_user');
+    $this->otherDealerUser->assignRole('customer_user');
 
     $this->finance = User::factory()->create([
         'client_account_id' => null,
@@ -131,7 +131,7 @@ it('refuses to let a client_admin from one dealership touch another dealership\'
         'client_account_id' => $this->dealerB->id,
         'is_active' => true,
     ]);
-    $otherAdmin->assignRole('client_admin');
+    $otherAdmin->assignRole('customer_admin');
 
     Livewire::actingAs($otherAdmin)
         ->test(TeamIndex::class)

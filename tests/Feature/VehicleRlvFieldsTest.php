@@ -32,7 +32,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->account->id,
         'is_active' => true,
     ]);
-    $this->user->assignRole('client_admin');
+    $this->user->assignRole('customer_admin');
 });
 
 it('persists and casts every new RLV field', function () {

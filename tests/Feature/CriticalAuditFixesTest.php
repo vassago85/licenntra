@@ -34,9 +34,9 @@ use Tests\TestCase;
 
 /**
  * Regression suite covering the critical findings from the 2026-10-05 live
- * audit: ghost drafts, documentless submits, blind resubmits, auditor /
- * finance seeing reviewer controls, dealer-user BC writes, logout
- * destination, and navigable error pages.
+ * audit: ghost drafts, documentless submits, blind resubmits, finance
+ * seeing reviewer controls, dealer-user BC writes, logout destination,
+ * and navigable error pages.
  */
 class CriticalAuditFixesTest extends TestCase
 {
@@ -72,13 +72,13 @@ class CriticalAuditFixesTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $this->clientAdmin->assignRole('client_admin');
+        $this->clientAdmin->assignRole('customer_admin');
 
         $this->clientUser = User::factory()->create([
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $this->clientUser->assignRole('client_user');
+        $this->clientUser->assignRole('customer_user');
     }
 
     /* ---------------------------------------------------------------
@@ -227,6 +227,30 @@ class CriticalAuditFixesTest extends TestCase
         );
     }
 
+    public function test_resubmit_sends_a_fixed_application_straight_back_to_document_review(): void
+    {
+        $application = $this->draftApplication();
+        $application->update(['stage' => ApplicationStage::ChangesRequested]);
+
+        $type = DocumentType::query()->create([
+            'code' => 'coa-'.$application->id,
+            'name' => 'Change of address',
+        ]);
+        ApplicationDocument::query()->create([
+            'application_id' => $application->id,
+            'document_type_id' => $type->id,
+            'required' => true,
+            'status' => DocumentStatus::Uploaded,
+        ]);
+
+        Livewire::actingAs($this->clientUser)
+            ->test(ApplicationShow::class, ['application' => $application->refresh()])
+            ->call('resubmit')
+            ->assertHasNoErrors();
+
+        $this->assertSame(ApplicationStage::DocumentReview, $application->refresh()->stage);
+    }
+
     public function test_changes_requested_view_shows_the_outstanding_fix_list(): void
     {
         $application = $this->draftApplication();
@@ -255,27 +279,6 @@ class CriticalAuditFixesTest extends TestCase
     /* ---------------------------------------------------------------
      * Role gating UI
      * ------------------------------------------------------------- */
-
-    public function test_auditor_does_not_see_reviewer_controls_in_review_workspace(): void
-    {
-        $staff = $this->staff('auditor');
-        $application = Application::query()->create([
-            'reference' => 'AUD-REV-00001',
-            'client_account_id' => $this->dealer->id,
-            'stage' => ApplicationStage::DocumentReview,
-        ]);
-
-        $response = $this->actingAs($staff)
-            ->get(route('review.show', $application))
-            ->assertOk();
-
-        $response->assertDontSee('wire:click="confirmDatafix"', escape: false);
-        $response->assertDontSee('wire:click="completeDatafix"', escape: false);
-        $response->assertDontSee('wire:click="changeService"', escape: false);
-        $response->assertDontSee("wire:click=\"addNote('internal')\"", escape: false);
-        $response->assertDontSee("wire:click=\"addNote('client')\"", escape: false);
-        $response->assertSeeText('Datafix is read-only for your role.');
-    }
 
     public function test_finance_does_not_see_reviewer_controls_in_review_workspace(): void
     {

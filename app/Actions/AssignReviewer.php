@@ -12,7 +12,7 @@ class AssignReviewer
 
     public function handle(Application $application, User $actor, ?User $reviewer): Application
     {
-        if ($reviewer !== null && ! $reviewer->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])) {
+        if ($reviewer !== null && ! $reviewer->hasAnyRole(['reviewer', 'owner'])) {
             throw ValidationException::withMessages([
                 'reviewer' => 'Choose a reviewer.',
             ]);

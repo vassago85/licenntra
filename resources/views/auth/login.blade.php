@@ -4,51 +4,37 @@
     $showDemo = config('demo.show_credentials');
     $demoPersonas = [
         [
-            'label' => 'Super admin',
-            'email' => 'super.admin@licentra.test',
-            'role' => 'super_admin',
-            'summary' => 'Full access. Admin console, branding, fee tables, document rules, role management, Mailgun settings, identity-document downloads.',
-            'tone' => 'danger',
-        ],
-        [
-            'label' => 'Operations admin',
-            'email' => 'customer.admin@licentra.test',
-            'role' => 'customer_admin',
-            'summary' => 'Runs day-to-day operations: review queue, document accept/reject, payment verification, team management, identity-document downloads.',
+            'label' => 'Owner',
+            'email' => 'owner@licentra.test',
+            'role' => 'owner',
+            'summary' => 'Licensing company owner. Everything on the operator side: overview dashboard, review queue, payments and invoices, plus Administration — users, client accounts, fee tables, document library, branding, system settings — and the audit log and platform billing.',
             'tone' => 'danger',
         ],
         [
             'label' => 'Reviewer',
             'email' => 'reviewer@licentra.test',
             'role' => 'reviewer',
-            'summary' => 'Picks up applications from the queue. Accept/reject documents, request changes, confirm datafix, upload returned NaTIS + licence disc.',
+            'summary' => 'Takes applications from the review queue. Accept/reject documents, request changes, confirm datafix, upload returned NaTIS + licence disc, review fleet licences. Can open identity documents.',
             'tone' => 'warning',
         ],
         [
             'label' => 'Finance',
             'email' => 'finance@licentra.test',
             'role' => 'finance',
-            'summary' => 'Payment queue only. Verify EFT / card-on-file against the fee snapshot. Cannot download identity documents.',
+            'summary' => 'Money side. Verify payments against the fee snapshot, issue and track invoices, see balances and top customers on the overview. Review queue is read-only; cannot open identity documents.',
             'tone' => 'warning',
-        ],
-        [
-            'label' => 'Auditor',
-            'email' => 'auditor@licentra.test',
-            'role' => 'auditor',
-            'summary' => 'Read-only across every application and the append-only audit log. No edits, no identity-document downloads.',
-            'tone' => 'info',
         ],
         [
             'label' => 'Dealer admin (Highveld)',
             'email' => 'thandi.mokoena@highveld.test',
-            'role' => 'client_admin',
-            'summary' => 'Dealership admin for Highveld Commercial Centurion. Create applications, upload documents, accept quotes, manage own team.',
+            'role' => 'customer_admin',
+            'summary' => 'Dealership admin for Highveld Commercial Centurion. Create applications, upload documents, accept quotes, manage the team and nominate the stock controller who receives invoices.',
             'tone' => 'success',
         ],
         [
             'label' => 'Dealer user (Highveld)',
             'email' => 'johan.botha@highveld.test',
-            'role' => 'client_user',
+            'role' => 'customer_user',
             'summary' => 'Day-to-day dealership user. Create applications, upload documents, accept quotes (this account has quote-acceptance enabled).',
             'tone' => 'success',
         ],
@@ -132,7 +118,8 @@
                 Dealer-side personas belong to <strong>Highveld Commercial Centurion</strong>
                 and only see that account's work. The dealership for Kestrel Logistics, Ridgeway
                 Bodies and Northvale Truck &amp; Bus SA exists in the seed data but has no demo
-                user attached — ask an admin to issue one if you need to compare accounts.
+                user attached — sign in as the owner and add one under Administration › Users
+                if you need to compare accounts.
             </footer>
         </section>
 

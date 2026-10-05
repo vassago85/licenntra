@@ -46,14 +46,14 @@ beforeEach(function (): void {
     ]);
 
     $this->admin = User::factory()->create(['is_active' => true]);
-    $this->admin->assignRole('super_admin');
+    $this->admin->assignRole('owner');
 
     $this->clientAdmin = User::factory()->create([
         'is_active' => true,
         'email' => 'owner@highveld.example',
         'client_account_id' => $this->dealership->id,
     ]);
-    $this->clientAdmin->assignRole('client_admin');
+    $this->clientAdmin->assignRole('customer_admin');
 });
 
 function makeReadyApplication(ClientAccount $account, ApplicationStage $stage = ApplicationStage::PaymentVerified): Application

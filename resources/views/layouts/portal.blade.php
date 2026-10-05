@@ -25,13 +25,11 @@
     if ($user) {
         $primaryRole = collect($user->getRoleNames())->first();
         $contextRole = match ($primaryRole) {
-            'super_admin' => 'Super admin',
-            'customer_admin' => 'Operations admin',
+            'owner' => 'Owner',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
-            'auditor' => 'Auditor',
-            'client_admin' => 'Client admin',
-            'client_user' => 'Client user',
+            'customer_admin' => 'Dealer / fleet admin',
+            'customer_user' => 'Dealer / fleet user',
             'developer' => 'Developer',
             default => $primaryRole ? ucfirst((string) $primaryRole) : null,
         };

@@ -44,7 +44,7 @@ class AuditLog extends Component
     public function mount(): void
     {
         $user = $this->currentUser();
-        abort_unless($user->hasAnyRole(['super_admin', 'customer_admin', 'auditor']), 403);
+        abort_unless($user->hasAnyRole(['owner']), 403);
     }
 
     /**
@@ -131,13 +131,11 @@ class AuditLog extends Component
     private function roleOptions(): array
     {
         return [
-            'super_admin' => 'Super admin',
-            'customer_admin' => 'Operations admin',
+            'owner' => 'Owner',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
-            'auditor' => 'Auditor',
-            'client_admin' => 'Dealer admin',
-            'client_user' => 'Dealer user',
+            'customer_admin' => 'Dealer / fleet admin',
+            'customer_user' => 'Dealer / fleet user',
             'developer' => 'Developer',
         ];
     }

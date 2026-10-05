@@ -1016,7 +1016,7 @@ class OperationsWorkloadService
             'due_at' => $application->due_at,
             'overdue' => $this->isOverdue($application),
             'action_label' => 'Submit to authority',
-            'action_url' => route('filament.admin.pages.outstanding-tasks', [
+            'action_url' => route('tasks.outstanding', [
                 'tab' => self::TAB_READY_TO_SUBMIT,
                 'submit' => $application->id,
             ]),
@@ -1327,7 +1327,7 @@ class OperationsWorkloadService
             $application->stage === ApplicationStage::QuoteRequired => ['open_quote', 'Build quote', route('applications.quote', ['application' => $application->id]), 'Quote required'],
             $application->stage === ApplicationStage::ChangesRequested => ['open_app', 'Chase corrections', $openApp, 'Changes requested from dealership'],
             $application->stage === ApplicationStage::Draft => ['open_app', 'Open draft', $openApp, 'Draft not yet submitted'],
-            $this->isReadyForAuthority($application) => ['submit_authority', 'Submit to authority', route('filament.admin.pages.outstanding-tasks', ['tab' => self::TAB_READY_TO_SUBMIT, 'submit' => $application->id]), 'Ready for authority submission'],
+            $this->isReadyForAuthority($application) => ['submit_authority', 'Submit to authority', route('tasks.outstanding', ['tab' => self::TAB_READY_TO_SUBMIT, 'submit' => $application->id]), 'Ready for authority submission'],
             default => ['open_app', 'Open application', $openApp, null],
         };
     }
@@ -1338,7 +1338,7 @@ class OperationsWorkloadService
     public function cardsUrl(ClientAccount $account): string
     {
         try {
-            return route('filament.admin.pages.dealership-cards', ['account_id' => $account->id]);
+            return route('dealerships.board', ['account_id' => $account->id]);
         } catch (\Throwable) {
             return '#';
         }
@@ -1351,7 +1351,7 @@ class OperationsWorkloadService
     public function tabUrl(string $tab, array $extra = []): string
     {
         try {
-            return route('filament.admin.pages.outstanding-tasks', array_merge(['tab' => $tab], $extra));
+            return route('tasks.outstanding', array_merge(['tab' => $tab], $extra));
         } catch (\Throwable) {
             return '#';
         }

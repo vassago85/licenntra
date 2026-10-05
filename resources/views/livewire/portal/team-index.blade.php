@@ -33,8 +33,8 @@
                 <label class="block text-sm">
                     <span class="text-muted">Role</span>
                     <select wire:model="role" class="mt-1 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
-                        <option value="client_user">User &mdash; everyday work</option>
-                        <option value="client_admin">Admin &mdash; can manage this team</option>
+                        <option value="customer_user">User &mdash; everyday work</option>
+                        <option value="customer_admin">Admin &mdash; can manage this team</option>
                     </select>
                     @error('role') <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
                 </label>
@@ -81,7 +81,7 @@
                         <td class="px-3 py-2">
                             @foreach ($member->roles as $r)
                                 <span class="inline-block rounded-full border border-line px-2 py-0.5 text-xs">
-                                    {{ $r->name === 'client_admin' ? 'Admin' : 'User' }}
+                                    {{ $r->name === 'customer_admin' ? 'Admin' : 'User' }}
                                 </span>
                             @endforeach
                         </td>

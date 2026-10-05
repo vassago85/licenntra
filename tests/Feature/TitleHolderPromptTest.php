@@ -36,7 +36,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->user->assignRole('client_user');
+    $this->user->assignRole('customer_user');
 });
 
 /**

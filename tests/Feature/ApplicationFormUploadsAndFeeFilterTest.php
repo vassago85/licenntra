@@ -47,7 +47,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->user->assignRole('client_user');
+    $this->user->assignRole('customer_user');
 });
 
 it('prices a commercial truck under exactly one licence band - not fifteen', function (): void {
@@ -149,7 +149,7 @@ it('lets a client user upload a required document straight from the application 
     Livewire::actingAs($this->user)
         ->test(ApplicationForm::class, ['application' => $application])
         ->set("uploads.{$document->id}", UploadedFile::fake()->createWithContent('weighbridge.pdf', $pdfBytes))
-        ->call('upload', $document->id);
+        ->call('uploadDocument', $document->id);
 
     expect($document->fresh()->currentVersion)->not->toBeNull()
         ->and($document->fresh()->currentVersion->original_filename)->toBe('weighbridge.pdf');
@@ -174,7 +174,7 @@ it('rejects a non-PDF/JPG/PNG upload with a clear message', function (): void {
     Livewire::actingAs($this->user)
         ->test(ApplicationForm::class, ['application' => $application])
         ->set("uploads.{$document->id}", UploadedFile::fake()->create('malware.exe', 10, 'application/octet-stream'))
-        ->call('upload', $document->id)
+        ->call('uploadDocument', $document->id)
         ->assertHasErrors(['upload']);
 
     expect($document->fresh()->currentVersion)->toBeNull();

@@ -248,7 +248,7 @@
                             @if ($canUploadDocument($document))
                                 <div class="mt-2 flex flex-wrap items-center gap-2">
                                     <input type="file" wire:model="uploads.{{ $document->id }}" accept=".pdf,.jpg,.jpeg,.png" class="min-w-0 text-xs">
-                                    <button type="button" wire:click="upload({{ $document->id }})" class="h-8 shrink-0 rounded-md border border-line bg-white px-2 text-xs font-semibold hover:bg-paper">
+                                    <button type="button" wire:click="uploadDocument({{ $document->id }})" class="h-8 shrink-0 rounded-md border border-line bg-white px-2 text-xs font-semibold hover:bg-paper">
                                         {{ $hasFile ? 'Replace' : 'Upload' }}
                                     </button>
                                 </div>

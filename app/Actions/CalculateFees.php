@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\QuoteStatus;
 use App\Enums\RequestType;
 use App\Enums\ServiceType;
 use App\Enums\TaxTreatment;
@@ -9,6 +10,7 @@ use App\Enums\VehicleCategory;
 use App\Models\Application;
 use App\Models\FeeLine;
 use App\Models\FeeTableVersion;
+use App\Models\QuoteLine;
 use App\Models\SystemSetting;
 use Illuminate\Support\Carbon;
 
@@ -94,6 +96,58 @@ class CalculateFees
             'exempt_subtotal_cents' => $exemptSubtotal,
             'vat_cents' => $vat,
             'total_cents' => $taxableSubtotal + $exemptSubtotal + $vat,
+        ];
+    }
+
+    /**
+     * The amount the client is billed. An accepted quote is the full agreed
+     * price and replaces the fee table; quote prices are all-in, so no VAT is
+     * added on top. Without an accepted quote the fee table (plus account
+     * markup) applies.
+     *
+     * @return array{
+     *     vat_basis_points: int,
+     *     fee_table_version_id: int|null,
+     *     quote_id?: int,
+     *     lines: list<array{code: string, label: string, amount_cents: int, client_visible: bool, tax_treatment: string, period: string}>,
+     *     taxable_subtotal_cents: int,
+     *     exempt_subtotal_cents: int,
+     *     vat_cents: int,
+     *     total_cents: int
+     * }
+     */
+    public function billingSnapshot(Application $application): array
+    {
+        $quote = $application->quotes()
+            ->where('status', QuoteStatus::Accepted)
+            ->with('lines')
+            ->latest('id')
+            ->first();
+
+        if ($quote === null) {
+            return $this->snapshot($application);
+        }
+
+        $lines = $quote->lines->map(fn (QuoteLine $line): array => [
+            'code' => 'quote',
+            'label' => $line->description,
+            'amount_cents' => (int) $line->client_price_cents,
+            'client_visible' => true,
+            'tax_treatment' => TaxTreatment::Standard->value,
+            'period' => 'once_off',
+        ])->values()->all();
+
+        $total = array_sum(array_column($lines, 'amount_cents'));
+
+        return [
+            'vat_basis_points' => (int) SystemSetting::current()->vat_basis_points,
+            'fee_table_version_id' => null,
+            'quote_id' => $quote->id,
+            'lines' => $lines,
+            'taxable_subtotal_cents' => $total,
+            'exempt_subtotal_cents' => 0,
+            'vat_cents' => 0,
+            'total_cents' => $total,
         ];
     }
 

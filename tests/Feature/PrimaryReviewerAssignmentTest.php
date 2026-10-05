@@ -49,13 +49,13 @@ beforeEach(function (): void {
         'name' => 'Lerato Lead',
         'is_active' => true,
     ]);
-    $this->customerAdmin->assignRole('customer_admin');
+    $this->customerAdmin->assignRole('owner');
 
     $this->dealerUser = User::factory()->create([
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->dealerUser->assignRole('client_admin');
+    $this->dealerUser->assignRole('customer_admin');
 });
 
 /**

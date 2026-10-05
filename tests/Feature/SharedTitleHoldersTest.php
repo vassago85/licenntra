@@ -42,13 +42,13 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealerA->id,
         'is_active' => true,
     ]);
-    $this->userA->assignRole('client_user');
+    $this->userA->assignRole('customer_user');
 
     $this->userB = User::factory()->create([
         'client_account_id' => $this->dealerB->id,
         'is_active' => true,
     ]);
-    $this->userB->assignRole('client_user');
+    $this->userB->assignRole('customer_user');
 });
 
 it('lets dealership B see a shared title holder that dealership A created', function (): void {

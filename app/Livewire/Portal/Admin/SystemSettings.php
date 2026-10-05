@@ -24,6 +24,10 @@ class SystemSettings extends Component
     // Finance
     public string $vat_percent = '15.00';
 
+    public bool $quotes_enabled = false;
+
+    public bool $payment_tracking_required = false;
+
     // Security
     public int $idle_timeout_minutes = 30;
 
@@ -71,6 +75,8 @@ class SystemSettings extends Component
         $settings = SystemSetting::current();
 
         $this->vat_percent = number_format($settings->vat_basis_points / 100, 2, '.', '');
+        $this->quotes_enabled = (bool) $settings->quotes_enabled;
+        $this->payment_tracking_required = (bool) $settings->payment_tracking_required;
         $this->idle_timeout_minutes = (int) $settings->idle_timeout_minutes;
         $this->absolute_timeout_minutes = (int) $settings->absolute_timeout_minutes;
         $this->enforce_client_two_factor = (bool) $settings->enforce_client_two_factor;
@@ -95,6 +101,8 @@ class SystemSettings extends Component
 
         $data = $this->validate([
             'vat_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'quotes_enabled' => ['boolean'],
+            'payment_tracking_required' => ['boolean'],
             'idle_timeout_minutes' => ['required', 'integer', 'min:5', 'max:240'],
             'absolute_timeout_minutes' => ['required', 'integer', 'min:30', 'max:1440'],
             'enforce_client_two_factor' => ['boolean'],
@@ -132,6 +140,8 @@ class SystemSettings extends Component
 
         $payload = [
             'vat_basis_points' => (int) round(((float) $data['vat_percent']) * 100),
+            'quotes_enabled' => (bool) ($data['quotes_enabled'] ?? false),
+            'payment_tracking_required' => (bool) ($data['payment_tracking_required'] ?? false),
             'idle_timeout_minutes' => (int) $data['idle_timeout_minutes'],
             'absolute_timeout_minutes' => (int) $data['absolute_timeout_minutes'],
             'retention_period_options' => $options,

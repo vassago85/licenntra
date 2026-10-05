@@ -37,7 +37,7 @@ class FinanceInvoiceQueue extends Component
     {
         $user = auth()->user();
 
-        if ($user === null || ! $user->is_active || ! $user->hasAnyRole(['finance', 'customer_admin', 'super_admin'])) {
+        if ($user === null || ! $user->is_active || ! $user->hasAnyRole(['finance', 'owner'])) {
             abort(403);
         }
     }

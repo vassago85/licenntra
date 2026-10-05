@@ -48,7 +48,7 @@ class InvoicePolicy
             return false;
         }
 
-        return $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']);
+        return $user->hasAnyRole(['finance', 'owner']);
     }
 
     public function markPaid(User $user, Invoice $invoice): bool
@@ -78,6 +78,6 @@ class InvoicePolicy
             return false;
         }
 
-        return $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']);
+        return $user->hasAnyRole(['finance', 'owner']);
     }
 }

@@ -23,6 +23,16 @@ class FeeTableVersion extends Model
         return $this->hasMany(FeeLine::class);
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     protected function casts(): array
     {
         return [

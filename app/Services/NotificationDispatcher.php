@@ -162,7 +162,7 @@ class NotificationDispatcher
         $contact = $account->contact_email;
         $admins = User::query()
             ->where('client_account_id', $account->id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'client_admin'))
+            ->whereHas('roles', fn ($q) => $q->where('name', 'customer_admin'))
             ->where('is_active', true)
             ->pluck('email')
             ->all();

@@ -5,27 +5,25 @@
     $isClient = $user?->isClient() ?? false;
     $isStaff = $user?->isLicensingStaff() ?? false;
     $isDeveloper = $user?->hasRole('developer') ?? false;
-    $isAdmin = $user?->hasAnyRole(['super_admin', 'customer_admin']) ?? false;
-    $canAudit = $user?->hasAnyRole(['super_admin', 'customer_admin', 'auditor']) ?? false;
-    $canPlatform = $user?->hasAnyRole(['super_admin', 'developer']) ?? false;
+    $isAdmin = $user?->hasAnyRole(['owner']) ?? false;
+    $canAudit = $user?->hasAnyRole(['owner']) ?? false;
+    $canPlatform = $user?->hasAnyRole(['owner', 'developer']) ?? false;
 
     $accountName = null;
     $accountSummary = null;
 
     if ($isClient && $user?->clientAccount) {
         $accountName = $user->clientAccount->name;
-        $roleSummary = $user->hasRole('client_admin') ? 'Admin' : 'User';
+        $roleSummary = $user->hasRole('customer_admin') ? 'Admin' : 'User';
         $typeLabel = $user->clientAccount->type?->label() ?? 'Client';
         $accountSummary = $typeLabel.' · '.$user->name.' ('.$roleSummary.')';
     } elseif ($isStaff || $isDeveloper) {
         $accountName = $user->name;
         $primaryRole = collect($user->getRoleNames())->first();
         $accountSummary = match ($primaryRole) {
-            'super_admin' => 'Super admin',
-            'customer_admin' => 'Operations admin',
+            'owner' => 'Owner',
             'reviewer' => 'Reviewer',
             'finance' => 'Finance',
-            'auditor' => 'Auditor',
             'developer' => 'Platform developer',
             default => ucfirst((string) $primaryRole),
         };
@@ -87,7 +85,7 @@
             ->whereNull('confirmed_at')
             ->count();
 
-        if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin'])) {
+        if ($user->hasAnyRole(['finance', 'owner'])) {
             $financeInvoicesOutstandingCount = \App\Models\Invoice::query()
                 ->whereNull('paid_at')
                 ->count();
@@ -107,15 +105,13 @@
 
     /** Auto-expand a section if any of its routes is active. */
     $operationsActive = $isCurrent('review.*') || $isCurrent('finance.*') || $isCurrent('fleet.review.*')
-        || $isPath('admin/outstanding-tasks*') || $isPath('admin/dealership-cards*');
+        || $isCurrent('tasks.*') || $isCurrent('dealerships.*');
     $portalActive = $isCurrent('applications.*') || $isCurrent('business-clients.*') || $isCurrent('estimate.*')
         || $isCurrent('handovers.*') || $isCurrent('invoices.*') || $isCurrent('fleet.vehicles.*') || $isCurrent('team.*');
-    $adminActive = $isPath('admin/users*') || $isPath('admin/client-accounts*')
-        || $isPath('admin/fee-table*') || $isPath('admin/fee-lines*')
-        || $isPath('admin/document-types*') || $isPath('admin/document-rules*')
-        || $isCurrent('settings.*');
+    $operationsActive = $operationsActive || $isCurrent('admin.overview');
+    $adminActive = ($isCurrent('admin.*') && ! $isCurrent('admin.overview')) || $isCurrent('settings.*');
     $complianceActive = $isCurrent('audit.*');
-    $platformActive = $isPath('admin/platform-billing*');
+    $platformActive = $isCurrent('platform.*');
 
     /** First printable character of the brand, used in the sidebar mark. */
     $brandMark = strtoupper(mb_substr($branding->company_name ?? 'L', 0, 1));
@@ -318,7 +314,7 @@
                             Fleet vehicles
                         </x-portal.sidebar-link>
                     @endif
-                    @if ($user?->hasRole('client_admin'))
+                    @if ($user?->hasRole('customer_admin'))
                         <x-portal.sidebar-link
                             :href="route('team.index')"
                             :active="$isCurrent('team.*')"
@@ -342,6 +338,13 @@
                 </button>
                 <div x-show="open" x-cloak class="flex flex-col gap-1">
                     <x-portal.sidebar-link
+                        :href="route('admin.overview')"
+                        :active="$isCurrent('admin.overview')"
+                        :icon="$icons['dashboard']"
+                    >
+                        Overview
+                    </x-portal.sidebar-link>
+                    <x-portal.sidebar-link
                         :href="route('review.queue')"
                         :active="$isCurrent('review.*')"
                         :count="$reviewQueueCount"
@@ -351,20 +354,20 @@
                         Review queue
                     </x-portal.sidebar-link>
                     <x-portal.sidebar-link
-                        :href="url('/admin/outstanding-tasks')"
-                        :active="request()->is('admin/outstanding-tasks*')"
+                        :href="route('tasks.outstanding')"
+                        :active="$isCurrent('tasks.*')"
                         :icon="$icons['list']"
                     >
                         Outstanding tasks
                     </x-portal.sidebar-link>
                     <x-portal.sidebar-link
-                        :href="url('/admin/dealership-cards')"
-                        :active="request()->is('admin/dealership-cards*')"
+                        :href="route('dealerships.board')"
+                        :active="$isCurrent('dealerships.*')"
                         :icon="$icons['briefcase']"
                     >
-                        Dealership cards
+                        Dealership board
                     </x-portal.sidebar-link>
-                    @if ($paymentTrackingRequired && $user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
+                    @if ($paymentTrackingRequired && $user->hasAnyRole(['finance', 'owner']))
                         <x-portal.sidebar-link
                             :href="route('finance.payments')"
                             :active="$isCurrent('finance.payments')"
@@ -375,7 +378,7 @@
                             Payments
                         </x-portal.sidebar-link>
                     @endif
-                    @if ($user->hasAnyRole(['finance', 'customer_admin', 'super_admin']))
+                    @if ($user->hasAnyRole(['finance', 'owner']))
                         <x-portal.sidebar-link
                             :href="route('finance.invoices')"
                             :active="$isCurrent('finance.invoices')"
@@ -386,7 +389,7 @@
                             Invoices
                         </x-portal.sidebar-link>
                     @endif
-                    @if ($user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']))
+                    @if ($user->hasAnyRole(['reviewer', 'owner']))
                         <x-portal.sidebar-link
                             :href="route('fleet.review.queue')"
                             :active="$isCurrent('fleet.review.*')"
@@ -414,29 +417,29 @@
                 </button>
                 <div x-show="open" x-cloak class="flex flex-col gap-1">
                     <x-portal.sidebar-link
-                        :href="url('/admin/users')"
-                        :active="request()->is('admin/users*')"
+                        :href="route('admin.users')"
+                        :active="$isCurrent('admin.users')"
                         :icon="$icons['users']"
                     >
                         Users
                     </x-portal.sidebar-link>
                     <x-portal.sidebar-link
-                        :href="url('/admin/client-accounts')"
-                        :active="request()->is('admin/client-accounts*')"
+                        :href="route('admin.client-accounts')"
+                        :active="$isCurrent('admin.client-accounts')"
                         :icon="$icons['briefcase']"
                     >
                         Client accounts
                     </x-portal.sidebar-link>
                     <x-portal.sidebar-link
-                        :href="url('/admin/fee-tables')"
-                        :active="request()->is('admin/fee-table*') || request()->is('admin/fee-lines*')"
+                        :href="route('admin.fee-table-versions')"
+                        :active="$isCurrent('admin.fee-*')"
                         :icon="$icons['tag']"
                     >
                         Fee tables
                     </x-portal.sidebar-link>
                     <x-portal.sidebar-link
-                        :href="url('/admin/document-types')"
-                        :active="request()->is('admin/document-types*') || request()->is('admin/document-rules*')"
+                        :href="route('admin.document-rules')"
+                        :active="$isCurrent('admin.document-*')"
                         :icon="$icons['book']"
                     >
                         Document library
@@ -495,8 +498,8 @@
                 </button>
                 <div x-show="open" x-cloak class="flex flex-col gap-1">
                     <x-portal.sidebar-link
-                        :href="url('/admin/platform-billing')"
-                        :active="request()->is('admin/platform-billing*')"
+                        :href="route('platform.billing')"
+                        :active="$isCurrent('platform.*')"
                         :icon="$icons['card']"
                     >
                         Platform billing

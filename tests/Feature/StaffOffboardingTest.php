@@ -29,11 +29,11 @@ class StaffOffboardingTest extends TestCase
         $this->seed(RoleSeeder::class);
 
         $this->actor = User::factory()->create(['is_active' => true]);
-        $this->actor->assignRole('super_admin');
+        $this->actor->assignRole('owner');
 
         // A second super admin so lone-admin guards don't fire during the suite.
         $spare = User::factory()->create(['is_active' => true]);
-        $spare->assignRole('super_admin');
+        $spare->assignRole('owner');
     }
 
     public function test_offboarding_kills_sessions_remember_token_two_factor_passkeys_and_roles(): void
@@ -86,7 +86,7 @@ class StaffOffboardingTest extends TestCase
         $this->assertSame(0, DB::table('passkeys')->where('user_id', $reviewer->id)->count());
     }
 
-    public function test_offboarded_user_cannot_sign_in_and_cannot_access_the_filament_panel(): void
+    public function test_offboarded_user_cannot_sign_in_and_cannot_open_the_admin_overview(): void
     {
         $reviewer = $this->staff('reviewer', ['password' => Hash::make('password')]);
 
@@ -108,13 +108,13 @@ class StaffOffboardingTest extends TestCase
 
     public function test_cannot_offboard_the_last_active_admin(): void
     {
-        $soleAdmin = $this->staff('customer_admin');
+        $soleAdmin = $this->staff('owner');
 
         // Strip all other active admins so this account is the last one.
         // The acting user intentionally has no admin role so it does not
         // "cover" for the admin we are about to offboard.
         User::query()
-            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['super_admin', 'customer_admin']))
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['owner']))
             ->where('id', '!=', $soleAdmin->id)
             ->get()
             ->each(fn (User $u) => $u->update(['is_active' => false]));
@@ -161,7 +161,7 @@ class StaffOffboardingTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame($this->actor->id, $event->actor_user_id);
-        $this->assertSame('super_admin', $event->actor_role);
+        $this->assertSame('owner', $event->actor_role);
         $this->assertSame(User::class, $event->subject_type);
         $this->assertSame('contract_ended', $event->after['reason']);
         $this->assertSame('Fixed-term ended 31 Jan.', $event->after['note']);
@@ -236,7 +236,7 @@ class StaffOffboardingTest extends TestCase
 
     public function test_offboarding_is_idempotent_and_does_not_double_write_audit_rows(): void
     {
-        $user = $this->staff('auditor');
+        $user = $this->staff('finance');
 
         app(OffboardStaffMember::class)->handle($user, OffboardReason::Resigned, null, $this->actor);
         app(OffboardStaffMember::class)->handle($user, OffboardReason::Dismissed, 'Should be ignored.', $this->actor);

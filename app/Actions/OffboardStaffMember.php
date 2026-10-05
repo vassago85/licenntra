@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Role;
 
 class OffboardStaffMember
 {
-    private const ADMIN_ROLES = ['super_admin', 'customer_admin'];
+    private const ADMIN_ROLES = ['owner'];
 
     public function __construct(private RecordAudit $audit) {}
 

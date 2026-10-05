@@ -131,7 +131,7 @@ class ClientAccountMultiTypeTest extends TestCase
             'client_account_id' => $account->id,
             'is_active' => true,
         ]);
-        $user->assignRole('client_user');
+        $user->assignRole('customer_user');
 
         return $user;
     }

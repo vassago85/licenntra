@@ -75,7 +75,11 @@ class ApplicationShow extends Component
         $this->application = $application;
     }
 
-    public function upload(int $documentId): void
+    /**
+     * Not named `upload` because Livewire's client-side `$wire.upload()` would
+     * shadow it in `wire:click` expressions.
+     */
+    public function uploadDocument(int $documentId): void
     {
         $document = $this->application->documents()->findOrFail($documentId);
         $this->authorize('upload', $document);

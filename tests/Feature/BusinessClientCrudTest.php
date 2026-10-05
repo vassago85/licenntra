@@ -32,13 +32,13 @@ beforeEach(function (): void {
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->admin->assignRole('client_admin');
+    $this->admin->assignRole('customer_admin');
 
     $this->normalUser = User::factory()->create([
         'client_account_id' => $this->dealer->id,
         'is_active' => true,
     ]);
-    $this->normalUser->assignRole('client_user');
+    $this->normalUser->assignRole('customer_user');
 });
 
 it('lets a client_admin add a business client from the portal form', function (): void {
@@ -189,7 +189,7 @@ it('hides the Add client button from a normal client_user and shows it to a clie
         ->assertSee('+ Add client');
 });
 
-it('refuses the create route to read-only staff (finance, auditor)', function (): void {
+it('refuses the create route to finance (read-only on business clients)', function (): void {
     $finance = User::factory()->create([
         'client_account_id' => null,
         'is_active' => true,
@@ -197,16 +197,6 @@ it('refuses the create route to read-only staff (finance, auditor)', function ()
     $finance->assignRole('finance');
 
     $this->actingAs($finance)
-        ->get(route('business-clients.create'))
-        ->assertForbidden();
-
-    $auditor = User::factory()->create([
-        'client_account_id' => null,
-        'is_active' => true,
-    ]);
-    $auditor->assignRole('auditor');
-
-    $this->actingAs($auditor)
         ->get(route('business-clients.create'))
         ->assertForbidden();
 });

@@ -45,14 +45,14 @@ class FleetVehiclePolicy
     public function uploadFor(User $user, ClientAccount $fleet): bool
     {
         return $user->is_active
-            && $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])
+            && $user->hasAnyRole(['reviewer', 'owner'])
             && $fleet->hasType(ClientAccountType::FleetOperator);
     }
 
     public function reviewAny(User $user): bool
     {
         return $user->is_active
-            && $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']);
+            && $user->hasAnyRole(['reviewer', 'owner']);
     }
 
     public function download(User $user, FleetVehicle $vehicle): bool

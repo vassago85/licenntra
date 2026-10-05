@@ -16,13 +16,13 @@ use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->seed(DocumentRuleSeeder::class);
-    foreach (['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor', 'client_admin', 'client_user'] as $role) {
+    foreach (['owner', 'reviewer', 'finance', 'customer_admin', 'customer_user'] as $role) {
         Role::findOrCreate($role);
     }
 });
 
 it('stores a dangerous goods request on the application', function () {
-    $client = dangerousGoodsUser('client_user');
+    $client = dangerousGoodsUser('customer_user');
 
     $application = app(SaveApplicationDraft::class)->handle($client, [
         'request_type' => 'new_registration',
@@ -100,7 +100,7 @@ function dangerousGoodsUser(string $role, ?ClientAccount $account = null): User
     ]);
 
     $user = User::factory()->create([
-        'client_account_id' => str_starts_with($role, 'client') ? $account->id : null,
+        'client_account_id' => str_starts_with($role, 'customer') ? $account->id : null,
         'is_active' => true,
     ]);
     $user->assignRole($role);

@@ -53,6 +53,7 @@
   .nav-link:hover { background: var(--paper); color: var(--ink); }
   .nav-link.active { background: var(--brand-wash); color: var(--brand); font-weight: 600; }
   .nav-count { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); }
+  .nav-section { padding: 0 8px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .sidebar-footer { margin-top: auto; padding: 16px 6px 0; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
   .sidebar-footer .email { font-size: 10px; }
   .sidebar-footer a { color: var(--ink); font-weight: 500; }
@@ -156,7 +157,7 @@
       <span class="mark">E</span>
       <div class="meta">
         <span class="name">Example Licensing</span>
-        <span class="sub">Staff portal</span>
+        <span class="sub">Licensing operations</span>
       </div>
     </div>
     <div class="sidebar-account">
@@ -165,9 +166,11 @@
       <span class="r">Reviewer</span>
     </div>
     <nav class="sidebar-nav">
+      <span class="nav-section">Operations</span>
+      <a class="nav-link" href="#">Overview</a>
       <a class="nav-link active" href="#"><span>Review queue</span><span class="nav-count">6</span></a>
-      <a class="nav-link" href="#"><span>Payments</span><span class="nav-count">3</span></a>
-      <a class="nav-link" href="#"><span>Invoices</span><span class="nav-count">11</span></a>
+      <a class="nav-link" href="#">Outstanding tasks</a>
+      <a class="nav-link" href="#">Dealership board</a>
       <a class="nav-link" href="#">Fleet licence review</a>
     </nav>
     <div class="sidebar-footer">
@@ -195,8 +198,7 @@
         <div class="pagehead-sub">EXL-2026-00005 · UD 500 1627 · VIN K5B4GXG0DBYE1S0XZ · submitted 2 Oct 2026</div>
       </div>
       <div class="pagehead-actions">
-        <button type="button" class="btn-ghost">Unassign</button>
-        <button type="button" class="btn-primary">Assigned to me</button>
+        <button type="button" class="btn-ghost">Assign to me</button>
       </div>
     </div>
 

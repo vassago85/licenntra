@@ -32,6 +32,14 @@ class SendQuote
 
         $this->notifications->quoteSent($application, $quote);
 
+        if ($application->clientAccount?->has_standing_agreement) {
+            $application = $transition->handle($application, ApplicationStage::QuoteAccepted, null, isSystem: true);
+            $quote->status = QuoteStatus::Accepted;
+            $quote->save();
+
+            $this->audit->handle(null, $quote, 'quote.accepted', 'Quote accepted under the client\'s standing agreement.', isSystem: true);
+        }
+
         return $application->refresh();
     }
 }

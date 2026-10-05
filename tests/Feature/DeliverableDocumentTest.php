@@ -41,7 +41,7 @@ beforeEach(function (): void {
 function deliverableUser(string $role, ?int $accountId = null): User
 {
     $user = User::factory()->create([
-        'client_account_id' => str_starts_with($role, 'client') ? $accountId : null,
+        'client_account_id' => str_starts_with($role, 'customer') ? $accountId : null,
         'is_active' => true,
     ]);
     $user->assignRole($role);
@@ -81,7 +81,7 @@ it('lets a licensing reviewer upload a NaTIS deliverable and records an audit en
 });
 
 it('forbids a client user from uploading a deliverable', function (): void {
-    $client = deliverableUser('client_user', $this->account->id);
+    $client = deliverableUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(ApplicationShow::class, ['application' => $this->application])
@@ -93,7 +93,7 @@ it('forbids a client user from uploading a deliverable', function (): void {
 });
 
 it('rejects non PDF or image uploads', function (): void {
-    $reviewer = deliverableUser('customer_admin');
+    $reviewer = deliverableUser('owner');
 
     Livewire::actingAs($reviewer)
         ->test(ApplicationShow::class, ['application' => $this->application])
@@ -117,7 +117,7 @@ it('lets the owning dealer download a deliverable', function (): void {
         'uploaded_at' => now(),
     ]);
 
-    $client = deliverableUser('client_user', $this->account->id);
+    $client = deliverableUser('customer_user', $this->account->id);
 
     $this->actingAs($client)
         ->get(route('deliverables.download', $deliverable))
@@ -138,7 +138,7 @@ it('denies a dealer from another account access to the deliverable', function ()
         'uploaded_at' => now(),
     ]);
 
-    $stranger = deliverableUser('client_user', $this->otherAccount->id);
+    $stranger = deliverableUser('customer_user', $this->otherAccount->id);
 
     $this->actingAs($stranger)
         ->get(route('deliverables.download', $deliverable))
@@ -160,7 +160,7 @@ it('filters by Commercial and Passenger without a fatal enum error', function ()
         'vehicle_category' => VehicleCategory::Passenger,
     ]);
 
-    $client = deliverableUser('client_user', $this->account->id);
+    $client = deliverableUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(Dashboard::class)
@@ -179,7 +179,7 @@ it('shows completed applications under the Completed filter on the dealer dashbo
         'stage' => ApplicationStage::DocumentReview,
     ]);
 
-    $client = deliverableUser('client_user', $this->account->id);
+    $client = deliverableUser('customer_user', $this->account->id);
 
     Livewire::actingAs($client)
         ->test(Dashboard::class)
@@ -203,7 +203,7 @@ it('lets a licensing reviewer delete a deliverable but denies the dealer', funct
         'uploaded_at' => now(),
     ]);
 
-    $client = deliverableUser('client_user', $this->account->id);
+    $client = deliverableUser('customer_user', $this->account->id);
     Livewire::actingAs($client)
         ->test(ApplicationShow::class, ['application' => $this->application])
         ->call('deleteDeliverable', $deliverable->id)

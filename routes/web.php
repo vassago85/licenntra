@@ -9,13 +9,24 @@ use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
 use App\Livewire\Portal\Admin\AuditLog as AdminAuditLog;
 use App\Livewire\Portal\Admin\Branding as AdminBranding;
+use App\Livewire\Portal\Admin\ClientAccounts as AdminClientAccounts;
+use App\Livewire\Portal\Admin\DocumentRules as AdminDocumentRules;
+use App\Livewire\Portal\Admin\DocumentTypes as AdminDocumentTypes;
+use App\Livewire\Portal\Admin\FeeLines as AdminFeeLines;
+use App\Livewire\Portal\Admin\FeeTables as AdminFeeTables;
+use App\Livewire\Portal\Admin\FeeTableVersionEditor as AdminFeeTableVersionEditor;
+use App\Livewire\Portal\Admin\FeeTableVersions as AdminFeeTableVersions;
+use App\Livewire\Portal\Admin\Overview as AdminOverview;
+use App\Livewire\Portal\Admin\PlatformBilling as AdminPlatformBilling;
 use App\Livewire\Portal\Admin\SystemSettings as AdminSystemSettings;
+use App\Livewire\Portal\Admin\Users as AdminUsers;
 use App\Livewire\Portal\ApplicationForm;
 use App\Livewire\Portal\ApplicationShow;
 use App\Livewire\Portal\BusinessClientForm;
 use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
+use App\Livewire\Portal\DealershipCards;
 use App\Livewire\Portal\DocumentHandoverForm;
 use App\Livewire\Portal\DocumentHandoverIndex;
 use App\Livewire\Portal\FinanceInvoiceQueue;
@@ -24,11 +35,13 @@ use App\Livewire\Portal\FleetReviewQueue;
 use App\Livewire\Portal\FleetVehicleIndex;
 use App\Livewire\Portal\InvoiceIndex;
 use App\Livewire\Portal\LicenceCostEstimator;
+use App\Livewire\Portal\OutstandingTasks;
 use App\Livewire\Portal\PaymentQueue;
 use App\Livewire\Portal\QuoteBuilder;
 use App\Livewire\Portal\ReviewQueue;
 use App\Livewire\Portal\ReviewWorkspace;
 use App\Livewire\Portal\TeamIndex;
+use App\Services\FeatureFlags;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,10 +60,18 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
             return redirect()->route('applications.index');
         }
 
-        $financeOnly = $user->hasRole('finance')
-            && ! $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin', 'auditor']);
+        if (! $user->isLicensingStaff()) {
+            return redirect()->route($user->hasRole('developer') ? 'platform.billing' : 'account.settings');
+        }
 
-        return redirect()->route($financeOnly ? 'finance.payments' : 'review.queue');
+        $financeOnly = $user->hasRole('finance')
+            && ! $user->hasAnyRole(['reviewer', 'owner']);
+
+        if ($financeOnly) {
+            return redirect()->route(FeatureFlags::paymentTrackingRequired() ? 'finance.payments' : 'admin.overview');
+        }
+
+        return redirect()->route('review.queue');
     })->name('dashboard');
 
     Route::get('/applications', Dashboard::class)->name('applications.index');
@@ -61,6 +82,9 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
 
     Route::get('/review', ReviewQueue::class)->name('review.queue');
     Route::get('/review/{application}', ReviewWorkspace::class)->name('review.show');
+
+    Route::get('/dealerships/board', DealershipCards::class)->name('dealerships.board');
+    Route::get('/tasks/outstanding', OutstandingTasks::class)->name('tasks.outstanding');
 
     Route::get('/business-clients', BusinessClientIndex::class)->name('business-clients.index');
     Route::get('/business-clients/create', BusinessClientForm::class)->name('business-clients.create');
@@ -92,14 +116,22 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
 
     /*
     |----------------------------------------------------------------------
-    | Administration (super_admin / customer_admin only).
-    |
-    | Formerly lived in the Filament panel; moved into the portal shell
-    | so operators work in one UI instead of two. Role is enforced in
-    | each component's mount() via User::canConfigure().
+    | Administration. The overview is for all licensing staff; every other
+    | page is owner-only, enforced in each component via
+    | User::canConfigure().
     |----------------------------------------------------------------------
     */
+    Route::get('/admin', AdminOverview::class)->name('admin.overview');
+    Route::get('/admin/users', AdminUsers::class)->name('admin.users');
+    Route::get('/admin/client-accounts', AdminClientAccounts::class)->name('admin.client-accounts');
+    Route::get('/admin/document-rules', AdminDocumentRules::class)->name('admin.document-rules');
+    Route::get('/admin/document-types', AdminDocumentTypes::class)->name('admin.document-types');
+    Route::get('/admin/fee-tables', AdminFeeTables::class)->name('admin.fee-tables');
+    Route::get('/admin/fee-table-versions', AdminFeeTableVersions::class)->name('admin.fee-table-versions');
+    Route::get('/admin/fee-table-versions/{version}', AdminFeeTableVersionEditor::class)->name('admin.fee-table-versions.edit');
+    Route::get('/admin/fee-lines', AdminFeeLines::class)->name('admin.fee-lines');
     Route::get('/settings/branding', AdminBranding::class)->name('settings.branding');
     Route::get('/settings/system', AdminSystemSettings::class)->name('settings.system');
     Route::get('/audit', AdminAuditLog::class)->name('audit.index');
+    Route::get('/platform/billing', AdminPlatformBilling::class)->name('platform.billing');
 });

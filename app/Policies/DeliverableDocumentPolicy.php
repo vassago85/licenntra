@@ -44,7 +44,7 @@ class DeliverableDocumentPolicy
             return false;
         }
 
-        return $user->hasAnyRole(['reviewer', 'customer_admin', 'super_admin']);
+        return $user->hasAnyRole(['reviewer', 'owner']);
     }
 
     public function delete(User $user, DeliverableDocument $deliverable): bool
@@ -75,7 +75,7 @@ class DeliverableDocumentPolicy
         }
 
         return $user->hasAnyRole([
-            'client_user', 'client_admin', 'reviewer', 'customer_admin', 'super_admin',
+            'customer_user', 'customer_admin', 'reviewer', 'owner',
         ]);
     }
 }

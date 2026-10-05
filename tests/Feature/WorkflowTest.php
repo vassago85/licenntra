@@ -19,7 +19,7 @@ use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->seed(DocumentRuleSeeder::class);
-    foreach (['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor', 'client_admin', 'client_user'] as $role) {
+    foreach (['owner', 'reviewer', 'finance', 'customer_admin', 'customer_user'] as $role) {
         Role::findOrCreate($role);
     }
 });
@@ -33,7 +33,7 @@ function accountUser(string $role, ?ClientAccount $account = null): User
     ]);
 
     $user = User::factory()->create([
-        'client_account_id' => str_starts_with($role, 'client') ? $account->id : null,
+        'client_account_id' => str_starts_with($role, 'customer') ? $account->id : null,
         'is_active' => true,
     ]);
     $user->assignRole($role);
@@ -109,7 +109,7 @@ it('requires the commercial financed checklist and not a passenger one', functio
 it('blocks submission until the vin and register number are valid and documents are uploaded', function () {
     $application = sampleApplication();
     $application->vehicle->update(['vin' => 'SHORT']);
-    $client = accountUser('client_user', $application->clientAccount);
+    $client = accountUser('customer_user', $application->clientAccount);
 
     expect(fn () => app(TransitionApplication::class)->handle($application, ApplicationStage::Submitted, $client))
         ->toThrow(InvalidTransition::class);
@@ -132,7 +132,7 @@ it('stops a commercial vehicle reaching the authority without a completed datafi
     $this->seed(FeeTableSeeder::class);
     $application = sampleApplication(['is_financed' => false, 'reference' => 'LIC-'.uniqid()]);
     $application->documents()->where('required', true)->update(['status' => DocumentStatus::Accepted->value]);
-    $client = accountUser('client_user', $application->clientAccount);
+    $client = accountUser('customer_user', $application->clientAccount);
     $reviewer = accountUser('reviewer');
     $finance = accountUser('finance');
     $transition = app(TransitionApplication::class);
@@ -197,7 +197,7 @@ it('rejects updates and deletes on the audit log', function () {
 it('hides another client account from a client user', function () {
     $own = sampleApplication(['reference' => 'LIC-OWN-'.uniqid()]);
     $other = sampleApplication(['reference' => 'LIC-OTHER-'.uniqid()]);
-    $user = accountUser('client_user', $own->clientAccount);
+    $user = accountUser('customer_user', $own->clientAccount);
 
     $this->actingAs($user);
 

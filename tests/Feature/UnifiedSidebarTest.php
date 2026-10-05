@@ -42,24 +42,16 @@ class UnifiedSidebarTest extends TestCase
 
     /* ---------------------------------------------------------------
      * Chrome parity: the sidebar renders on both the Livewire portal
-     * and the Filament panel for every role that can see each surface.
+     * and the admin pages for every role that can see each surface.
      * ------------------------------------------------------------- */
 
-    public function test_super_admin_sees_the_shared_sidebar_on_both_surfaces(): void
+    public function test_owner_sees_the_shared_sidebar_on_both_surfaces(): void
     {
-        $user = $this->staff('super_admin');
+        $user = $this->staff('owner');
 
         $this->actingAs($user)->get(route('review.queue'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
         $this->actingAs($user)->get('/admin/users')->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get('/admin/platform-billing')->assertOk()->assertSee(self::SIDEBAR_MARKER);
-    }
-
-    public function test_customer_admin_sees_the_shared_sidebar_on_both_surfaces(): void
-    {
-        $user = $this->staff('customer_admin');
-
-        $this->actingAs($user)->get(route('review.queue'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get('/admin/users')->assertOk()->assertSee(self::SIDEBAR_MARKER);
+        $this->actingAs($user)->get(route('platform.billing'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
     }
 
     public function test_reviewer_sees_the_shared_sidebar_on_both_surfaces(): void
@@ -67,7 +59,7 @@ class UnifiedSidebarTest extends TestCase
         $user = $this->staff('reviewer');
 
         $this->actingAs($user)->get(route('review.queue'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get('/admin/outstanding-tasks')->assertOk()->assertSee(self::SIDEBAR_MARKER);
+        $this->actingAs($user)->get(route('tasks.outstanding'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
     }
 
     public function test_finance_sees_the_shared_sidebar_on_both_surfaces(): void
@@ -75,15 +67,7 @@ class UnifiedSidebarTest extends TestCase
         $user = $this->staff('finance');
 
         $this->actingAs($user)->get(route('finance.payments'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get('/admin/outstanding-tasks')->assertOk()->assertSee(self::SIDEBAR_MARKER);
-    }
-
-    public function test_auditor_sees_the_shared_sidebar_on_both_surfaces(): void
-    {
-        $user = $this->staff('auditor');
-
-        $this->actingAs($user)->get(route('review.queue'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
-        $this->actingAs($user)->get(route('audit.index'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
+        $this->actingAs($user)->get(route('tasks.outstanding'))->assertOk()->assertSee(self::SIDEBAR_MARKER);
     }
 
     public function test_developer_sees_the_shared_sidebar_on_platform_billing(): void
@@ -92,16 +76,16 @@ class UnifiedSidebarTest extends TestCase
         $user->assignRole('developer');
 
         $this->actingAs($user)
-            ->get('/admin/platform-billing')
+            ->get(route('platform.billing'))
             ->assertOk()
             ->assertSee(self::SIDEBAR_MARKER)
             ->assertSee(self::PLATFORM_SECTION)
             ->assertSee('Platform developer');
     }
 
-    public function test_client_admin_sees_the_shared_sidebar_on_the_client_portal(): void
+    public function test_customer_admin_sees_the_shared_sidebar_on_the_client_portal(): void
     {
-        $client = $this->client('client_admin');
+        $client = $this->client('customer_admin');
 
         $this->actingAs($client)
             ->get(route('applications.index'))
@@ -110,9 +94,9 @@ class UnifiedSidebarTest extends TestCase
             ->assertSee('Client portal');
     }
 
-    public function test_client_user_sees_the_shared_sidebar_on_the_client_portal(): void
+    public function test_customer_user_sees_the_shared_sidebar_on_the_client_portal(): void
     {
-        $client = $this->client('client_user');
+        $client = $this->client('customer_user');
 
         $this->actingAs($client)
             ->get(route('applications.index'))
@@ -126,9 +110,9 @@ class UnifiedSidebarTest extends TestCase
      * is actually permitted to use.
      * ------------------------------------------------------------- */
 
-    public function test_super_admin_sees_every_sidebar_section(): void
+    public function test_owner_sees_every_sidebar_section(): void
     {
-        $this->actingAs($this->staff('super_admin'))
+        $this->actingAs($this->staff('owner'))
             ->get(route('review.queue'))
             ->assertOk()
             ->assertSee(self::ADMIN_SECTION)
@@ -137,17 +121,6 @@ class UnifiedSidebarTest extends TestCase
             ->assertSee('Users')
             ->assertSee('Audit log')
             ->assertSee('Platform billing');
-    }
-
-    public function test_customer_admin_sees_administration_and_compliance_but_not_platform(): void
-    {
-        $response = $this->actingAs($this->staff('customer_admin'))
-            ->get(route('review.queue'))
-            ->assertOk();
-
-        $response->assertSee(self::ADMIN_SECTION);
-        $response->assertSee(self::COMPLIANCE_SECTION);
-        $response->assertDontSee(self::PLATFORM_SECTION);
     }
 
     public function test_reviewer_sees_operations_only(): void
@@ -173,24 +146,12 @@ class UnifiedSidebarTest extends TestCase
         $response->assertDontSee(self::COMPLIANCE_SECTION);
     }
 
-    public function test_auditor_sees_compliance_but_not_administration_or_platform(): void
-    {
-        $response = $this->actingAs($this->staff('auditor'))
-            ->get(route('review.queue'))
-            ->assertOk();
-
-        $response->assertSee(self::COMPLIANCE_SECTION);
-        $response->assertSee('Audit log');
-        $response->assertDontSee(self::ADMIN_SECTION);
-        $response->assertDontSee(self::PLATFORM_SECTION);
-    }
-
     public function test_developer_sees_platform_section_only(): void
     {
         $user = User::factory()->create(['is_active' => true]);
         $user->assignRole('developer');
 
-        $response = $this->actingAs($user)->get('/admin/platform-billing')->assertOk();
+        $response = $this->actingAs($user)->get(route('platform.billing'))->assertOk();
 
         $response->assertSee(self::PLATFORM_SECTION);
         $response->assertSee('Platform billing');
@@ -200,7 +161,7 @@ class UnifiedSidebarTest extends TestCase
 
     public function test_client_sidebar_hides_every_staff_section(): void
     {
-        $response = $this->actingAs($this->client('client_admin'))
+        $response = $this->actingAs($this->client('customer_admin'))
             ->get(route('applications.index'))
             ->assertOk();
 
@@ -214,11 +175,11 @@ class UnifiedSidebarTest extends TestCase
 
     public function test_client_user_does_not_see_the_team_link(): void
     {
-        $response = $this->actingAs($this->client('client_user'))
+        $response = $this->actingAs($this->client('customer_user'))
             ->get(route('applications.index'))
             ->assertOk();
 
-        // Team is only visible to client_admin, not client_user.
+        // Team is only visible to customer_admin, not customer_user.
         $response->assertDontSee('>Team<', escape: false);
     }
 
@@ -227,16 +188,16 @@ class UnifiedSidebarTest extends TestCase
      * (either 403 or redirect), and no shell is leaked to them.
      * ------------------------------------------------------------- */
 
-    public function test_client_admin_is_blocked_from_the_admin_panel(): void
+    public function test_customer_admin_is_blocked_from_the_admin_panel(): void
     {
-        $this->actingAs($this->client('client_admin'))
+        $this->actingAs($this->client('customer_admin'))
             ->get('/admin/users')
             ->assertForbidden();
     }
 
-    public function test_client_user_is_blocked_from_the_admin_panel(): void
+    public function test_customer_user_is_blocked_from_the_admin_panel(): void
     {
-        $this->actingAs($this->client('client_user'))
+        $this->actingAs($this->client('customer_user'))
             ->get('/admin/users')
             ->assertForbidden();
     }
@@ -255,27 +216,20 @@ class UnifiedSidebarTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_auditor_is_blocked_from_configuration_resources(): void
-    {
-        $this->actingAs($this->staff('auditor'))
-            ->get('/admin/users')
-            ->assertForbidden();
-    }
-
     public function test_non_platform_users_are_blocked_from_platform_billing(): void
     {
-        $this->actingAs($this->staff('customer_admin'))
-            ->get('/admin/platform-billing')
+        $this->actingAs($this->staff('reviewer'))
+            ->get(route('platform.billing'))
             ->assertForbidden();
 
-        $this->actingAs($this->staff('reviewer'))
-            ->get('/admin/platform-billing')
+        $this->actingAs($this->staff('finance'))
+            ->get(route('platform.billing'))
             ->assertForbidden();
     }
 
     public function test_guest_hits_the_login_page_without_the_portal_shell(): void
     {
-        $response = $this->get('/admin/login');
+        $response = $this->get(route('login'));
 
         $response->assertOk();
         // The portal sidebar must NOT render on the login page — otherwise
@@ -297,7 +251,7 @@ class UnifiedSidebarTest extends TestCase
 
     public function test_each_section_renders_a_collapsible_header_for_staff(): void
     {
-        $response = $this->actingAs($this->staff('super_admin'))
+        $response = $this->actingAs($this->staff('owner'))
             ->get(route('review.queue'))
             ->assertOk();
 
@@ -309,7 +263,7 @@ class UnifiedSidebarTest extends TestCase
 
     public function test_the_client_portal_section_is_collapsible(): void
     {
-        $response = $this->actingAs($this->client('client_admin'))
+        $response = $this->actingAs($this->client('customer_admin'))
             ->get(route('applications.index'))
             ->assertOk();
 

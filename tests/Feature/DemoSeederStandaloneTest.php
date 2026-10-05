@@ -12,20 +12,18 @@ uses(RefreshDatabase::class);
  * `db:seed --class=DemoSeeder --force` directly on first boot, which
  * must not require DatabaseSeeder's role/fee prerequisites to have
  * been seeded first. Running DemoSeeder standalone against an empty
- * DB used to throw "There is no role named `super_admin` for guard
- * `web`" because syncRoles was called before the roles existed.
+ * DB used to throw "There is no role named `owner` for guard `web`"
+ * because syncRoles was called before the roles existed.
  */
-it('runs standalone on an empty database and seats all seven demo users with their roles', function (): void {
+it('runs standalone on an empty database and seats all demo users with their roles', function (): void {
     $this->seed(DemoSeeder::class);
 
     $expected = [
-        'super.admin@licentra.test' => 'super_admin',
-        'customer.admin@licentra.test' => 'customer_admin',
+        'owner@licentra.test' => 'owner',
         'reviewer@licentra.test' => 'reviewer',
         'finance@licentra.test' => 'finance',
-        'auditor@licentra.test' => 'auditor',
-        'thandi.mokoena@highveld.test' => 'client_admin',
-        'johan.botha@highveld.test' => 'client_user',
+        'thandi.mokoena@highveld.test' => 'customer_admin',
+        'johan.botha@highveld.test' => 'customer_user',
     ];
 
     foreach ($expected as $email => $role) {

@@ -30,6 +30,24 @@
                 <small class="mt-1 block text-xs text-muted">South African standard rate is 15%. Shown on fee snapshots and quotes.</small>
                 @error('vat_percent') <span class="mt-1 block text-xs text-red-800">{{ $message }}</span> @enderror
             </label>
+
+            <label class="mt-4 flex items-start gap-2 text-sm">
+                <input wire:model="quotes_enabled" type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-line text-[color:var(--brand)] focus:ring-[color:var(--brand)]">
+                <span>
+                    <span class="font-medium">Use quotes</span>
+                    <small class="block text-xs text-muted">Shows quote counters, filters and actions, including the "Quotes awaiting you" link for dealers. When off, applications go from document review straight to payment.</small>
+                </span>
+            </label>
+
+            <label class="mt-3 flex items-start gap-2 text-sm">
+                <input wire:model="payment_tracking_required" type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-line text-[color:var(--brand)] focus:ring-[color:var(--brand)]">
+                <span>
+                    <span class="font-medium">Track payments</span>
+                    <small class="block text-xs text-muted">Shows the Payments queue to finance and counts payment checks as outstanding work. When off, packs can be prepared and submitted without a payment check.</small>
+                </span>
+            </label>
         </section>
 
         <section class="rounded-md border border-line bg-white p-4">

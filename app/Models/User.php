@@ -5,8 +5,6 @@ namespace App\Models;
 use App\Enums\OffboardReason;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,7 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
     'anonymised_at',
 ])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
@@ -55,20 +53,23 @@ class User extends Authenticatable implements FilamentUser
         return $this->client_account_id !== null;
     }
 
+    /**
+     * Any staff member of the licensing company (as opposed to a dealer/
+     * fleet staff member on the customer side).
+     */
     public function isLicensingStaff(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor']);
+        return $this->hasAnyRole(['owner', 'reviewer', 'finance']);
     }
 
     /**
-     * The licensing company owner. In this product the super_admin IS the
-     * owner for platform-billing-visibility purposes - they can see the
-     * running completed-transaction counter and the resulting bill, but
-     * cannot change the per-transaction fee itself.
+     * The licensing company owner. Does everything on the operator side
+     * (configuration, operations, money) and sees the Charsley Digital
+     * platform-billing counter alongside the developer.
      */
     public function isOwner(): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasRole('owner');
     }
 
     /**
@@ -100,39 +101,25 @@ class User extends Authenticatable implements FilamentUser
         return CarbonImmutable::parse($this->offboarded_at)->addYears(self::RETENTION_YEARS);
     }
 
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return $this->is_active
-            && ! $this->isOffboarded()
-            && $this->hasAnyRole([
-                'super_admin',
-                'customer_admin',
-                'reviewer',
-                'finance',
-                'auditor',
-                'developer',
-            ]);
-    }
-
     /**
-     * Admin-only roles that may edit configuration (fees, rules, users,
-     * branding, system settings). Reviewers, finance and auditors can
-     * reach the panel but must not see these pages.
+     * The role that may edit configuration (fees, rules, users, branding,
+     * system settings). Only the owner. Reviewers and finance can reach
+     * the admin shell but must not see configuration pages.
      */
     public function canConfigure(): bool
     {
         return $this->is_active
             && ! $this->isOffboarded()
-            && $this->hasAnyRole(['super_admin', 'customer_admin']);
+            && $this->hasRole('owner');
     }
 
     public function canAcceptQuotes(): bool
     {
-        if ($this->hasRole('client_admin')) {
+        if ($this->hasRole('customer_admin')) {
             return true;
         }
 
-        return $this->hasRole('client_user') && (bool) $this->clientAccount?->quote_acceptance_allowed;
+        return $this->hasRole('customer_user') && (bool) $this->clientAccount?->quote_acceptance_allowed;
     }
 
     /**

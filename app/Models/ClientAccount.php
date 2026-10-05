@@ -21,6 +21,11 @@ class ClientAccount extends Model
 
     protected $fillable = [
         'name', 'type', 'additional_types', 'status', 'quote_acceptance_allowed', 'markup_basis_points',
+
+        // Pre-agreed pricing: quotes sent to this account count as accepted
+        // straight away, and imports/exports may go to payment without one.
+        'has_standing_agreement',
+
         'billing_mode', 'payment_terms_days', 'credit_limit_cents',
         'contact_name', 'contact_email', 'contact_phone',
 
@@ -125,6 +130,7 @@ class ClientAccount extends Model
             'additional_types' => 'array',
             'billing_mode' => BillingMode::class,
             'quote_acceptance_allowed' => 'boolean',
+            'has_standing_agreement' => 'boolean',
             'proxy_id_type' => IdentificationType::class,
             'representative_id_type' => IdentificationType::class,
             'proxy_id_number' => 'encrypted',

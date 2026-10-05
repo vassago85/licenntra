@@ -289,7 +289,7 @@
         <a class="btn btn-ghost" href="#screens">See the screens</a>
         <a class="btn btn-ghost" href="#contact">Book a walkthrough</a>
       </div>
-      <p class="hero-note">White-label. One deployment per licensing company. No NaTIS integration — the authority step stays yours. Demo users (super admin, reviewer, finance, auditor, dealer admin, dealer user) are listed on the <a href="/login">sign-in page</a>.</p>
+      <p class="hero-note">White-label. One deployment per licensing company. No NaTIS integration — the authority step stays yours. Demo users (owner, reviewer, finance, dealer admin, dealer user) are listed on the <a href="/login">sign-in page</a>.</p>
     </div>
   </section>
 
@@ -318,7 +318,7 @@
         <div class="pillar">
           <div class="ticker">02 · CONTROL</div>
           <h3>Reviewers finish things</h3>
-          <p>One queue per dealership, with a nominated primary reviewer so recurring customers land on the right desk. Anyone can cover when the primary is on leave — the handover shows up in the audit log as "covering for X".</p>
+          <p>One review queue, oldest work first, filterable by dealership, with a nominated primary reviewer so recurring customers land on the right desk. Anyone can cover when the primary is on leave — the handover shows up in the audit log as "covering for X".</p>
         </div>
         <div class="pillar">
           <div class="ticker">03 · DEFENSIBILITY</div>
@@ -356,23 +356,24 @@
         <div>
           <h3>Included</h3>
           <ul>
-            <li>White-label portal, your name on every page<span class="n">Logo, primary colour, support address, support phone, reference prefix — editable from the admin console</span></li>
-            <li>Seven roles out of the box<span class="n">super admin, customer admin, reviewer, finance, auditor, client admin, client user — Spatie permissions, Fortify 2FA, passkeys, absolute session lifetime. Customer admins staff the review queue too</span></li>
+            <li>White-label portal, your name on every page<span class="n">Logo, primary colour, support address, support phone, reference prefix — editable by the owner under Administration › Branding</span></li>
+            <li>Five roles out of the box<span class="n">Owner, reviewer and finance for your team; dealer / fleet admin and dealer / fleet user for your customers. The owner alone changes configuration. Spatie permissions, Fortify 2FA, passkeys, absolute session lifetime</span></li>
+            <li>Operations overview for the owner and finance<span class="n">Outstanding tasks, packs to prepare, work at the authority and returns awaiting handover; dealerships needing action; money outstanding, verified this month, open quotes, customer balances, top customers, transactions and recent activity — on one page</span></li>
             <li>Full request-type coverage<span class="n">New registration, licence renewal, change-of-ownership, dealer stock (into the dealership or straight into a fleet, no questions), MIB, duplicate disc, deregistration, data fix, import, export, custom</span></li>
             <li>Dealer portal with completed-transaction history<span class="n">All-open / needs-action / commercial / passenger / completed filters. Live checklist, VIN, NaTIS Vehicle Number, owner, finance</span></li>
-            <li>Reviewer workspace with queue and tiles<span class="n">Needs-action, with-you, datafix, ready-for-collection, returned-awaiting-handover tiles over one search</span></li>
+            <li>Review queue that shows what to do next<span class="n">To review, with client, in progress and done tabs. Oldest waiting first, 20 per page, filter by dealership, search by reference, VIN or register number, and take a job with one click. SLA-at-risk and assigned-to-me shortcuts</span></li>
             <li>Primary reviewer per dealership, with coverage audit<span class="n">Nominate the reviewer who normally owns each dealership. New submissions auto-land on their queue. Anyone else can still pick the work up when they are on leave — the audit log records "covering for X" so the operations lead can see the pattern at a glance</span></li>
             <li>Live document rules per request, category, owner and finance<span class="n">Editable in the admin. Nothing hard-coded. Resolves per application and tracks per-document status. Original NaTIS is warn-only on change-of-ownership so the reviewer can decide</span></li>
             <li>Vehicle data pre-fill for RLV / ALV forms<span class="n">Fuel type, transmission, body description, drive type, usage, odometer, nature of ownership, reason for registration and 10+ other fields. Defaults from category (diesel for commercial, petrol for passenger) and request type</span></li>
             <li>Dealership proxy and representative particulars<span class="n">BRN, proxy name / initials / ID, representative name / initials / ID. ID numbers encrypted at rest, unmask is a separate audited permission</span></li>
             <li>Shared title holders register<span class="n">Banks appear in one list across every dealership on the deployment. Title holder is only ever captured on new registrations and change-of-ownership — eNaTIS already has it on renewals</span></li>
             <li>Business-client register with document uploads<span class="n">BRN certificate, proxy ID, POA, supporting documents — uploaded and versioned per client. Replace a document and the previous version stays on file. Scoped per dealership</span></li>
-            <li>Stock controller as default invoice recipient<span class="n">The client admin nominates one user per dealership from the Team page. Every quote and invoice goes to them by default. Overridable per transaction</span></li>
+            <li>Stock controller as default invoice recipient<span class="n">The dealer admin nominates one user per dealership from the Team page. Every quote and invoice goes to them by default. Overridable per transaction</span></li>
             <li>Returned-documents workflow<span class="n">Your reviewer uploads the NaTIS certificate and licence disc when they come back from the authority. Dealers download them from the completed transaction</span></li>
             <li>Hand-over to the customer, batched<span class="n">POD and POC per dealership. Digital confirm with both parties at the counter is the record of truth. A signed paper copy is optional. Or email the NaTIS and licence disc straight to the customer — the recipient address is masked in the audit log</span></li>
             <li>Datafix queue with client vs reviewer values<span class="n">Tare, body, GVM reconciled before the authority sees it. Authority reference captured on confirmation</span></li>
             <li>Fee tables per province, with draft and active versions<span class="n">Approvers must be different from the creator. RTMC transaction fees, licence fees, per-licence vs per-transaction billing modes</span></li>
-            <li>Quotes, VAT, markup, payment capture and override reasons<span class="n">Snapshotted onto the application when payment is requested. Account-level toggle controls who can accept a quote</span></li>
+            <li>Quotes, VAT, markup, payment capture and override reasons<span class="n">Snapshotted onto the application when payment is requested. An accepted quote replaces the fee table as the price. Account-level toggles control who can accept a quote, and standing-agreement clients skip acceptance or the quote altogether</span></li>
             <li>Payment queue for finance<span class="n">EFT and card-on-file. Verified-against-snapshot flow. Separate finance role, no identity access</span></li>
             <li>Business-client register with retention and legal hold<span class="n">POA max age, consent record, retention clock per client, secure deletion job with legal-hold override</span></li>
             <li>Audit log that refuses updates and deletes<span class="n">Enforced by a database trigger, not just application code. Masks sensitive values. Identity downloads audited by user</span></li>
@@ -453,7 +454,7 @@
           </p>
         </div>
         <div class="spec">
-          <div><b>Platform:</b> Laravel 13, Livewire 4, Filament 5.9, PHP 8.4</div>
+          <div><b>Platform:</b> Laravel 13, Livewire 4, Tailwind CSS 4, PHP 8.4</div>
           <div><b>Runtime:</b> Nginx + PHP-FPM in Docker, Supervisor-managed</div>
           <div><b>Data:</b> PostgreSQL 16, Redis 7, local or S3-compatible object storage</div>
           <div><b>Hosting:</b> Docker on your VM, or Charsley-managed in SA</div>

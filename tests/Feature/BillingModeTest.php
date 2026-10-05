@@ -29,7 +29,7 @@ class BillingModeTest extends TestCase
         $this->seed(DocumentRuleSeeder::class);
         $this->seed(FeeTableSeeder::class);
 
-        foreach (['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor', 'client_admin', 'client_user'] as $role) {
+        foreach (['owner', 'reviewer', 'finance', 'customer_admin', 'customer_user'] as $role) {
             Role::findOrCreate($role);
         }
     }

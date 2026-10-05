@@ -22,7 +22,7 @@ class ChangeServiceType
             ]);
         }
 
-        if (! $actor->hasAnyRole(['reviewer', 'customer_admin', 'super_admin'])) {
+        if (! $actor->hasAnyRole(['reviewer', 'owner'])) {
             throw ValidationException::withMessages([
                 'service_type' => 'Only a reviewer can change the service type.',
             ]);
@@ -36,7 +36,7 @@ class ChangeServiceType
 
         $before = $application->service_type?->value;
         $application->service_type = $serviceType;
-        $application->fee_snapshot = app(CalculateFees::class)->snapshot($application);
+        $application->fee_snapshot = app(CalculateFees::class)->billingSnapshot($application);
         $application->save();
 
         $this->audit->handle(

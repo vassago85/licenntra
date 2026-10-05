@@ -29,6 +29,9 @@
         <label class="mt-3 block rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Internal note
             <textarea wire:model="internal_notes" rows="2" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-2"></textarea>
         </label>
+        @if ($application->clientAccount?->has_standing_agreement)
+            <p class="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">{{ $application->clientAccount->name }} has a standing agreement, so this quote is accepted as soon as it is sent and its total is billed.</p>
+        @endif
         <button type="button" wire:click="send" class="mt-4 h-9 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">Send quote</button>
     </section>
     <aside class="rounded-md border border-line bg-white p-3 text-sm">

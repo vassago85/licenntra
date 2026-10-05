@@ -57,6 +57,8 @@
   .nav-link:hover { background: var(--paper); color: var(--ink); }
   .nav-link.active { background: var(--brand-wash); color: var(--brand); font-weight: 600; }
   .nav-count { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); }
+  .nav-count.warn { color: #6e4b00; font-weight: 600; }
+  .nav-section { padding: 0 8px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
   .sidebar-footer { margin-top: auto; padding: 16px 6px 0; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
   .sidebar-footer .email { font-size: 10px; }
@@ -161,7 +163,7 @@
 
 <div class="topstrip">
   <span><a href="../index.html">Licentra</a><span class="sep">/</span>Client workspace</span>
-  <span class="right">Example Licensing <strong>Client portal</strong></span>
+  <span class="right">Example Licensing <strong>Client workspace</strong></span>
 </div>
 
 <div class="layout">
@@ -180,11 +182,15 @@
       <span class="r">Dealer · Thandi Mokoena (Admin)</span>
     </div>
     <nav class="sidebar-nav">
+      <span class="nav-section">Portal</span>
       <a class="nav-link active" href="#">Dashboard</a>
       <a class="nav-link" href="#"><span>Applications</span><span class="nav-count">18</span></a>
       <a class="nav-link" href="02-new-application.html">New application</a>
       <a class="nav-link" href="#"><span>Business clients</span><span class="nav-count">4</span></a>
+      <a class="nav-link" href="#"><span>Quotes awaiting you</span><span class="nav-count warn">1</span></a>
       <a class="nav-link" href="#">Licence cost estimate</a>
+      <a class="nav-link" href="#">Hand-overs</a>
+      <a class="nav-link" href="#"><span>Invoices</span><span class="nav-count">2</span></a>
       <a class="nav-link" href="#">Team</a>
     </nav>
     <div class="sidebar-footer">
@@ -435,7 +441,7 @@
           <div class="panel-head"><h2>Business clients · retention</h2></div>
           <div class="item">
             <div class="retention-business">Mokoena Cold Chain</div>
-            <div class="retention-sub">Documents deleted on 16 Oct 2026 (11.971740003079 days)</div>
+            <div class="retention-sub">Documents deleted on 16 Oct 2026 (11 days)</div>
             <div style="margin-top: 6px;"><a href="#">Extend</a> <span style="color: var(--muted);">·</span> <a href="#">Let it lapse</a></div>
           </div>
           <div class="item">

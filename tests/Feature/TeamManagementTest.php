@@ -45,7 +45,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $this->admin->assignRole('client_admin');
+        $this->admin->assignRole('customer_admin');
     }
 
     public function test_guest_cannot_reach_team_page(): void
@@ -59,7 +59,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $user->assignRole('client_user');
+        $user->assignRole('customer_user');
 
         $this->actingAs($user)->get('/team')->assertForbidden();
     }
@@ -79,14 +79,14 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $teammate->assignRole('client_user');
+        $teammate->assignRole('customer_user');
 
         $outsider = User::factory()->create([
             'name' => 'Oren Other',
             'client_account_id' => $this->other->id,
             'is_active' => true,
         ]);
-        $outsider->assignRole('client_user');
+        $outsider->assignRole('customer_user');
 
         $this->actingAs($this->admin)
             ->get('/team')
@@ -103,7 +103,7 @@ class TeamManagementTest extends TestCase
             ->call('openCreate')
             ->set('name', 'Nia New')
             ->set('email', 'nia@dealer.test')
-            ->set('role', 'client_user')
+            ->set('role', 'customer_user')
             ->set('password', 'change-me-9')
             ->set('password_confirmation', 'change-me-9')
             ->call('createMember')
@@ -112,7 +112,7 @@ class TeamManagementTest extends TestCase
         $member = User::query()->where('email', 'nia@dealer.test')->first();
         $this->assertNotNull($member);
         $this->assertSame($this->dealer->id, $member->client_account_id);
-        $this->assertTrue($member->hasRole('client_user'));
+        $this->assertTrue($member->hasRole('customer_user'));
         $this->assertTrue(Hash::check('change-me-9', $member->password));
     }
 
@@ -123,14 +123,14 @@ class TeamManagementTest extends TestCase
             ->call('openCreate')
             ->set('name', 'Second Admin')
             ->set('email', 'second@dealer.test')
-            ->set('role', 'client_admin')
+            ->set('role', 'customer_admin')
             ->set('password', 'super-safe-9')
             ->set('password_confirmation', 'super-safe-9')
             ->call('createMember')
             ->assertHasNoErrors();
 
         $member = User::query()->where('email', 'second@dealer.test')->firstOrFail();
-        $this->assertTrue($member->hasRole('client_admin'));
+        $this->assertTrue($member->hasRole('customer_admin'));
     }
 
     public function test_create_member_rejects_duplicate_email(): void
@@ -142,7 +142,7 @@ class TeamManagementTest extends TestCase
             ->call('openCreate')
             ->set('name', 'Dup')
             ->set('email', 'dup@dealer.test')
-            ->set('role', 'client_user')
+            ->set('role', 'customer_user')
             ->set('password', 'change-me-9')
             ->set('password_confirmation', 'change-me-9')
             ->call('createMember')
@@ -156,7 +156,7 @@ class TeamManagementTest extends TestCase
             ->call('openCreate')
             ->set('name', 'Weak')
             ->set('email', 'weak@dealer.test')
-            ->set('role', 'client_user')
+            ->set('role', 'customer_user')
             ->set('password', 'short')
             ->set('password_confirmation', 'short')
             ->call('createMember')
@@ -171,7 +171,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $teammate->assignRole('client_user');
+        $teammate->assignRole('customer_user');
 
         Livewire::actingAs($this->admin)
             ->test(TeamIndex::class)
@@ -190,7 +190,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $teammate->assignRole('client_user');
+        $teammate->assignRole('customer_user');
 
         Livewire::actingAs($this->admin)
             ->test(TeamIndex::class)
@@ -224,7 +224,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->dealer->id,
             'is_active' => true,
         ]);
-        $second->assignRole('client_admin');
+        $second->assignRole('customer_admin');
 
         Livewire::actingAs($this->admin)
             ->test(TeamIndex::class)
@@ -240,7 +240,7 @@ class TeamManagementTest extends TestCase
             'client_account_id' => $this->other->id,
             'is_active' => true,
         ]);
-        $outsider->assignRole('client_user');
+        $outsider->assignRole('customer_user');
 
         Livewire::actingAs($this->admin)
             ->test(TeamIndex::class)

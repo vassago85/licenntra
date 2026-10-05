@@ -51,7 +51,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->account->id,
         'is_active' => true,
     ]);
-    $this->dealer->assignRole('client_user');
+    $this->dealer->assignRole('customer_user');
 
     $this->application = Application::query()->create([
         'reference' => 'EXL-SEND-00001',
@@ -186,7 +186,7 @@ it('policy: dealer on another dealership cannot send deliverables', function ():
         'client_account_id' => $this->otherAccount->id,
         'is_active' => true,
     ]);
-    $stranger->assignRole('client_user');
+    $stranger->assignRole('customer_user');
 
     storedDeliverable($this->application, DeliverableKind::NatisCertificate, 'natis.pdf');
 

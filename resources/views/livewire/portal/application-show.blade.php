@@ -43,7 +43,7 @@
                     @can('upload', $document)
                         <div class="mt-2 flex items-center gap-2">
                             <input type="file" wire:model="uploads.{{ $document->id }}" class="text-xs">
-                            <button type="button" wire:click="upload({{ $document->id }})" class="h-8 rounded-md border border-line px-2 text-xs">Upload</button>
+                            <button type="button" wire:click="uploadDocument({{ $document->id }})" class="h-8 rounded-md border border-line px-2 text-xs">Upload</button>
                         </div>
                     @endcan
                     @if ($document->currentVersion && auth()->user()->can('download', $document))
@@ -288,7 +288,7 @@
                             @if ($stockControllerId)
                                 <span class="mt-1 block text-[11px] text-muted">Defaults to the dealership's stock controller. Override only when a specific invoice needs to go to someone else.</span>
                             @else
-                                <span class="mt-1 block text-[11px] text-amber-800">No stock controller is nominated for this dealership. Ask the client_admin to pick one from Team or choose a recipient manually.</span>
+                                <span class="mt-1 block text-[11px] text-amber-800">No stock controller is nominated for this dealership. Ask the dealer admin to pick one from Team or choose a recipient manually.</span>
                             @endif
                             @error('recipient_user_id') <span class="text-xs text-red-800">{{ $message }}</span> @enderror
                         </label>

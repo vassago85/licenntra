@@ -30,10 +30,10 @@ uses(RefreshDatabase::class);
  */
 beforeEach(function (): void {
     // Full DemoSeeder gives us roles, fee tables, fee bands, fee rates,
-    // and the super.admin user needed to approve the draft version.
+    // and the owner user needed to approve the draft version.
     $this->seed(DemoSeeder::class);
 
-    $actor = User::query()->where('email', 'super.admin@licentra.test')->firstOrFail();
+    $actor = User::query()->where('email', 'owner@licentra.test')->firstOrFail();
     $approve = app(ApproveFeeTableVersion::class);
 
     FeeTableVersion::query()

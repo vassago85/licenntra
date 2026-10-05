@@ -45,7 +45,7 @@ beforeEach(function (): void {
         'is_active' => true,
         'client_account_id' => $this->dealer->id,
     ]);
-    $this->admin->assignRole('client_admin');
+    $this->admin->assignRole('customer_admin');
 });
 
 function makeChangesRequestedApplication(ClientAccount $dealer): Application

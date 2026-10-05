@@ -17,7 +17,7 @@ use Livewire\Component;
  * Scoped strictly to the signed-in admin's own client account - they can
  * create additional client_user or client_admin accounts, deactivate /
  * reactivate team members, and reset a team member's password. Licensing
- * company staff use the Filament /admin/users resource instead.
+ * company staff use Administration > Users (/admin/users) instead.
  */
 #[Layout('layouts.portal')]
 class TeamIndex extends Component
@@ -26,7 +26,7 @@ class TeamIndex extends Component
 
     public string $email = '';
 
-    public string $role = 'client_user';
+    public string $role = 'customer_user';
 
     public string $password = '';
 
@@ -45,14 +45,14 @@ class TeamIndex extends Component
     public function mount(): void
     {
         $user = $this->currentUser();
-        abort_unless($user->hasRole('client_admin'), 403);
+        abort_unless($user->hasRole('customer_admin'), 403);
         abort_unless($user->client_account_id !== null, 403);
     }
 
     public function openCreate(): void
     {
         $this->reset(['name', 'email', 'role', 'password', 'password_confirmation']);
-        $this->role = 'client_user';
+        $this->role = 'customer_user';
         $this->resetErrorBag();
         $this->showCreate = true;
     }
@@ -73,7 +73,7 @@ class TeamIndex extends Component
         $data = $this->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'role' => ['required', 'in:client_user,client_admin'],
+            'role' => ['required', 'in:customer_user,customer_admin'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -232,7 +232,7 @@ class TeamIndex extends Component
 
     private function wouldStrandAdmins(User $candidate): bool
     {
-        if (! $candidate->hasRole('client_admin')) {
+        if (! $candidate->hasRole('customer_admin')) {
             return false;
         }
 
@@ -240,7 +240,7 @@ class TeamIndex extends Component
             ->where('client_account_id', $candidate->client_account_id)
             ->where('id', '!=', $candidate->id)
             ->where('is_active', true)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'client_admin'))
+            ->whereHas('roles', fn ($q) => $q->where('name', 'customer_admin'))
             ->count();
 
         return $remaining === 0;

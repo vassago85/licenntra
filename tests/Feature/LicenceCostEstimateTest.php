@@ -41,7 +41,7 @@ beforeEach(function (): void {
         'client_account_id' => $this->account->id,
         'is_active' => true,
     ]);
-    $this->user->assignRole('client_admin');
+    $this->user->assignRole('customer_admin');
 
     $this->service = app(EstimateLicenceCost::class);
 });
@@ -389,7 +389,7 @@ it('scopes saved estimates to the dealer that created them', function () {
         'client_account_id' => $otherAccount->id,
         'is_active' => true,
     ]);
-    $otherUser->assignRole('client_user');
+    $otherUser->assignRole('customer_user');
 
     Livewire::actingAs($otherUser)
         ->test(LicenceCostEstimator::class)

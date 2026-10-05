@@ -37,7 +37,7 @@ class FleetRenewalPrefillTest extends TestCase
             'client_account_id' => $fleet->id,
             'is_active' => true,
         ]);
-        $user->assignRole('client_admin');
+        $user->assignRole('customer_admin');
 
         $vehicle = FleetVehicle::query()->create([
             'client_account_id' => $fleet->id,

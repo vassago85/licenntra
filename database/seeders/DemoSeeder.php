@@ -80,13 +80,11 @@ class DemoSeeder extends Seeder
             ]),
         ];
 
-        $this->user('Super admin', 'super.admin@licentra.test', 'super_admin');
-        $this->user('Customer admin', 'customer.admin@licentra.test', 'customer_admin');
+        $this->user('Owner', 'owner@licentra.test', 'owner');
         $reviewer = $this->user('Reviewer', 'reviewer@licentra.test', 'reviewer');
         $this->user('Finance', 'finance@licentra.test', 'finance');
-        $this->user('Auditor', 'auditor@licentra.test', 'auditor');
-        $this->user('Thandi Mokoena', 'thandi.mokoena@highveld.test', 'client_admin', $accounts['dealer']->id);
-        $this->user('Johan Botha', 'johan.botha@highveld.test', 'client_user', $accounts['dealer']->id);
+        $this->user('Thandi Mokoena', 'thandi.mokoena@highveld.test', 'customer_admin', $accounts['dealer']->id);
+        $this->user('Johan Botha', 'johan.botha@highveld.test', 'customer_user', $accounts['dealer']->id);
 
         $ridgeline = BusinessClient::query()->updateOrCreate([
             'client_account_id' => $accounts['dealer']->id,
