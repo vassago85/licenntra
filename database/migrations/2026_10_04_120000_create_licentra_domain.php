@@ -289,7 +289,7 @@ return new class extends Migration
             $table->id();
             $table->string('company_name')->default('Licentra');
             $table->string('logo_path')->nullable();
-            $table->string('primary_colour')->default('#1F47B8');
+            $table->string('primary_colour')->default('#146d61');
             $table->string('support_email')->nullable();
             $table->string('support_phone')->nullable();
             $table->text('address')->nullable();

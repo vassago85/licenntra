@@ -6,10 +6,16 @@
 @source '../views/**/*.blade.php';
 
 @theme {
-    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --color-paper: #f2f3f0;
-    --color-ink: #14181d;
-    --color-muted: #4a525c;
-    --color-line: #d9dcd6;
+    /* Mockup design tokens — Arial, teal (#146d61), 8px/4px radii. */
+    --font-sans: Arial, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --color-paper: #f6f8fa;
+    --color-ink: #172329;
+    --color-muted: #62717a;
+    --color-line: #dce3e8;
+    --color-surface: #ffffff;
+    --color-soft: #eaf4f0;
+    --color-accent: #146d61;
+    --color-danger: #ac403b;
+    --color-warn: #946018;
 }

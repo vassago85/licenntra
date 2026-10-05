@@ -80,18 +80,18 @@
         </div>
 
         @if ($viewMode === 'table')
-            <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-800">
                         <tr>
                             <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Customer</th>
-                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Submitted by</th>
+                            <th class="hidden 2xl:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Submitted by</th>
                             <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Application</th>
                             <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Vehicle</th>
-                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Request type</th>
+                            <th class="hidden xl:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Request type</th>
                             <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Required action</th>
-                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Reviewer</th>
-                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Waiting since</th>
+                            <th class="hidden lg:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Reviewer</th>
+                            <th class="hidden xl:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Waiting since</th>
                             <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Due</th>
                             <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Action</th>
                         </tr>
@@ -105,7 +105,7 @@
                                         <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">{{ $task['account']->type->label() }}</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
+                                <td class="hidden 2xl:table-cell whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
                                     {{ $task['submitted_by']?->name ?? 'Unknown' }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-700 dark:text-gray-200">{{ $task['application']?->reference ?? '-' }}</td>
@@ -118,7 +118,7 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
+                                <td class="hidden xl:table-cell whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
                                     {{ $task['application']?->request_type?->label() ?? '-' }}
                                 </td>
                                 <td class="px-3 py-2 text-sm">
@@ -127,8 +127,8 @@
                                         <div class="text-xs text-gray-500 dark:text-gray-400">{{ $task['blocker'] }}</div>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-700 dark:text-gray-200">{{ $task['reviewer']?->name ?? 'Unassigned' }}</td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">{{ $task['waiting_since']?->diffForHumans() ?? '-' }}</td>
+                                <td class="hidden lg:table-cell whitespace-nowrap px-3 py-2 text-sm text-gray-700 dark:text-gray-200">{{ $task['reviewer']?->name ?? 'Unassigned' }}</td>
+                                <td class="hidden xl:table-cell whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">{{ $task['waiting_since']?->diffForHumans() ?? '-' }}</td>
                                 <td class="whitespace-nowrap px-3 py-2 text-xs">
                                     @if ($task['due_at'])
                                         <span class="{{ $task['overdue'] ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">
@@ -167,6 +167,7 @@
                                 </td>
                             </tr>
                         @endforelse
+                        {{-- colspan=10 is safe: hidden-but-present cells still count for colspan, and the empty row only renders when there are no visible rows anyway. --}}
                     </tbody>
                 </table>
             </div>

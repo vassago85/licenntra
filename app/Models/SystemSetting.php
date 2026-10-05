@@ -14,6 +14,7 @@ class SystemSetting extends Model
         'mail_from_address', 'mail_from_name', 'notifications_enabled',
         'quotes_enabled', 'payment_tracking_required',
         'admin_charge_cents', 'admin_charge_tax_treatment',
+        'platform_fee_per_transaction_cents',
     ];
 
     public static function current(): self
@@ -31,6 +32,7 @@ class SystemSetting extends Model
             'payment_tracking_required' => false,
             'admin_charge_cents' => 0,
             'admin_charge_tax_treatment' => 'standard',
+            'platform_fee_per_transaction_cents' => 0,
         ]);
     }
 

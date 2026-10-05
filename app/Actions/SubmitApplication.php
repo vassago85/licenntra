@@ -14,8 +14,9 @@ class SubmitApplication
         return DB::transaction(function () use ($application, $actor): Application {
             $transition = app(TransitionApplication::class);
             $application = $transition->handle($application, ApplicationStage::Submitted, $actor);
+            $application = $transition->handle($application, ApplicationStage::DocumentReview, null, isSystem: true);
 
-            return $transition->handle($application, ApplicationStage::DocumentReview, null, isSystem: true);
+            return app(AutoAssignPrimaryReviewer::class)->handle($application, $actor);
         });
     }
 }

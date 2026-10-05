@@ -40,7 +40,7 @@ class DemoSeeder extends Seeder
         $branding = BrandingSetting::current();
         $branding->fill([
             'company_name' => 'Example Licensing',
-            'primary_colour' => '#1F47B8',
+            'primary_colour' => '#146d61',
             'support_email' => 'support@example.test',
             'support_phone' => '010 000 0000',
             'address' => '1 Demo Street, Example Town',

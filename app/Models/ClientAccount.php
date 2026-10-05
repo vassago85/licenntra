@@ -29,6 +29,12 @@ class ClientAccount extends Model
         // the client_admin nominates someone from the Team page.
         'stock_controller_user_id',
 
+        // The reviewer at the licensing company who normally owns this
+        // dealership's work. New submissions auto-land on this reviewer's
+        // queue; coverage by any other reviewer is still allowed but gets
+        // its own audit annotation.
+        'primary_reviewer_user_id',
+
         // Dealership particulars printed into every ALV / RLV prepared on
         // behalf of this account.
         'brn',
@@ -50,6 +56,16 @@ class ClientAccount extends Model
     public function stockController(): BelongsTo
     {
         return $this->belongsTo(User::class, 'stock_controller_user_id');
+    }
+
+    /**
+     * The reviewer at the licensing company who exclusively owns this
+     * dealership's work. Nullable - when unset, submissions land in the
+     * general review queue instead.
+     */
+    public function primaryReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'primary_reviewer_user_id');
     }
 
     public function applications(): HasMany

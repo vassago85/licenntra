@@ -60,6 +60,27 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasAnyRole(['super_admin', 'customer_admin', 'reviewer', 'finance', 'auditor']);
     }
 
+    /**
+     * The licensing company owner. In this product the super_admin IS the
+     * owner for platform-billing-visibility purposes - they can see the
+     * running completed-transaction counter and the resulting bill, but
+     * cannot change the per-transaction fee itself.
+     */
+    public function isOwner(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    /**
+     * Charsley Digital platform staff. Can set the per-completed-
+     * transaction fee that the owner is billed, and can see the counter
+     * alongside the owner. Not a licensing-company role.
+     */
+    public function isDeveloper(): bool
+    {
+        return $this->hasRole('developer');
+    }
+
     public function isOffboarded(): bool
     {
         return $this->offboarded_at !== null;
@@ -89,6 +110,7 @@ class User extends Authenticatable implements FilamentUser
                 'reviewer',
                 'finance',
                 'auditor',
+                'developer',
             ]);
     }
 

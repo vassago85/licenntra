@@ -62,6 +62,15 @@ class TransitionApplication
                 $application->cancelled_reason = $reason;
             }
 
+            // Stamp the metering timestamp used by the platform billing
+            // counter the first time the application reaches Completed.
+            // Guarded with isset() so if an app is somehow transitioned
+            // back and forth we don't move the goalposts on an already-
+            // billed transaction.
+            if ($to === ApplicationStage::Completed && $application->completed_at === null) {
+                $application->completed_at = now();
+            }
+
             $application->save();
 
             StageHistory::query()->create([

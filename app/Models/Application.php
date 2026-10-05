@@ -26,7 +26,7 @@ class Application extends Model
     protected $fillable = [
         'reference', 'client_account_id', 'request_type', 'service_type', 'vehicle_category', 'licence_category',
         'owner_type', 'business_client_id', 'is_financed', 'is_dealer_stock', 'dangerous_goods', 'title_holder_business_client_id',
-        'province', 'stage', 'datafix_status', 'assigned_reviewer_id', 'due_at', 'submitted_at',
+        'province', 'stage', 'datafix_status', 'assigned_reviewer_id', 'due_at', 'submitted_at', 'completed_at',
         'authority_reference', 'authority_submitted_at', 'submitted_by_id',
         'fee_snapshot', 'cancelled_reason',
     ];
@@ -170,6 +170,7 @@ class Application extends Model
             'due_at' => 'datetime',
             'submitted_at' => 'datetime',
             'authority_submitted_at' => 'datetime',
+            'completed_at' => 'datetime',
             'fee_snapshot' => 'array',
         ];
     }

@@ -45,14 +45,14 @@ class AdminPanelProvider extends PanelProvider
                 return 'Licentra';
             })
             ->colors(function (): array {
-                $colour = '#1F47B8';
+                $colour = '#146d61';
 
                 try {
                     if (Schema::hasTable('branding_settings')) {
                         $colour = BrandingSetting::query()->value('primary_colour') ?: $colour;
                     }
                 } catch (\Throwable) {
-                    $colour = '#1F47B8';
+                    $colour = '#146d61';
                 }
 
                 return ['primary' => Color::hex($colour)];

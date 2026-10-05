@@ -7,6 +7,7 @@ use App\Enums\ClientAccountType;
 use App\Filament\Concerns\OnlyConfigurators;
 use App\Filament\Resources\ClientAccounts\Pages\ManageClientAccounts;
 use App\Models\ClientAccount;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -93,6 +94,21 @@ class ClientAccountResource extends Resource
                     ->email(),
                 TextInput::make('contact_phone')
                     ->tel(),
+                Select::make('primary_reviewer_user_id')
+                    ->label('Primary reviewer')
+                    ->options(fn (): array => User::query()
+                        ->whereNull('client_account_id')
+                        ->whereHas('roles', fn ($query) => $query->whereIn('name', [
+                            'reviewer',
+                            'customer_admin',
+                            'super_admin',
+                        ]))
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Nominate the reviewer who normally owns this dealership\'s work. New submissions auto-assign to them. Any other reviewer can still take the application if the primary is on leave - the handover shows up in the audit log.'),
             ]);
     }
 

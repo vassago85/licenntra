@@ -3,6 +3,7 @@
     'active' => false,
     'count' => null,
     'countTone' => 'mono',
+    'icon' => null,
 ])
 
 @php
@@ -14,13 +15,22 @@
     };
 
     $itemClasses = $active
-        ? 'flex min-h-10 items-center justify-between gap-3 rounded-md bg-[#EEF1FA] px-2.5 text-sm font-semibold text-[color:var(--brand)]'
-        : 'flex min-h-10 items-center justify-between gap-3 rounded-md px-2.5 text-sm text-ink hover:bg-paper';
+        ? 'flex min-h-9 items-center justify-between gap-2.5 rounded-[4px] bg-[color:var(--brand-soft)] px-2 py-2 text-[12px] font-semibold text-[color:var(--brand)]'
+        : 'flex min-h-9 items-center justify-between gap-2.5 rounded-[4px] px-2 py-2 text-[12px] text-ink hover:bg-paper';
 @endphp
 
 <a href="{{ $href }}" @class([$itemClasses])>
-    <span class="truncate">{{ $slot }}</span>
+    <span class="flex min-w-0 items-center gap-2.5">
+        @if ($icon)
+            <span @class([
+                'flex h-4 w-4 shrink-0 items-center justify-center',
+                'text-[color:var(--brand)]' => $active,
+                'text-muted' => ! $active,
+            ])>{!! $icon !!}</span>
+        @endif
+        <span class="truncate">{{ $slot }}</span>
+    </span>
     @if ($count !== null)
-        <span @class(['font-mono text-xs', $countClasses])>{{ $count }}</span>
+        <span @class(['tabular-nums text-[11px]', $countClasses])>{{ $count }}</span>
     @endif
 </a>

@@ -108,7 +108,7 @@
                                 $datafixColour = match ($row->datafix_status) {
                                     \App\Enums\DatafixStatus::NotRequired => '#F0F1EE',
                                     \App\Enums\DatafixStatus::AwaitingDocuments => '#E1E4DE',
-                                    \App\Enums\DatafixStatus::Ready, \App\Enums\DatafixStatus::InProgress => '#1F47B8',
+                                    \App\Enums\DatafixStatus::Ready, \App\Enums\DatafixStatus::InProgress => '#146d61',
                                     \App\Enums\DatafixStatus::Completed => '#2E7D4F',
                                     \App\Enums\DatafixStatus::Queried => '#B3261E',
                                     default => '#E1E4DE',

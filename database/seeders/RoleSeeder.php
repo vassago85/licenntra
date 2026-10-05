@@ -23,5 +23,13 @@ class RoleSeeder extends Seeder
         foreach (['finance', 'auditor', 'client_admin', 'client_user'] as $name) {
             Role::findOrCreate($name);
         }
+
+        // Platform-side role. The `developer` is Charsley Digital staff
+        // (not the licensing company). They set the per-completed-
+        // transaction fee the licensing company owner is billed, and can
+        // read the running counter alongside the owner. Deliberately
+        // *not* granted to any demo user by RoleSeeder - a developer is
+        // created explicitly on each deployment.
+        Role::findOrCreate('developer');
     }
 }

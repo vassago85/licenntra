@@ -15,7 +15,7 @@ class BrandingSetting extends Model
     {
         return static::query()->firstOrCreate([], [
             'company_name' => 'Licentra',
-            'primary_colour' => '#1F47B8',
+            'primary_colour' => '#146d61',
             'reference_prefix' => 'LIC',
         ]);
     }

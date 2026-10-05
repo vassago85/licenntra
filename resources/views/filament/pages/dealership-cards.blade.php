@@ -94,16 +94,16 @@
             </div>
         @elseif ($viewMode === 'table')
             {{-- Table view: dense list of the same cards --}}
-            <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-800">
                         <tr>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Registration / VIN</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Application</th>
+                            <th scope="col" class="hidden xl:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Application</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Stage</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Docs</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Payment</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Reviewer</th>
+                            <th scope="col" class="hidden lg:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Docs</th>
+                            <th scope="col" class="hidden lg:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Payment</th>
+                            <th scope="col" class="hidden xl:table-cell px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Reviewer</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Due</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Action</th>
                         </tr>
@@ -127,14 +127,14 @@
                                         <div class="font-mono text-xs text-gray-500 dark:text-gray-400">VIN {{ \Illuminate\Support\Str::of($card['vehicle_vin'])->substr(-6) }}</div>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs">
+                                <td class="hidden xl:table-cell whitespace-nowrap px-3 py-2 text-xs">
                                     <div class="font-mono text-gray-700 dark:text-gray-200">{{ $card['application']->reference }}</div>
                                     <div class="text-gray-500 dark:text-gray-400">{{ $card['request_type_label'] }}</div>
                                 </td>
                                 <td class="px-3 py-2 text-xs">
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 font-medium ring-1 ring-inset {{ $tone }}">{{ $card['stage_label'] }}</span>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
+                                <td class="hidden lg:table-cell whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">
                                     @if ($card['documents_required'] > 0)
                                         {{ $card['documents_accepted'] }}/{{ $card['documents_required'] }}
                                         @if ($card['documents_rejected'] > 0)
@@ -144,7 +144,7 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs">
+                                <td class="hidden lg:table-cell whitespace-nowrap px-3 py-2 text-xs">
                                     @if ($card['payment_on_statement'] ?? false)
                                         <span class="text-sky-600 dark:text-sky-300">On statement</span>
                                     @elseif ($card['payment_owed'])
@@ -157,7 +157,7 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">{{ $card['reviewer']?->name ?? 'Unassigned' }}</td>
+                                <td class="hidden xl:table-cell whitespace-nowrap px-3 py-2 text-xs text-gray-700 dark:text-gray-200">{{ $card['reviewer']?->name ?? 'Unassigned' }}</td>
                                 <td class="whitespace-nowrap px-3 py-2 text-xs">
                                     @if ($card['due_at'])
                                         <span class="{{ $card['overdue'] ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">{{ $card['due_at']->format('d M H:i') }}</span>
