@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\Actions\CalculateFees;
 use App\Enums\LicenceFeeCategory;
 use App\Enums\Province;
+use App\Enums\RequestType;
 use App\Enums\TaxTreatment;
+use App\Models\Application;
 use App\Models\FeeLine;
 use App\Models\FeeTableVersion;
 use App\Models\LicenceEstimate;
 use App\Models\SystemSetting;
+use App\Models\Vehicle;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,6 +25,10 @@ use Illuminate\Support\Carbon;
  */
 class EstimateLicenceCost
 {
+    public function __construct(
+        private CalculateFees $fees,
+    ) {}
+
     /**
      * @return array{
      *     status: string,
@@ -57,7 +65,7 @@ class EstimateLicenceCost
         $settings = SystemSetting::current();
         $computedAt = Carbon::now();
 
-        $version = $this->resolveVersion($province, $applicableDate);
+        $version = $this->fees->versionFor($province, $applicableDate);
 
         if ($version === null) {
             return $this->confirmationRequired(
@@ -71,9 +79,11 @@ class EstimateLicenceCost
             );
         }
 
-        $line = $this->resolveLine($version, $licenceCategory, $tareKg);
+        $renewal = $this->renewalFor($province, $licenceCategory, $tareKg);
+        $line = $this->fees->licenceBand($version, $renewal);
+        $problem = $this->fees->licenceBandProblem($line, $licenceCategory, $tareKg);
 
-        if ($line === null) {
+        if ($problem !== null) {
             return $this->confirmationRequired(
                 province: $province,
                 licenceCategory: $licenceCategory,
@@ -81,21 +91,7 @@ class EstimateLicenceCost
                 applicableDate: $applicableDate,
                 computedAt: $computedAt,
                 settings: $settings,
-                reason: $this->matchFailureReason($licenceCategory, $tareKg),
-                version: $version,
-            );
-        }
-
-        if ((int) $line->amount_cents <= 0) {
-            // A seeded placeholder (0) must never be shown as a real zero fee.
-            return $this->confirmationRequired(
-                province: $province,
-                licenceCategory: $licenceCategory,
-                tareKg: $tareKg,
-                applicableDate: $applicableDate,
-                computedAt: $computedAt,
-                settings: $settings,
-                reason: 'The matching band exists but has no approved amount captured yet. Ask the licensing company to confirm the rate before quoting.',
+                reason: $problem,
                 version: $version,
                 line: $line,
             );
@@ -104,9 +100,7 @@ class EstimateLicenceCost
         $licenceCents = (int) $line->amount_cents;
         $licenceTax = $line->tax_treatment ?? TaxTreatment::Exempt;
 
-        $adminCents = (int) ($settings->admin_charge_cents ?? 0);
-        $adminTax = TaxTreatment::tryFrom((string) ($settings->admin_charge_tax_treatment ?? TaxTreatment::Standard->value))
-            ?? TaxTreatment::Standard;
+        [$adminCents, $adminTax] = $this->adminCharge($version, $renewal);
 
         $rtmc = $this->resolveRtmcLine($version);
         $rtmcCents = $rtmc !== null ? (int) $rtmc->amount_cents : 0;
@@ -173,69 +167,36 @@ class EstimateLicenceCost
     }
 
     /**
-     * Pick the single active fee schedule version whose effective window
-     * covers the given date. Returning `null` is the trigger for the
-     * "fee confirmation required" branch above — do not fall back to an
-     * expired version.
+     * An unsaved licence-renewal application carrying the estimator inputs,
+     * so the estimate is priced by the same rules as a real application.
      */
-    private function resolveVersion(Province $province, Carbon $applicableDate): ?FeeTableVersion
+    private function renewalFor(Province $province, LicenceFeeCategory $licenceCategory, ?int $tareKg): Application
     {
-        $date = $applicableDate->toDateString();
+        $renewal = new Application;
+        $renewal->forceFill([
+            'province' => $province,
+            'request_type' => RequestType::LicenceRenewal,
+            'licence_category' => $licenceCategory,
+        ]);
+        $renewal->setRelation('vehicle', new Vehicle(['tare_kg' => $tareKg]));
 
-        return FeeTableVersion::query()
-            ->where('status', 'active')
-            ->whereHas('feeTable', fn ($q) => $q->where('province', $province->value))
-            ->where(function ($q) use ($date): void {
-                $q->whereNull('effective_from')->orWhere('effective_from', '<=', $date);
-            })
-            ->where(function ($q) use ($date): void {
-                $q->whereNull('effective_until')->orWhere('effective_until', '>=', $date);
-            })
-            ->orderByDesc('effective_from')
-            ->orderByDesc('id')
-            ->first();
+        return $renewal;
     }
 
-    private function resolveLine(FeeTableVersion $version, LicenceFeeCategory $category, ?int $tareKg): ?FeeLine
+    /**
+     * The admin charge configured on the fee table, the same lines an
+     * application estimate charges.
+     *
+     * @return array{0: int, 1: TaxTreatment}
+     */
+    private function adminCharge(FeeTableVersion $version, Application $renewal): array
     {
-        $query = $version->lines()
-            ->where('licence_category', $category->value);
+        $lines = $this->fees->adminCharges($version, $renewal);
 
-        if ($tareKg !== null) {
-            $query
-                ->where(function ($q) use ($tareKg): void {
-                    $q->whereNull('tare_min_kg')->orWhere('tare_min_kg', '<=', $tareKg);
-                })
-                ->where(function ($q) use ($tareKg): void {
-                    $q->whereNull('tare_max_kg')->orWhere('tare_max_kg', '>=', $tareKg);
-                });
-        } else {
-            // Without a tare value, prefer the single band that has no tare
-            // restrictions. If every band has a weight constraint, we can't
-            // pick one unambiguously.
-            $query->whereNull('tare_min_kg')->whereNull('tare_max_kg');
-        }
-
-        // Prefer the specific (tare-bound) band over an unconstrained one;
-        // for tare-bound candidates prefer the LOWEST tare_min_kg so a tare
-        // sitting on a band boundary (e.g. 18 500 falling into both the
-        // 18 001-18 500 and 18 501-19 000 bands if their edges overlap)
-        // resolves to the lower band. The gazette rule "500 kg or part
-        // thereof" means a vehicle at exactly the top of a band belongs
-        // to that band, not the next one up.
-        return $query
-            ->orderByRaw('CASE WHEN tare_min_kg IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('tare_min_kg')
-            ->first();
-    }
-
-    private function matchFailureReason(LicenceFeeCategory $category, ?int $tareKg): string
-    {
-        if ($tareKg === null) {
-            return 'No tare-independent band exists for '.$category->label().'. Enter the tare weight so the correct band can be matched.';
-        }
-
-        return 'No fee band matches '.$category->label().' at '.$tareKg.' kg. Ask the licensing company to confirm the applicable rate.';
+        return [
+            array_sum(array_map(fn (FeeLine $line): int => (int) $line->amount_cents, $lines)),
+            ($lines[0] ?? null)?->tax_treatment ?? TaxTreatment::Standard,
+        ];
     }
 
     /**
@@ -252,6 +213,10 @@ class EstimateLicenceCost
         ?FeeTableVersion $version = null,
         ?FeeLine $line = null,
     ): array {
+        [$adminCents, $adminTax] = $version !== null
+            ? $this->adminCharge($version, $this->renewalFor($province, $licenceCategory, $tareKg))
+            : [0, TaxTreatment::Standard];
+
         return [
             'status' => LicenceEstimate::STATUS_CONFIRMATION_REQUIRED,
             'confirmation_reason' => $reason,
@@ -269,8 +234,8 @@ class EstimateLicenceCost
             'fee_line_tare_max_kg' => $line?->tare_max_kg !== null ? (int) $line?->tare_max_kg : null,
             'licence_fee_cents' => 0,
             'licence_fee_tax_treatment' => TaxTreatment::Exempt,
-            'admin_charge_cents' => (int) ($settings->admin_charge_cents ?? 0),
-            'admin_charge_tax_treatment' => TaxTreatment::tryFrom((string) ($settings->admin_charge_tax_treatment ?? TaxTreatment::Standard->value)) ?? TaxTreatment::Standard,
+            'admin_charge_cents' => $adminCents,
+            'admin_charge_tax_treatment' => $adminTax,
             'rtmc_transaction_fee_cents' => 0,
             'rtmc_transaction_fee_tax_treatment' => TaxTreatment::Exempt,
             'vat_basis_points' => (int) $settings->vat_basis_points,

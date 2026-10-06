@@ -71,11 +71,8 @@
 
     if ($isStaff) {
         $reviewQueueCount = \App\Models\Application::query()
-            ->whereIn('stage', [
-                \App\Enums\ApplicationStage::Submitted,
-                \App\Enums\ApplicationStage::DocumentReview,
-                \App\Enums\ApplicationStage::ChangesRequested,
-            ])->count();
+            ->whereIn('stage', \App\Livewire\Portal\ReviewQueue::tabStages()[\App\Livewire\Portal\ReviewQueue::TAB_REVIEW])
+            ->count();
 
         $paymentsCount = $paymentTrackingRequired
             ? \App\Models\Payment::query()->whereNull('verified_at')->count()

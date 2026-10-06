@@ -286,6 +286,12 @@ class TransitionApplication
             if (! $quoted && app(CalculateFees::class)->versionInEffect($application) === null) {
                 throw new InvalidTransition('No fee table is in effect today for '.($application->province?->label() ?? 'this province').'. Approve a current fee table before billing.');
             }
+
+            $unpriced = $quoted ? [] : app(CalculateFees::class)->snapshot($application)['unpriced'];
+
+            if ($unpriced !== []) {
+                throw new InvalidTransition('The fees are incomplete: '.$unpriced[0].' Fix the fee table or the vehicle details before billing.');
+            }
         }
 
         if ($from === ApplicationStage::PaymentPending && $to === ApplicationStage::PaymentVerified) {

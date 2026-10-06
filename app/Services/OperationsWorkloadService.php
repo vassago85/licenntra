@@ -77,6 +77,12 @@ class OperationsWorkloadService
 
     public const SCOPE_ACTIVE = 'active';
 
+    public const URGENCY_OVERDUE = 'overdue';
+
+    public const URGENCY_DUE_SOON = 'due_soon';
+
+    public const URGENCY_NORMAL = 'normal';
+
     /**
      * Is this application eligible for the authority submission action?
      *
@@ -219,8 +225,36 @@ class OperationsWorkloadService
         }
 
         return $count
+            + $this->caseDecisionApplications()->count()
             + $this->authorityQueryApplications()->count()
             + $this->overdueAwaitingReturnApplications()->count();
+    }
+
+    /**
+     * Applications whose next step is the licensing company's but which have
+     * no document, payment, query or return row: a review with every document
+     * decided, a quote to build or bill, or a paid application still blocked
+     * from the department by originals, files or a datafix.
+     */
+    public function caseDecisionApplications(): Builder
+    {
+        $noDocumentAwaitingDecision = fn (Builder $q): Builder => $q->whereDoesntHave('documents', function (Builder $documents): void {
+            $documents->where('required', true)
+                ->whereIn('status', [DocumentStatus::Uploaded, DocumentStatus::Scanning, DocumentStatus::AwaitingReview]);
+        });
+
+        return Application::query()->where(function (Builder $q) use ($noDocumentAwaitingDecision): void {
+            $q->where(fn (Builder $review): Builder => $noDocumentAwaitingDecision(
+                $review->whereIn('stage', [ApplicationStage::Submitted, ApplicationStage::DocumentReview]),
+            ))->orWhere(fn (Builder $paid): Builder => $noDocumentAwaitingDecision(
+                $paid->whereIn('stage', [ApplicationStage::PaymentVerified, ApplicationStage::DatafixInProgress])
+                    ->whereNotIn('id', $this->readyForAuthorityApplications()->select('id')),
+            ));
+
+            if (FeatureFlags::quotesEnabled()) {
+                $q->orWhereIn('stage', [ApplicationStage::QuoteRequired, ApplicationStage::QuoteAccepted]);
+            }
+        });
     }
 
     /**
@@ -396,6 +430,42 @@ class OperationsWorkloadService
                 'query' => request()->query(),
             ],
         );
+    }
+
+    /**
+     * The licensing company's daily worklist: every row behind the
+     * "Outstanding tasks", "Ready to prepare/print" and "Returned, awaiting
+     * handover" counters in one list. Rows past their warning time come
+     * first, then rows due within a day, then the longest waiting.
+     *
+     * @param  array{account_id?: ?int, reviewer_id?: ?int, overdue?: ?bool, search?: ?string, submitted_by_id?: ?int, province?: ?string}  $filters
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function worklist(array $filters = []): Collection
+    {
+        $dueSoonBefore = now()->addDay();
+
+        return $this->outstandingTasks($filters)
+            ->concat($this->submissionPackTasks($filters))
+            ->concat($this->returnedHandoverTasks($filters))
+            ->map(function (array $row) use ($dueSoonBefore): array {
+                $urgency = match (true) {
+                    $row['overdue'] => self::URGENCY_OVERDUE,
+                    $row['due_at'] !== null && $row['due_at']->lessThanOrEqualTo($dueSoonBefore) => self::URGENCY_DUE_SOON,
+                    default => self::URGENCY_NORMAL,
+                };
+
+                return $row + [
+                    'urgency' => $urgency,
+                    'urgency_rank' => array_search($urgency, [self::URGENCY_OVERDUE, self::URGENCY_DUE_SOON, self::URGENCY_NORMAL], true),
+                    'days_waiting' => $row['waiting_since'] !== null ? (int) $row['waiting_since']->diffInDays(now()) : null,
+                ];
+            })
+            ->sortBy([
+                ['urgency_rank', 'asc'],
+                ['waiting_since', 'asc'],
+            ])
+            ->values();
     }
 
     // ------------------------------------------------------------------
@@ -843,6 +913,16 @@ class OperationsWorkloadService
     {
         $rows = $this->approvalTasks(array_merge($filters, ['kind' => self::KIND_ALL]));
 
+        foreach ($this->caseDecisionApplications()
+            ->with(['clientAccount:id,name,type', 'reviewer:id,name', 'submittedBy:id,name', 'vehicle:id,application_id,vehicle_register_number,vin'])
+            ->get() as $application) {
+            if (! $this->matchesFilters($application, $filters)) {
+                continue;
+            }
+
+            $rows->push($this->buildCaseDecisionRow($application));
+        }
+
         foreach ($this->authorityQueryApplications()
             ->with(['clientAccount:id,name,type', 'reviewer:id,name', 'submittedBy:id,name', 'vehicle:id,application_id,vehicle_register_number,vin'])
             ->get() as $application) {
@@ -1147,6 +1227,70 @@ class OperationsWorkloadService
             'action_label' => 'Open application',
             'action_url' => route('review.show', ['application' => $application->id]),
         ];
+    }
+
+    /**
+     * Staff decision on a case with nothing left to review row by row.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildCaseDecisionRow(Application $application): array
+    {
+        $openApp = route('review.show', ['application' => $application->id]);
+
+        [$label, $blocker, $actionLabel, $actionUrl] = match ($application->stage) {
+            ApplicationStage::Submitted, ApplicationStage::DocumentReview => $this->reviewDecision($application, $openApp),
+            ApplicationStage::QuoteRequired => ['Build quote', 'Documents accepted; this fee needs a quote.', 'Build quote', route('applications.quote', ['application' => $application->id])],
+            ApplicationStage::QuoteAccepted => ['Bill the accepted quote', 'The customer accepted the quote.', 'Open application', $openApp],
+            default => ['Get ready for the department', $this->blockerSummary($this->authorityBlockers($application)), 'Open application', $openApp],
+        };
+
+        return [
+            'kind' => 'case_decision',
+            'task_key' => 'case:'.$application->id,
+            'label' => $label,
+            'blocker' => $blocker,
+            'application' => $application,
+            'account' => $application->clientAccount,
+            'reviewer' => $application->reviewer,
+            'submitted_by' => $application->submittedBy,
+            'vehicle_registration' => $application->vehicle?->vehicle_register_number,
+            'vehicle_vin' => $application->vehicle?->vin,
+            'waiting_since' => $application->updated_at,
+            'due_at' => $application->due_at,
+            'overdue' => $this->isOverdue($application),
+            'action_label' => $actionLabel,
+            'action_url' => $actionUrl,
+        ];
+    }
+
+    /** @param  list<string>  $blockers */
+    private function blockerSummary(array $blockers): string
+    {
+        $shown = array_slice($blockers, 0, 2);
+        $hidden = count($blockers) - count($shown);
+
+        return implode(' ', $shown).($hidden > 0 ? ' +'.$hidden.' more.' : '');
+    }
+
+    /** @return array{0: string, 1: string, 2: string, 3: string} */
+    private function reviewDecision(Application $application, string $openApp): array
+    {
+        $unusable = $application->documents()
+            ->where('required', true)
+            ->whereIn('status', [DocumentStatus::Rejected, DocumentStatus::Missing])
+            ->count();
+
+        if ($unusable > 0) {
+            return [
+                'Send back for corrections',
+                $unusable.' required '.Str::plural('document', $unusable).' rejected or missing.',
+                'Request changes',
+                $openApp,
+            ];
+        }
+
+        return ['Finish review and bill', 'All required documents accepted.', 'Finish review', $openApp];
     }
 
     /**

@@ -19,6 +19,7 @@ use App\Models\FeeTableVersion;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\EstimateLicenceCost;
 use Database\Seeders\LicenceFeeBandSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -178,6 +179,47 @@ class CalculateFeesTest extends TestCase
         app(TransitionApplication::class)->handle($application->refresh(), ApplicationStage::PaymentPending, $reviewer);
     }
 
+    public function test_billing_is_refused_while_the_licence_fee_has_no_matching_band(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $reviewer = User::factory()->create(['is_active' => true]);
+        $reviewer->assignRole('reviewer');
+
+        $application = $this->makeApplication(tareKg: 3000, province: Province::Gauteng);
+        $version = $this->seedActiveTable(Province::Gauteng, [
+            ['code' => 'admin', 'label' => 'Admin fee', 'cents' => 15000, 'tax' => TaxTreatment::Standard, 'tare_min' => null, 'tare_max' => null, 'period' => FeePeriod::OnceOff],
+        ]);
+        $this->addBand($version, LicenceFeeCategory::MotorCar, 72000, 1001, 1500);
+
+        $snapshot = app(CalculateFees::class)->snapshot($application->refresh());
+        $this->assertNotContains('licence', array_column($snapshot['lines'], 'code'));
+        $this->assertCount(1, $snapshot['unpriced']);
+        $this->assertStringContainsString('3 000 kg', $snapshot['unpriced'][0]);
+
+        $this->expectException(InvalidTransition::class);
+        $this->expectExceptionMessage('The fees are incomplete');
+
+        app(TransitionApplication::class)->handle($application->refresh(), ApplicationStage::PaymentPending, $reviewer);
+    }
+
+    public function test_the_dealer_estimator_prices_the_same_licence_band_and_admin_charge_as_an_application(): void
+    {
+        $application = $this->makeApplication(tareKg: 1200, province: Province::Gauteng);
+        $version = $this->seedActiveTable(Province::Gauteng, [
+            ['code' => 'admin', 'label' => 'Admin fee', 'cents' => 15000, 'tax' => TaxTreatment::Standard, 'tare_min' => null, 'tare_max' => null, 'period' => FeePeriod::OnceOff],
+        ]);
+        $this->addBand($version, LicenceFeeCategory::MotorCar, 72000, 1001, 1500);
+        $this->addBand($version, LicenceFeeCategory::Trailer, 99000, 1001, 1500);
+
+        $snapshot = app(CalculateFees::class)->snapshot($application->refresh());
+        $estimate = app(EstimateLicenceCost::class)->compute(Province::Gauteng, LicenceFeeCategory::MotorCar, 1200, Carbon::now());
+
+        $byCode = collect($snapshot['lines'])->keyBy('code');
+        $this->assertSame($byCode['licence']['amount_cents'], $estimate['licence_fee_cents']);
+        $this->assertSame($byCode['admin']['amount_cents'], $estimate['admin_charge_cents']);
+        $this->assertSame(TaxTreatment::Standard, $estimate['admin_charge_tax_treatment']);
+    }
+
     public function test_licence_fee_band_seeder_populates_all_provinces(): void
     {
         $this->seed(LicenceFeeBandSeeder::class);
@@ -254,5 +296,20 @@ class CalculateFeesTest extends TestCase
         }
 
         return $version;
+    }
+
+    private function addBand(FeeTableVersion $version, LicenceFeeCategory $category, int $cents, int $tareMin, int $tareMax): void
+    {
+        $version->lines()->create([
+            'code' => 'licence',
+            'label' => $category->label().' '.$tareMin.'-'.$tareMax.' kg',
+            'amount_cents' => $cents,
+            'client_visible' => true,
+            'tax_treatment' => TaxTreatment::Exempt->value,
+            'period' => FeePeriod::Annual->value,
+            'licence_category' => $category->value,
+            'tare_min_kg' => $tareMin,
+            'tare_max_kg' => $tareMax,
+        ]);
     }
 }

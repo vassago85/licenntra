@@ -82,7 +82,7 @@
             <label class="text-sm">Year <input wire:model.blur="year" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
             <label class="text-sm">Engine number <input wire:model.blur="engine_number" class="mt-1 w-full rounded-md border border-line px-2 py-2 font-mono"></label>
             <label class="text-sm">Body <input wire:model.blur="body_type" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
-            <label class="text-sm">Tare kg <input wire:model.blur="tare_kg" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
+            <label class="text-sm">Tare kg <input wire:model.live.debounce.500ms="tare_kg" inputmode="numeric" class="mt-1 w-full rounded-md border border-line px-2 py-2"></label>
         </section>
 
         <section class="space-y-3 rounded-md border border-line bg-white p-3">
@@ -294,6 +294,9 @@
             @if ($estimate && $estimate['fee_table_version_id'] === null && $estimate['total_cents'] === 0)
                 <p class="mt-3 rounded-md border border-amber-300 bg-amber-50 px-2 py-2 text-sm text-amber-900">No fee table is in effect for this province today. Operations will confirm the fees before billing.</p>
             @elseif ($estimate)
+                @foreach ($estimate['unpriced'] ?? [] as $problem)
+                    <p class="mt-3 rounded-md border border-amber-300 bg-amber-50 px-2 py-2 text-sm text-amber-900"><span class="font-semibold">Licence fee not included.</span> {{ $problem }}</p>
+                @endforeach
                 <ul class="mt-3 space-y-1 text-sm">
                     @foreach ($estimate['lines'] as $line)
                         @if ($line['client_visible'])
@@ -301,7 +304,7 @@
                         @endif
                     @endforeach
                 </ul>
-                <p class="mt-3 flex justify-between text-sm font-semibold"><span>Total</span><span class="font-mono">{{ $money::rands($estimate['total_cents']) }}</span></p>
+                <p class="mt-3 flex justify-between text-sm font-semibold"><span>{{ ($estimate['unpriced'] ?? []) === [] ? 'Total' : 'Total so far (excludes licence fee)' }}</span><span class="font-mono">{{ $money::rands($estimate['total_cents']) }}</span></p>
             @else
                 <p class="mt-3 text-sm text-muted">Choose a province to estimate fees.</p>
             @endif

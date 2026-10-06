@@ -26,8 +26,6 @@ beforeEach(function (): void {
 
     SystemSetting::query()->updateOrCreate(['id' => 1], [
         'vat_basis_points' => 1500,
-        'admin_charge_cents' => 15000,
-        'admin_charge_tax_treatment' => TaxTreatment::Standard->value,
     ]);
 
     $this->account = ClientAccount::query()->create([
@@ -85,6 +83,18 @@ function seedActiveFeeVersion(
     }
 
     return $v;
+}
+
+function addAdminCharge(FeeTableVersion $version, int $cents, TaxTreatment $tax = TaxTreatment::Standard): void
+{
+    $version->lines()->create([
+        'code' => 'admin',
+        'label' => 'Admin fee',
+        'amount_cents' => $cents,
+        'client_visible' => true,
+        'tax_treatment' => $tax->value,
+        'period' => FeePeriod::OnceOff->value,
+    ]);
 }
 
 it('matches the correct province, category and weight band', function () {
@@ -212,10 +222,11 @@ it('picks the version that is active on the applicable date, not today', functio
         ->and($currentResult['fee_table_version_id'])->toBe($current->id);
 });
 
-it('adds the admin charge and VAT exactly once', function () {
-    seedActiveFeeVersion(Province::Gauteng, [
+it('adds the fee table admin charge and VAT exactly once', function () {
+    $version = seedActiveFeeVersion(Province::Gauteng, [
         ['category' => LicenceFeeCategory::MotorCar, 'cents' => 100000, 'tax' => TaxTreatment::Exempt, 'tare_min' => null, 'tare_max' => null],
     ]);
+    addAdminCharge($version, 15000);
 
     $result = $this->service->compute(
         Province::Gauteng,
@@ -237,6 +248,7 @@ it('adds the R72 RTMC national transaction fee when it is present on the fee ver
     $version = seedActiveFeeVersion(Province::Gauteng, [
         ['category' => LicenceFeeCategory::MotorCar, 'cents' => 100000, 'tax' => TaxTreatment::Exempt, 'tare_min' => null, 'tare_max' => null],
     ]);
+    addAdminCharge($version, 15000);
 
     // Attach the national R72 pass-through to the version. Exempt from VAT.
     $version->lines()->create([
@@ -303,15 +315,10 @@ it('persists the R72 RTMC line in the saved estimate snapshot', function () {
 });
 
 it('applies the configured tax treatment to each charge', function () {
-    SystemSetting::query()->updateOrCreate(['id' => 1], [
-        'vat_basis_points' => 1500,
-        'admin_charge_cents' => 10000,
-        'admin_charge_tax_treatment' => TaxTreatment::Exempt->value,
-    ]);
-
-    seedActiveFeeVersion(Province::Gauteng, [
+    $version = seedActiveFeeVersion(Province::Gauteng, [
         ['category' => LicenceFeeCategory::MotorCar, 'cents' => 80000, 'tax' => TaxTreatment::Standard, 'tare_min' => null, 'tare_max' => null],
     ]);
+    addAdminCharge($version, 10000, TaxTreatment::Exempt);
 
     $result = $this->service->compute(
         Province::Gauteng,

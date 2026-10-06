@@ -131,7 +131,7 @@
                             $allowed = match ($task['kind']) {
                                 'approval.document' => $canReviewDocuments,
                                 'approval.payment' => $canVerifyPayments,
-                                'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover' => $canSubmitToAuthority,
+                                'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover', 'case_decision' => $canSubmitToAuthority,
                                 default => true,
                             };
                         @endphp
@@ -226,7 +226,7 @@
                         $allowed = match ($task['kind']) {
                             'approval.document' => $canReviewDocuments,
                             'approval.payment' => $canVerifyPayments,
-                            'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover' => $canSubmitToAuthority,
+                            'ready_to_submit', 'prepare_pack', 'record_return', 'resolve_query', 'arrange_handover', 'case_decision' => $canSubmitToAuthority,
                             default => true,
                         };
                     @endphp

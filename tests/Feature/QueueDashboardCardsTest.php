@@ -48,6 +48,27 @@ class QueueDashboardCardsTest extends TestCase
         $response->assertDontSee('SLA');
     }
 
+    public function test_review_queue_sidebar_badge_counts_the_same_applications_as_the_to_review_tab(): void
+    {
+        $reviewer = User::factory()->create(['is_active' => true]);
+        $reviewer->assignRole('reviewer');
+
+        $dealer = ClientAccount::query()->create([
+            'name' => 'Dealer C',
+            'type' => 'dealer',
+            'quote_acceptance_allowed' => false,
+        ]);
+
+        $this->application($dealer, ApplicationStage::Submitted);
+        $this->application($dealer, ApplicationStage::DocumentReview);
+        $this->application($dealer, ApplicationStage::ChangesRequested);
+
+        $html = $this->actingAs($reviewer)->get(route('review.queue'))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/Review queue<\/span>\s*<\/span>\s*<span[^>]*>2<\/span>/', $html);
+        $this->assertMatchesRegularExpression('/To review\s*<span[^>]*>2<\/span>/', $html);
+    }
+
     public function test_payment_queue_renders_the_four_kpi_stat_cards(): void
     {
         $finance = User::factory()->create(['is_active' => true]);

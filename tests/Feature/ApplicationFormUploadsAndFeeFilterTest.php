@@ -125,6 +125,41 @@ it('still includes the R72 RTMC transaction fee on top of the one licence band',
         ->and($rtmc['amount_cents'])->toBe(7200);
 });
 
+it('prices the Rigid vehicle band in the live form estimate when the licence category is left on the default', function (): void {
+    Livewire::actingAs($this->user)
+        ->test(ApplicationForm::class)
+        ->set('request_type', RequestType::NewRegistration->value)
+        ->set('service_type', ServiceType::RegisterAndLicense->value)
+        ->set('vehicle_category', VehicleCategory::Commercial->value)
+        ->set('province', Province::Gauteng->value)
+        ->set('licence_category', '')
+        ->set('tare_kg', '8420')
+        ->assertViewHas('estimate', function (array $estimate): bool {
+            $licence = collect($estimate['lines'])->firstWhere('code', 'licence');
+
+            return $licence !== null
+                && str_contains($licence['label'], 'Rigid vehicle')
+                && $licence['amount_cents'] > 0
+                && $estimate['unpriced'] === [];
+        })
+        ->assertDontSee('Licence fee not included');
+});
+
+it('flags the licence fee instead of showing an incomplete total when the tare is missing', function (): void {
+    Livewire::actingAs($this->user)
+        ->test(ApplicationForm::class)
+        ->set('request_type', RequestType::NewRegistration->value)
+        ->set('service_type', ServiceType::RegisterAndLicense->value)
+        ->set('vehicle_category', VehicleCategory::Commercial->value)
+        ->set('province', Province::Gauteng->value)
+        ->set('tare_kg', '')
+        ->assertViewHas('estimate', fn (array $estimate): bool => collect($estimate['lines'])->doesntContain('code', 'licence')
+            && count($estimate['unpriced']) === 1)
+        ->assertSee('Licence fee not included')
+        ->assertSee('Enter the tare weight')
+        ->assertSee('Total so far (excludes licence fee)');
+});
+
 it('lets a client user upload a required document straight from the application form', function (): void {
     Storage::fake('documents');
 

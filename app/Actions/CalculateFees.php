@@ -2,6 +2,8 @@
 
 namespace App\Actions;
 
+use App\Enums\LicenceFeeCategory;
+use App\Enums\Province;
 use App\Enums\QuoteStatus;
 use App\Enums\RequestType;
 use App\Enums\ServiceType;
@@ -14,13 +16,25 @@ use App\Models\QuoteLine;
 use App\Models\SystemSetting;
 use Illuminate\Support\Carbon;
 
+/**
+ * The single fee calculation. Application estimates, billing snapshots and
+ * the dealer licence-cost estimator all price licences and admin charges
+ * through this class so the figures cannot drift apart.
+ */
 class CalculateFees
 {
+    /**
+     * Licence category used when the application has not picked one; the
+     * application form labels the blank option "Default (Rigid vehicle)".
+     */
+    public const DEFAULT_LICENCE_CATEGORY = LicenceFeeCategory::MotorCar;
+
     /**
      * @return array{
      *     vat_basis_points: int,
      *     fee_table_version_id: int|null,
      *     lines: list<array{code: string, label: string, amount_cents: int, client_visible: bool, tax_treatment: string, period: string}>,
+     *     unpriced: list<string>,
      *     taxable_subtotal_cents: int,
      *     exempt_subtotal_cents: int,
      *     vat_cents: int,
@@ -32,19 +46,31 @@ class CalculateFees
         $version = $this->versionInEffect($application);
 
         $lines = [];
+        $unpriced = [];
 
         if ($version !== null) {
-            foreach ($version->lines as $line) {
-                if ($this->applies($line, $application)) {
-                    $lines[] = [
-                        'code' => $line->code,
-                        'label' => $line->label,
-                        'amount_cents' => (int) $line->amount_cents,
-                        'client_visible' => (bool) $line->client_visible,
-                        'tax_treatment' => $line->tax_treatment?->value ?? TaxTreatment::Exempt->value,
-                        'period' => $line->period?->value ?? 'once_off',
-                    ];
+            $band = null;
+
+            if ($this->chargesLicence($application) && $this->pricesLicenceByBand($version)) {
+                $band = $this->licenceBand($version, $application);
+                $problem = $this->licenceBandProblem($band, $this->licenceCategoryFor($application), $application->vehicle?->tare_kg);
+
+                if ($problem !== null) {
+                    $unpriced[] = $problem;
+                    $band = null;
                 }
+            }
+
+            foreach ($version->lines as $line) {
+                $isBand = $line->code === 'licence' && $line->licence_category !== null;
+
+                if ($isBand ? $line->id === $band?->id : $this->applies($line, $application)) {
+                    $lines[] = $this->lineSnapshot($line);
+                }
+            }
+
+            if ($this->chargesLicence($application) && $unpriced === [] && ! in_array('licence', array_column($lines, 'code'), true)) {
+                $unpriced[] = 'This fee table has no licence fee for this vehicle. Operations will confirm the licence fee before billing.';
             }
         }
 
@@ -92,6 +118,7 @@ class CalculateFees
             'vat_basis_points' => $vatBasisPoints,
             'fee_table_version_id' => $version?->id,
             'lines' => $lines,
+            'unpriced' => $unpriced,
             'taxable_subtotal_cents' => $taxableSubtotal,
             'exempt_subtotal_cents' => $exemptSubtotal,
             'vat_cents' => $vat,
@@ -110,6 +137,7 @@ class CalculateFees
      *     fee_table_version_id: int|null,
      *     quote_id?: int,
      *     lines: list<array{code: string, label: string, amount_cents: int, client_visible: bool, tax_treatment: string, period: string}>,
+     *     unpriced: list<string>,
      *     taxable_subtotal_cents: int,
      *     exempt_subtotal_cents: int,
      *     vat_cents: int,
@@ -144,11 +172,111 @@ class CalculateFees
             'fee_table_version_id' => null,
             'quote_id' => $quote->id,
             'lines' => $lines,
+            'unpriced' => [],
             'taxable_subtotal_cents' => $total,
             'exempt_subtotal_cents' => 0,
             'vat_cents' => 0,
             'total_cents' => $total,
         ];
+    }
+
+    /**
+     * The active fee table version for the application's province that is in
+     * effect today. Expired and future-dated versions never price an
+     * application, matching the dealer estimator.
+     */
+    public function versionInEffect(Application $application): ?FeeTableVersion
+    {
+        $province = $application->province;
+
+        return $province instanceof Province ? $this->versionFor($province, Carbon::now()) : null;
+    }
+
+    /**
+     * The active version for a province whose effective window covers the
+     * date. Never falls back to an expired or future-dated version.
+     */
+    public function versionFor(Province $province, Carbon $date): ?FeeTableVersion
+    {
+        $day = $date->toDateString();
+
+        return FeeTableVersion::query()
+            ->where('status', 'active')
+            ->whereHas('feeTable', fn ($q) => $q->where('province', $province->value))
+            ->where(function ($q) use ($day): void {
+                $q->whereNull('effective_from')->orWhere('effective_from', '<=', $day);
+            })
+            ->where(function ($q) use ($day): void {
+                $q->whereNull('effective_until')->orWhere('effective_until', '>=', $day);
+            })
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function licenceCategoryFor(Application $application): LicenceFeeCategory
+    {
+        return $application->licence_category ?? self::DEFAULT_LICENCE_CATEGORY;
+    }
+
+    /**
+     * The one gazette band that prices the application's licence: its
+     * licence category and tare, preferring a tare-bound band over an
+     * unconstrained one and the lower band where two edges meet ("500 kg or
+     * part thereof" puts a vehicle at the top of a band in that band).
+     */
+    public function licenceBand(FeeTableVersion $version, Application $application): ?FeeLine
+    {
+        $category = $this->licenceCategoryFor($application);
+        $tare = $application->vehicle?->tare_kg;
+
+        return $version->lines
+            ->filter(fn (FeeLine $line): bool => $line->code === 'licence'
+                && $line->licence_category === $category
+                && $this->matchesApplicationFilters($line, $application)
+                && ($tare === null
+                    ? $line->tare_min_kg === null && $line->tare_max_kg === null
+                    : ($line->tare_min_kg === null || $line->tare_min_kg <= $tare) && ($line->tare_max_kg === null || $line->tare_max_kg >= $tare)))
+            ->sortBy([
+                fn (FeeLine $a, FeeLine $b): int => ($a->tare_min_kg === null) <=> ($b->tare_min_kg === null),
+                fn (FeeLine $a, FeeLine $b): int => ($a->tare_min_kg ?? 0) <=> ($b->tare_min_kg ?? 0),
+            ])
+            ->first();
+    }
+
+    /**
+     * Why the licence cannot be priced from the band, or null when it can.
+     * A seeded placeholder (0) is never shown as a real zero fee.
+     */
+    public function licenceBandProblem(?FeeLine $band, LicenceFeeCategory $category, ?int $tareKg): ?string
+    {
+        if ($band === null) {
+            return $tareKg === null
+                ? 'Enter the tare weight so the '.$category->label().' licence band can be matched.'
+                : 'No licence fee band matches '.$category->label().' at '.number_format($tareKg, 0, '.', ' ').' kg. Operations will confirm the rate before billing.';
+        }
+
+        if ((int) $band->amount_cents <= 0) {
+            return 'The '.$band->label.' licence band has no approved amount yet. Operations will confirm the rate before billing.';
+        }
+
+        return null;
+    }
+
+    /**
+     * The admin charge configured on the fee table (lines coded "admin")
+     * that applies to the application.
+     *
+     * @return list<FeeLine>
+     */
+    public function adminCharges(FeeTableVersion $version, Application $application): array
+    {
+        return $version->lines
+            ->filter(fn (FeeLine $line): bool => $line->code === 'admin'
+                && (int) $line->amount_cents > 0
+                && $this->applies($line, $application))
+            ->values()
+            ->all();
     }
 
     /**
@@ -169,63 +297,34 @@ class CalculateFees
         return false;
     }
 
-    /**
-     * The active fee table version for the application's province that is in
-     * effect today. Expired and future-dated versions never price an
-     * application, matching the dealer estimator.
-     */
-    public function versionInEffect(Application $application): ?FeeTableVersion
+    private function pricesLicenceByBand(FeeTableVersion $version): bool
     {
-        $province = $application->province?->value;
-
-        if ($province === null) {
-            return null;
-        }
-
-        $today = Carbon::now()->toDateString();
-
-        return FeeTableVersion::query()
-            ->where('status', 'active')
-            ->whereHas('feeTable', fn ($q) => $q->where('province', $province))
-            ->where(function ($q) use ($today): void {
-                $q->whereNull('effective_from')->orWhere('effective_from', '<=', $today);
-            })
-            ->where(function ($q) use ($today): void {
-                $q->whereNull('effective_until')->orWhere('effective_until', '>=', $today);
-            })
-            ->orderByDesc('effective_from')
-            ->orderByDesc('id')
-            ->first();
+        return $version->lines->contains(fn (FeeLine $line): bool => $line->code === 'licence' && $line->licence_category !== null);
     }
 
+    /**
+     * @return array{code: string, label: string, amount_cents: int, client_visible: bool, tax_treatment: string, period: string}
+     */
+    private function lineSnapshot(FeeLine $line): array
+    {
+        return [
+            'code' => $line->code,
+            'label' => $line->label,
+            'amount_cents' => (int) $line->amount_cents,
+            'client_visible' => (bool) $line->client_visible,
+            'tax_treatment' => $line->tax_treatment?->value ?? TaxTreatment::Exempt->value,
+            'period' => $line->period?->value ?? 'once_off',
+        ];
+    }
+
+    /**
+     * Unbanded lines: everything except gazette licence bands, which are
+     * resolved once by licenceBand().
+     */
     private function applies(FeeLine $line, Application $application): bool
     {
-        if ($line->code === 'licence') {
-            if (! $this->chargesLicence($application)) {
-                return false;
-            }
-
-            // Gazette licence fees are priced by LicenceFeeCategory (Rigid
-            // vehicle, Trailer, Motorcycle, Caravan, Taxi, Breakdown,
-            // Tractor-on-public-road, etc). Every category has its own
-            // table of tare bands; without this filter a 6 500 kg truck
-            // matches the rigid-vehicle band AND the trailer band AND
-            // the breakdown band at the same time - fee estimate blows
-            // out to 15+ lines. The application captures the chosen
-            // category so the estimator only shows the one that applies.
-            if ($line->licence_category !== null
-                && $application->licence_category !== null
-                && $line->licence_category !== $application->licence_category) {
-                return false;
-            }
-
-            // No licence category pinned yet (brand-new draft) - skip
-            // the band lines so we don't double-charge; the admin
-            // charges and RTMC fee still appear so the estimate stays
-            // meaningful while the dealer is still filling in the form.
-            if ($line->licence_category !== null && $application->licence_category === null) {
-                return false;
-            }
+        if ($line->code === 'licence' && ! $this->chargesLicence($application)) {
+            return false;
         }
 
         if ($line->code === 'rtmc_transaction_fee' && ! $this->chargesLicence($application)) {
@@ -241,15 +340,7 @@ class CalculateFees
             }
         }
 
-        if ($line->service_type !== null && $line->service_type !== $application->service_type?->value) {
-            return false;
-        }
-
-        if ($line->request_type !== null && $line->request_type !== $application->request_type?->value) {
-            return false;
-        }
-
-        if ($line->vehicle_category !== null && $line->vehicle_category !== $application->vehicle_category?->value) {
+        if (! $this->matchesApplicationFilters($line, $application)) {
             return false;
         }
 
@@ -260,6 +351,23 @@ class CalculateFees
         }
 
         if ($line->tare_max_kg !== null && ($tare === null || $tare > $line->tare_max_kg)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function matchesApplicationFilters(FeeLine $line, Application $application): bool
+    {
+        if ($line->service_type !== null && $line->service_type !== $application->service_type?->value) {
+            return false;
+        }
+
+        if ($line->request_type !== null && $line->request_type !== $application->request_type?->value) {
+            return false;
+        }
+
+        if ($line->vehicle_category !== null && $line->vehicle_category !== $application->vehicle_category?->value) {
             return false;
         }
 

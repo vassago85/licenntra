@@ -24,6 +24,99 @@
         </div>
     </section>
 
+    <section aria-label="Worklist" class="overflow-hidden rounded-md border border-line bg-white">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
+            <h2 class="text-sm font-semibold">
+                Worklist
+                <span class="ml-1 font-normal text-muted">{{ $worklistTotal }} {{ \Illuminate\Support\Str::plural('task', $worklistTotal) }}@if ($worklistOverdue > 0) · <span class="font-semibold text-red-800">{{ $worklistOverdue }} past warning time</span>@endif</span>
+            </h2>
+            <div class="flex items-center gap-3 text-xs">
+                <div role="group" aria-label="Whose tasks" class="inline-flex overflow-hidden rounded-md border border-line">
+                    <button type="button" wire:click="$set('mineOnly', false)" aria-pressed="{{ $mineOnly ? 'false' : 'true' }}" class="px-2 py-1 {{ $mineOnly ? 'bg-white text-muted hover:text-ink' : 'bg-ink text-white' }}">Everyone</button>
+                    <button type="button" wire:click="$set('mineOnly', true)" aria-pressed="{{ $mineOnly ? 'true' : 'false' }}" class="border-l border-line px-2 py-1 {{ $mineOnly ? 'bg-ink text-white' : 'bg-white text-muted hover:text-ink' }}">Assigned to me</button>
+                </div>
+                <a href="{{ $workload->tabUrl(\App\Services\OperationsWorkloadService::TAB_OUTSTANDING) }}" class="text-muted hover:underline">Outstanding tasks →</a>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-paper text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                        <th class="px-3 py-2 font-medium">Waiting</th>
+                        <th class="px-3 py-2 font-medium">Customer</th>
+                        <th class="px-3 py-2 font-medium">Vehicle</th>
+                        <th class="px-3 py-2 font-medium">Required action</th>
+                        <th class="px-3 py-2 font-medium">Assigned to</th>
+                        <th class="px-3 py-2"><span class="sr-only">Action</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                    @forelse ($worklist as $task)
+                        @php
+                            $allowed = match ($task['kind']) {
+                                'approval.document' => $canReviewDocuments,
+                                'approval.payment' => $canVerifyPayments,
+                                default => $canHandleCases,
+                            };
+                            $days = $task['days_waiting'];
+                        @endphp
+                        <tr wire:key="work-{{ $task['task_key'] }}" class="{{ $task['urgency'] === \App\Services\OperationsWorkloadService::URGENCY_OVERDUE ? 'bg-red-50/60' : '' }}">
+                            <td class="whitespace-nowrap px-3 py-2 align-top">
+                                <div class="tabular-nums">{{ $days === null ? '—' : ($days === 0 ? 'Today' : $days.' '.\Illuminate\Support\Str::plural('day', $days)) }}</div>
+                                @if ($task['urgency'] === \App\Services\OperationsWorkloadService::URGENCY_OVERDUE)
+                                    <span class="text-xs font-semibold text-red-800" title="Due {{ $task['due_at']?->format('d M H:i') }}">Past warning time</span>
+                                @elseif ($task['urgency'] === \App\Services\OperationsWorkloadService::URGENCY_DUE_SOON)
+                                    <span class="text-xs font-semibold text-amber-800">Due {{ $task['due_at']->isToday() ? 'today' : 'tomorrow' }} {{ $task['due_at']->format('H:i') }}</span>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-2 align-top">
+                                <div class="font-medium">{{ $task['account']?->name ?? '—' }}</div>
+                                @if ($task['submitted_by'])
+                                    <div class="text-xs text-muted">{{ $task['submitted_by']->name }}</div>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-2 align-top text-xs">
+                                @if ($task['vehicle_registration'])
+                                    <div class="font-mono">{{ $task['vehicle_registration'] }}</div>
+                                @elseif ($task['vehicle_vin'])
+                                    <div class="font-mono">VIN …{{ \Illuminate\Support\Str::of($task['vehicle_vin'])->substr(-6) }}</div>
+                                @endif
+                                <div class="font-mono text-muted">{{ $task['application']?->reference ?? '—' }}</div>
+                            </td>
+                            <td class="px-3 py-2 align-top">
+                                <div class="font-medium">{{ $task['label'] }}</div>
+                                @if ($task['blocker'])
+                                    <div class="text-xs text-muted">{{ $task['blocker'] }}</div>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-2 align-top text-xs">
+                                @if ($task['reviewer'])
+                                    {{ $task['reviewer']->name }}
+                                @else
+                                    <span class="text-amber-800">Unassigned</span>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-2 text-right align-top">
+                                @if ($allowed)
+                                    <a href="{{ $task['action_url'] }}" class="inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">{{ $task['action_label'] }}</a>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-3 py-8 text-center text-muted">{{ $mineOnly ? 'Nothing assigned to you needs doing right now.' : 'Nothing needs doing right now.' }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if ($worklistTotal > $worklist->count())
+            <div class="border-t border-line px-3 py-2 text-center">
+                <button type="button" wire:click="showMoreWork" class="text-xs font-medium text-muted hover:text-ink hover:underline">
+                    Show more ({{ $worklistTotal - $worklist->count() }} more)
+                </button>
+            </div>
+        @endif
+    </section>
+
     <section aria-label="Dealerships needing action" class="overflow-hidden rounded-md border border-line bg-white">
         <div class="flex items-center justify-between border-b border-line px-3 py-2">
             <h2 class="text-sm font-semibold">Dealerships needing action</h2>
