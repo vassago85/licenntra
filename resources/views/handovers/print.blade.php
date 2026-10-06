@@ -25,8 +25,8 @@
 
     <div class="grid-2">
         <div class="box">
-            <h3>Licensing authority representative</h3>
-            <div><strong>{{ $handover->counterparty_company ?: 'Licensing authority' }}</strong></div>
+            <h3>Licensing company</h3>
+            <div><strong>{{ $handover->counterparty_company ?: ($branding->company_name ?? 'Licentra') }}</strong></div>
             <div>{{ $handover->counterparty_name ?: '—' }}</div>
             @if ($handover->counterparty_identifier)
                 <div style="font-family: ui-monospace, Menlo, monospace; font-size: 10pt;">ID / Emp #: {{ $handover->counterparty_identifier }}</div>
@@ -80,13 +80,13 @@
             <div style="margin-top: 6px; font-size: 9pt; color: #555;">Date: ____________________</div>
         </div>
         <div class="sig-block">
-            <div class="sig-label">Signed by the licensing authority representative</div>
+            <div class="sig-label">Signed on behalf of the licensing company</div>
             <div class="sig-name">{{ $handover->counterparty_name ?: '____________________' }}</div>
             <div style="margin-top: 6px; font-size: 9pt; color: #555;">Date: ____________________</div>
         </div>
     </div>
 
     <div style="margin-top: 20px; font-size: 9pt; color: #555; text-align: center;">
-        {{ $handover->direction === \App\Enums\HandoverDirection::Delivery ? 'The dealership acknowledges receipt of the documents listed above.' : 'The licensing authority representative confirms collection of the documents listed above.' }}
+        {{ $handover->direction === \App\Enums\HandoverDirection::Delivery ? 'The dealership acknowledges receipt of the documents listed above.' : 'The licensing company confirms collection of the documents listed above from the dealership.' }}
     </div>
 </x-layouts.print>

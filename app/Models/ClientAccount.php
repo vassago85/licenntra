@@ -42,7 +42,7 @@ class ClientAccount extends Model
 
         // Dealership particulars printed into every ALV / RLV prepared on
         // behalf of this account.
-        'brn',
+        'brn', 'street_address', 'postal_address',
         'proxy_name', 'proxy_initials', 'proxy_id_type', 'proxy_id_number', 'proxy_id_country',
         'representative_name', 'representative_initials', 'representative_id_type',
         'representative_id_number', 'representative_id_country',

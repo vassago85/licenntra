@@ -9,6 +9,7 @@ use App\Enums\OwnerType;
 use App\Enums\RequestType;
 use App\Livewire\Portal\DocumentHandoverForm;
 use App\Livewire\Portal\DocumentHandoverIndex;
+use App\Models\BrandingSetting;
 use App\Models\ClientAccount;
 use App\Models\DocumentHandover;
 use App\Models\User;
@@ -20,12 +21,12 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 /**
- * Batched POD / POC flow: a licensing-authority representative shows up
- * at the dealership and drops off a stack of discs + NaTIS certificates
- * (delivery) or collects a stack of lodged paperwork (collection). The
- * dealer records one hand-over per visit, prints a POD/POC for the
- * physical paper trail, and confirms the hand-over digitally once both
- * sides have signed.
+ * Batched POD / POC flow between the licensing company and its client:
+ * the licensing company collects a stack of paperwork from the dealership
+ * (collection) or returns discs + NaTIS certificates to it (delivery).
+ * One hand-over is recorded per visit, a POD/POC can be printed for the
+ * paper trail, and the hand-over is confirmed digitally once both sides
+ * have signed.
  */
 beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
@@ -361,4 +362,56 @@ it('presents paper POD/POC and signed scan as optional on the form', function ()
         ->assertSee('Print paper POD/POC (optional)')
         ->assertSee('Confirm digitally')
         ->assertSee('Not needed for the record');
+});
+
+it('treats the licensing company, not the licensing authority, as the other party', function (): void {
+    BrandingSetting::current()->update(['company_name' => 'Charsley Licensing']);
+    auth()->login($this->userA);
+
+    Livewire::test(DocumentHandoverForm::class)
+        ->assertSet('counterparty_company', 'Charsley Licensing')
+        ->assertSee('Licensing company staff member')
+        ->assertDontSee('Licensing authority');
+
+    $app = app(SaveApplicationDraft::class)->handle($this->userA, [
+        'request_type' => RequestType::LicenceRenewal->value,
+        'owner_type' => OwnerType::Individual->value,
+    ]);
+    $handover = app(SaveDocumentHandover::class)->handle($this->userA, [
+        'direction' => HandoverDirection::Collection->value,
+        'counterparty_name' => 'Thandi Mahlangu',
+        'dealer_person_name' => $this->userA->name,
+        'application_ids' => [$app->id],
+    ]);
+
+    expect($handover->counterparty_company)->toBe('Charsley Licensing');
+
+    $this->actingAs($this->userA)
+        ->get(route('handovers.print', $handover))
+        ->assertOk()
+        ->assertSee('Signed on behalf of the licensing company')
+        ->assertSee('The licensing company confirms collection of the documents listed above from the dealership.')
+        ->assertDontSee('Licensing authority')
+        ->assertDontSee('licensing authority');
+});
+
+it('relabels hand-overs saved with the old licensing authority default', function (): void {
+    BrandingSetting::current()->update(['company_name' => 'Charsley Licensing']);
+    auth()->login($this->userA);
+    $handover = app(SaveDocumentHandover::class)->handle($this->userA, [
+        'direction' => HandoverDirection::Delivery->value,
+        'counterparty_name' => 'Thandi Mahlangu',
+    ]);
+    $handover->forceFill(['counterparty_company' => 'Licensing authority'])->save();
+    $kept = app(SaveDocumentHandover::class)->handle($this->userA, [
+        'direction' => HandoverDirection::Delivery->value,
+        'counterparty_name' => 'Thandi Mahlangu',
+        'counterparty_company' => 'Gauteng Licensing Services',
+    ]);
+
+    $migration = require database_path('migrations/2026_10_06_051131_relabel_licensing_authority_handover_counterparties.php');
+    $migration->up();
+
+    expect($handover->refresh()->counterparty_company)->toBe('Charsley Licensing')
+        ->and($kept->refresh()->counterparty_company)->toBe('Gauteng Licensing Services');
 });

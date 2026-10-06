@@ -6,6 +6,7 @@ use App\Actions\RecordAudit;
 use App\Models\Application;
 use App\Models\BrandingSetting;
 use App\Models\DocumentVersion;
+use App\Services\NatisFormBuilder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Gate;
  */
 class SubmissionPackPrintController extends Controller
 {
-    public function __invoke(Request $request, RecordAudit $audit): View
+    public function __invoke(Request $request, RecordAudit $audit, NatisFormBuilder $natisForms): View
     {
         $ids = collect(explode(',', (string) $request->query('ids')))
             ->map(fn (string $id): int => (int) trim($id))
@@ -29,7 +30,7 @@ class SubmissionPackPrintController extends Controller
 
         $applications = Application::query()
             ->whereIn('id', $ids)
-            ->with(['clientAccount', 'vehicle', 'businessClient', 'titleHolder', 'latestSubmissionPack.preparedBy'])
+            ->with(['clientAccount', 'vehicle', 'businessClient', 'titleHolder', 'parties', 'natisFormCheckedBy', 'latestSubmissionPack.preparedBy'])
             ->get()
             ->sortBy(fn (Application $application): int => (int) $ids->search($application->id))
             ->values();
@@ -40,7 +41,7 @@ class SubmissionPackPrintController extends Controller
             Gate::authorize('review', $application);
         }
 
-        $packs = $applications->map(function (Application $application) use ($request, $audit): array {
+        $packs = $applications->map(function (Application $application) use ($request, $audit, $natisForms): array {
             $pack = $application->latestSubmissionPack;
 
             if ($pack !== null) {
@@ -61,6 +62,7 @@ class SubmissionPackPrintController extends Controller
                     ? collect()
                     : DocumentVersion::query()->whereIn('id', $pack->versionIds())->get()->keyBy('id'),
                 'queryNote' => $application->latestAuthorityQueryNote(),
+                'natisForm' => $pack === null ? null : $natisForms->printable($application),
             ];
         });
 

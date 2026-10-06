@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\HandoverDirection;
 use App\Enums\HandoverStatus;
 use App\Models\Application;
+use App\Models\BrandingSetting;
 use App\Models\ClientAccount;
 use App\Models\DocumentHandover;
 use App\Models\User;
@@ -61,7 +62,7 @@ class SaveDocumentHandover
                 'direction' => HandoverDirection::from($validated['direction']),
                 'counterparty_name' => $validated['counterparty_name'] ?? null,
                 'counterparty_identifier' => $validated['counterparty_identifier'] ?? null,
-                'counterparty_company' => $validated['counterparty_company'] ?? 'Licensing authority',
+                'counterparty_company' => $validated['counterparty_company'] ?? BrandingSetting::current()->company_name,
                 'dealer_person_name' => $validated['dealer_person_name'] ?? null,
                 'items_summary' => $validated['items_summary'] ?? null,
                 'notes' => $validated['notes'] ?? null,

@@ -77,6 +77,14 @@ class Application extends Model
         return $this->belongsTo(User::class, 'submitted_by_id');
     }
 
+    /**
+     * The staff member who last checked and saved the ALV / RLV.
+     */
+    public function natisFormCheckedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'natis_form_checked_by_id');
+    }
+
     public function vehicle(): HasOne
     {
         return $this->hasOne(Vehicle::class);
@@ -250,6 +258,8 @@ class Application extends Model
             'authority_returned_at' => 'datetime',
             'completed_at' => 'datetime',
             'fee_snapshot' => 'array',
+            'natis_form' => 'encrypted:array',
+            'natis_form_checked_at' => 'datetime',
         ];
     }
 }

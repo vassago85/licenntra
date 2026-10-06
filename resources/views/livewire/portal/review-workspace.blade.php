@@ -207,6 +207,24 @@
             @endcan
         </section>
 
+        @if ($natisFormType)
+            @can('review', $application)
+                <section class="rounded-md border border-line bg-white p-3 text-sm" id="natis-form">
+                    <h2 class="font-semibold">{{ $natisFormType->formNumber() }} for the department</h2>
+                    @if (! $natisFormChecked)
+                        <p class="mt-1 text-xs text-amber-800">Not checked yet. The form is filled from this application; check it and correct anything before printing the pack.</p>
+                    @elseif ($natisFormOutOfDate)
+                        <p class="mt-1 text-xs text-amber-800">Checked {{ $application->natis_form_checked_at?->format('d M Y H:i') }}, but the application has changed since. Check it again.</p>
+                    @else
+                        <p class="mt-1 text-xs text-emerald-800">Checked {{ $application->natis_form_checked_at?->format('d M Y H:i') }} by {{ $application->natisFormCheckedBy?->name ?? 'unknown' }}. It prints with the pack.</p>
+                    @endif
+                    <a href="{{ route('review.natis-form', $application) }}" class="mt-2 inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
+                        {{ $natisFormChecked && ! $natisFormOutOfDate ? 'View or edit '.$natisFormType->code() : 'Check the '.$natisFormType->code() }}
+                    </a>
+                </section>
+            @endcan
+        @endif
+
         @can('review', $application)
             @php($stage = $application->stage)
             @php($stages = \App\Enums\ApplicationStage::class)
@@ -257,6 +275,12 @@
                             </div>
                         @else
                             <p class="mt-3 text-xs text-muted">All documents are accepted and originals are in hand. Prepare the pack, print it and lodge it with the department.</p>
+                            @if ($natisFormType && (! $natisFormChecked || $natisFormOutOfDate))
+                                <p class="mt-2 text-xs text-amber-800">
+                                    The {{ $natisFormType->code() }} prints with the pack but has not been checked{{ $natisFormOutOfDate ? ' since the application changed' : '' }}.
+                                    <a href="{{ route('review.natis-form', $application) }}" class="underline">Check it first</a>.
+                                </p>
+                            @endif
                             <button type="button" wire:click="preparePack" class="mt-2 h-8 rounded-md px-2 text-xs font-medium text-white" style="background: var(--brand);">Prepare and print pack</button>
                         @endif
                         @error('pack') <p class="mt-1 text-xs text-red-800">{{ $message }}</p> @enderror

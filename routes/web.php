@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentDownloadController;
 use App\Http\Controllers\HandoverPrintController;
 use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
+use App\Http\Controllers\NatisFormPrintController;
 use App\Http\Controllers\SubmissionPackPrintController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
 use App\Livewire\Account\Settings as AccountSettings;
@@ -28,6 +29,7 @@ use App\Livewire\Portal\BusinessClientIndex;
 use App\Livewire\Portal\BusinessClientShow;
 use App\Livewire\Portal\Dashboard;
 use App\Livewire\Portal\DealershipCards;
+use App\Livewire\Portal\DealershipParticulars;
 use App\Livewire\Portal\DocumentHandoverForm;
 use App\Livewire\Portal\DocumentHandoverIndex;
 use App\Livewire\Portal\FinanceInvoiceQueue;
@@ -36,6 +38,7 @@ use App\Livewire\Portal\FleetReviewQueue;
 use App\Livewire\Portal\FleetVehicleIndex;
 use App\Livewire\Portal\InvoiceIndex;
 use App\Livewire\Portal\LicenceCostEstimator;
+use App\Livewire\Portal\NatisFormEditor;
 use App\Livewire\Portal\OutstandingTasks;
 use App\Livewire\Portal\PaymentQueue;
 use App\Livewire\Portal\QuoteBuilder;
@@ -84,6 +87,8 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
     Route::get('/review', ReviewQueue::class)->name('review.queue');
     Route::get('/review/packs/print', SubmissionPackPrintController::class)->name('review.packs.print');
     Route::get('/review/{application}', ReviewWorkspace::class)->name('review.show');
+    Route::get('/review/{application}/natis-form', NatisFormEditor::class)->name('review.natis-form');
+    Route::get('/review/{application}/natis-form/print', NatisFormPrintController::class)->name('review.natis-form.print');
 
     Route::get('/dealerships/board', DealershipCards::class)->name('dealerships.board');
     Route::get('/tasks/outstanding', OutstandingTasks::class)->name('tasks.outstanding');
@@ -100,6 +105,7 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
 
     Route::get('/account', AccountSettings::class)->name('account.settings');
     Route::get('/team', TeamIndex::class)->name('team.index');
+    Route::get('/dealership', DealershipParticulars::class)->name('dealership.particulars');
     Route::get('/estimate', LicenceCostEstimator::class)->name('estimate.index');
 
     Route::get('/fleet-vehicles', FleetVehicleIndex::class)->name('fleet.vehicles.index');

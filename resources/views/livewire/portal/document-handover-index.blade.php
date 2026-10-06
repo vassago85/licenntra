@@ -3,13 +3,13 @@
         <div>
             <h1 class="text-xl font-semibold">Hand-overs</h1>
             <p class="text-sm text-muted">
-                Record every in-person visit where a licensing-authority representative delivered documents to or collected documents from the dealership. Confirm the hand-over digitally when both parties are at the counter - a printed paper POD/POC is optional.
+                Record every time documents change hands between the licensing company and the client: collections of paperwork to prepare and lodge, and deliveries of finished paperwork back to the client. Confirm the hand-over digitally when both parties are at the counter - a printed paper POD/POC is optional.
             </p>
         </div>
         @can('create', \App\Models\DocumentHandover::class)
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('handovers.create', ['direction' => 'delivery']) }}" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold hover:bg-paper">+ Delivery (from authority)</a>
-                <a href="{{ route('handovers.create', ['direction' => 'collection']) }}" class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">+ Collection (to authority)</a>
+                <a href="{{ route('handovers.create', ['direction' => 'delivery']) }}" class="h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold hover:bg-paper">+ Delivery (to client)</a>
+                <a href="{{ route('handovers.create', ['direction' => 'collection']) }}" class="h-10 rounded-md px-3 text-sm font-semibold text-white" style="background: var(--brand)">+ Collection (from client)</a>
             </div>
         @endcan
     </div>
@@ -64,7 +64,7 @@
                         <p class="text-xs text-muted">
                             {{ $handover->applications_count }} {{ \Illuminate\Support\Str::plural('application', $handover->applications_count) }}
                             @if ($handover->counterparty_name)
-                                · {{ $handover->counterparty_company ?: 'Licensing authority' }} - {{ $handover->counterparty_name }}
+                                · {{ $handover->counterparty_company ?: $licensingCompany }} - {{ $handover->counterparty_name }}
                             @endif
                             · Created {{ $handover->created_at->format('d M Y H:i') }}
                             @if ($handover->createdBy) by {{ $handover->createdBy->name }} @endif
@@ -81,7 +81,7 @@
                     </div>
                 </li>
             @empty
-                <li class="px-3 py-6 text-center text-sm text-muted">No hand-overs recorded yet. Start one above when a licensing representative is on the way.</li>
+                <li class="px-3 py-6 text-center text-sm text-muted">No hand-overs recorded yet. Start one above when documents are about to change hands.</li>
             @endforelse
         </ul>
     </div>

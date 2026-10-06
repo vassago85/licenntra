@@ -23,6 +23,7 @@ use App\Models\Application;
 use App\Models\ApplicationDocument;
 use App\Models\AuditEvent;
 use App\Services\FeatureFlags;
+use App\Services\NatisFormBuilder;
 use App\Services\OperationsWorkloadService;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
@@ -403,6 +404,8 @@ class ReviewWorkspace extends Component
             'clientAccount',
             'businessClient',
             'titleHolder',
+            'parties',
+            'natisFormCheckedBy',
             'quotes.lines',
             'payments',
             'stageHistories',
@@ -414,7 +417,12 @@ class ReviewWorkspace extends Component
             ApplicationStage::AuthorityQuery,
         ], true);
 
+        $natisForms = app(NatisFormBuilder::class);
+
         return view('livewire.portal.review-workspace', [
+            'natisFormType' => $natisForms->formTypeFor($this->application),
+            'natisFormChecked' => $natisForms->isChecked($this->application),
+            'natisFormOutOfDate' => $natisForms->isOutOfDate($this->application),
             'packStage' => $packStage,
             'packBlockers' => $packStage ? app(OperationsWorkloadService::class)->authorityBlockers($this->application) : [],
             'currentPack' => $packStage ? $this->application->currentSubmissionPack() : null,

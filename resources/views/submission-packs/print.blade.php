@@ -77,6 +77,9 @@
                             <div>Title holder: {{ $application->titleHolder->business_name }}</div>
                         @endif
                         <div>Province: {{ $application->province?->label() ?? '—' }}</div>
+                        @if ($entry['natisForm'])
+                            <div>{{ $entry['natisForm']['type']->formNumber() }}: {{ $entry['natisForm']['isChecked'] ? 'checked by '.($application->natisFormCheckedBy?->name ?? 'unknown').', printed behind this sheet' : 'not checked by operations yet' }}</div>
+                        @endif
                         @if ($application->authority_reference && $application->stage === \App\Enums\ApplicationStage::AuthorityQuery)
                             <div>Department reference: <span class="mono">{{ $application->authority_reference }}</span></div>
                         @endif
@@ -147,6 +150,10 @@
                         <div style="margin-top: 6px; font-size: 9pt;" class="muted">Reference: ______________ Date / stamp: ______________</div>
                     </div>
                 </div>
+
+                @if ($entry['natisForm'])
+                    @include('natis-forms.form', ['natisForm' => $entry['natisForm']])
+                @endif
 
                 @foreach ($documents as $index => $document)
                     @php($version = $versions->get($document['version_id']))

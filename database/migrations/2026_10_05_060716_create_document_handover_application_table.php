@@ -8,11 +8,10 @@ return new class extends Migration
 {
     /**
      * Pivot joining document_handovers to applications. One handover may
-     * cover many applications (whatever the licensing-authority
-     * representative dropped off or collected on a single visit) and one
-     * application may appear on multiple handovers (first a collection to
-     * send paperwork in, later a delivery when the authority returns the
-     * disc).
+     * cover many applications (whatever the licensing company collected
+     * from or delivered to the client in one go) and one application may
+     * appear on multiple handovers (first a collection of the paperwork,
+     * later a delivery of the finished disc back to the client).
      */
     public function up(): void
     {

@@ -34,7 +34,7 @@ class ConfirmDocumentHandover
 
         if (trim((string) $handover->counterparty_name) === '') {
             throw ValidationException::withMessages([
-                'counterparty_name' => 'Capture the name of the person signing on behalf of the authority first.',
+                'counterparty_name' => 'Capture the name of the person signing on behalf of the licensing company first.',
             ]);
         }
 

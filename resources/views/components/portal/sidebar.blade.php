@@ -104,7 +104,7 @@
     $operationsActive = $isCurrent('review.*') || $isCurrent('finance.*') || $isCurrent('fleet.review.*')
         || $isCurrent('tasks.*') || $isCurrent('dealerships.*') || (! $isClient && $isCurrent('handovers.*'));
     $portalActive = $isCurrent('applications.*') || $isCurrent('business-clients.*') || $isCurrent('estimate.*')
-        || $isCurrent('handovers.*') || $isCurrent('invoices.*') || $isCurrent('fleet.vehicles.*') || $isCurrent('team.*');
+        || $isCurrent('handovers.*') || $isCurrent('invoices.*') || $isCurrent('fleet.vehicles.*') || $isCurrent('team.*') || $isCurrent('dealership.*');
     $operationsActive = $operationsActive || $isCurrent('admin.overview');
     $adminActive = ($isCurrent('admin.*') && ! $isCurrent('admin.overview')) || $isCurrent('settings.*');
     $complianceActive = $isCurrent('audit.*');
@@ -318,6 +318,13 @@
                             :icon="$icons['users']"
                         >
                             Team
+                        </x-portal.sidebar-link>
+                        <x-portal.sidebar-link
+                            :href="route('dealership.particulars')"
+                            :active="$isCurrent('dealership.*')"
+                            :icon="$icons['briefcase']"
+                        >
+                            Dealership details
                         </x-portal.sidebar-link>
                     @endif
                 </div>

@@ -37,7 +37,7 @@ class DocumentHandoverForm extends Component
 
     public string $counterparty_identifier = '';
 
-    public string $counterparty_company = 'Licensing authority';
+    public string $counterparty_company = '';
 
     public string $dealer_person_name = '';
 
@@ -57,9 +57,9 @@ class DocumentHandoverForm extends Component
     {
         if ($handover === null || $handover->id === null) {
             $this->authorize('create', DocumentHandover::class);
+            $this->counterparty_company = $this->licensingCompany();
 
             if ($this->isOperations()) {
-                $this->counterparty_company = (string) BrandingSetting::current()->company_name;
                 $this->counterparty_name = (string) auth()->user()?->name;
                 $this->preselectApplication((int) request()->query('application'));
             } else {
@@ -77,6 +77,11 @@ class DocumentHandoverForm extends Component
     private function isOperations(): bool
     {
         return auth()->user()?->client_account_id === null;
+    }
+
+    private function licensingCompany(): string
+    {
+        return (string) BrandingSetting::current()->company_name;
     }
 
     private function preselectApplication(int $applicationId): void
@@ -115,7 +120,7 @@ class DocumentHandoverForm extends Component
         $this->direction = $handover->direction->value;
         $this->counterparty_name = (string) $handover->counterparty_name;
         $this->counterparty_identifier = (string) $handover->counterparty_identifier;
-        $this->counterparty_company = (string) ($handover->counterparty_company ?? 'Licensing authority');
+        $this->counterparty_company = (string) ($handover->counterparty_company ?: $this->licensingCompany());
         $this->dealer_person_name = (string) ($handover->dealer_person_name ?? auth()->user()?->name);
         $this->items_summary = (string) $handover->items_summary;
         $this->notes = (string) $handover->notes;
@@ -285,6 +290,7 @@ class DocumentHandoverForm extends Component
             'directions' => HandoverDirection::cases(),
             'availableApplications' => $availableApplications,
             'operations' => $operations,
+            'licensingCompany' => $this->licensingCompany(),
             'accounts' => $operations
                 ? ClientAccount::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),

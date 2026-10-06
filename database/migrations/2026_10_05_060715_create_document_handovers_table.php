@@ -7,11 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Batched proof-of-collection / proof-of-delivery records for when a
-     * licensing-authority representative drops documents off at the
-     * dealership (delivery) or collects a pack of lodged documents from
-     * the dealership (collection). One row per in-person visit; many
-     * applications per row via the pivot table.
+     * Batched proof-of-collection / proof-of-delivery records for when the
+     * licensing company collects paperwork from the client (collection) or
+     * returns finished documents to the client (delivery). One row per
+     * hand-over; many applications per row via the pivot table.
      */
     public function up(): void
     {

@@ -7,9 +7,9 @@
             @if ($handover?->isCompleted())
                 Confirmed digitally on {{ $handover->confirmed_at?->format('d M Y H:i') }} - this hand-over is read-only. A paper POD/POC is optional; print or attach a signed scan below if the dealership wants one on file.
             @elseif ($direction === 'collection')
-                Collection: documents the licensing-authority representative is picking up to lodge at the authority. Confirm the hand-over digitally when they are at the counter - a printed POD is optional.
+                Collection: documents the licensing company is collecting from the client to prepare and lodge. Confirm the hand-over digitally when both of you are at the counter - a printed POC is optional.
             @elseif ($direction === 'delivery')
-                Delivery: documents the licensing-authority representative is dropping off at the dealership. Confirm the hand-over digitally when they are at the counter - a printed POC is optional.
+                Delivery: finished documents the licensing company is handing back to the client. Confirm the hand-over digitally when both of you are at the counter - a printed POD is optional.
             @else
                 Capture everyone and everything that changes hands during the visit. The digital on-screen confirmation is the record of truth; printing paper is optional.
             @endif
@@ -46,13 +46,13 @@
                     @endforeach
                 </select>
             </label>
-            <label class="text-sm">Authority company (optional)
-                <input wire:model.blur="counterparty_company" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm" placeholder="Licensing authority">
+            <label class="text-sm">Licensing company
+                <input wire:model.blur="counterparty_company" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm" placeholder="{{ $licensingCompany }}">
             </label>
-            <label class="text-sm">Representative name
+            <label class="text-sm">Licensing company staff member
                 <input wire:model.blur="counterparty_name" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm" placeholder="e.g. Thandi Mahlangu">
             </label>
-            <label class="text-sm">Representative ID / employee number (optional)
+            <label class="text-sm">Staff ID / employee number (optional)
                 <input wire:model.blur="counterparty_identifier" @disabled($handover?->isCompleted()) class="mt-1 h-10 w-full rounded-md border border-line px-2 py-2 text-sm font-mono">
             </label>
             <label class="text-sm sm:col-span-2">Dealership person on the counter

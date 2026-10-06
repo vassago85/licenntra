@@ -3,10 +3,11 @@
 namespace App\Enums;
 
 /**
- * Who is handing documents to whom. A Collection is the licensing
- * authority representative collecting a pack from the dealership
- * (dealer → authority). A Delivery is the representative dropping
- * paperwork off at the dealership (authority → dealer).
+ * Which way documents move between the licensing company and its client.
+ * A Collection is the licensing company collecting paperwork from the
+ * client (client → licensing company). A Delivery is the licensing
+ * company returning finished paperwork to the client (licensing
+ * company → client). The licensing authority is never a party.
  */
 enum HandoverDirection: string
 {
@@ -16,8 +17,8 @@ enum HandoverDirection: string
     public function label(): string
     {
         return match ($this) {
-            self::Collection => 'Collection (sent to authority)',
-            self::Delivery => 'Delivery (received from authority)',
+            self::Collection => 'Collection (client to licensing company)',
+            self::Delivery => 'Delivery (licensing company to client)',
         };
     }
 

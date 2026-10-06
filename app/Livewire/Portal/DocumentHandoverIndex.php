@@ -4,6 +4,7 @@ namespace App\Livewire\Portal;
 
 use App\Enums\HandoverDirection;
 use App\Enums\HandoverStatus;
+use App\Models\BrandingSetting;
 use App\Models\DocumentHandover;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -60,6 +61,7 @@ class DocumentHandoverIndex extends Component
             'handovers' => $query->paginate(20),
             'directions' => HandoverDirection::cases(),
             'statuses' => HandoverStatus::cases(),
+            'licensingCompany' => (string) BrandingSetting::current()->company_name,
         ]);
     }
 }
