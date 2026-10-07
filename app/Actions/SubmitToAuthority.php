@@ -17,8 +17,10 @@ use Illuminate\Validation\ValidationException;
  *
  * Captures the authority-side reference and submission date, enforces the
  * same readiness rule the dashboard uses, stamps the submission pack that
- * was lodged (preparing one if nobody printed it) and transitions the
- * stage, all in one transaction.
+ * was lodged (preparing one on a first submission if nobody printed it) and
+ * transitions the stage, all in one transaction. A resubmission after a
+ * department query must lodge a pack operations prepared after the query,
+ * never one created silently here.
  *
  * Never called from a dashboard count click. The dashboard surfaces the
  * action; a reviewer explicitly supplies reference and date in the form.
@@ -51,6 +53,12 @@ class SubmitToAuthority
 
         if (! $this->workload->isReadyForAuthority($application)) {
             throw new InvalidTransition('This application is not yet ready for authority submission.');
+        }
+
+        if ($application->stage === ApplicationStage::AuthorityQuery && $application->currentSubmissionPack() === null) {
+            throw ValidationException::withMessages([
+                'pack' => 'Prepare and print the resubmission pack before recording the resubmission.',
+            ]);
         }
 
         return DB::transaction(function () use ($application, $actor, $reference, $submittedAt): Application {

@@ -92,6 +92,11 @@ test('an application travels from the dealer to completed', async ({ as }) => {
         await expect(operations.getByText(/Register no\. TLX900G/)).toBeVisible();
         await expect(operations.getByRole('row', { name: 'Surname / name of organisation Ndlovu' }).first()).toBeVisible();
         await expect(operations.getByRole('row', { name: 'Tare (kg) 1280' })).toBeVisible();
+        await expect(operations.getByText('Not marked as printed yet')).toBeVisible();
+
+        await operations.getByRole('button', { name: 'Mark pack as printed' }).click();
+        await expect(operations.getByText('Pack marked as printed.')).toBeVisible();
+        await expect(operations.getByText(/Marked printed .* by Operations/)).toBeVisible();
     });
 
     await test.step('operations records the department lodgement, approval and return', async () => {

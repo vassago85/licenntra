@@ -1177,12 +1177,17 @@ class OperationsWorkloadService
                 'task_key' => 'pack:'.$application->id,
                 'label' => $resubmission ? 'Resubmit pack to the department' : 'Submit pack to the department',
                 'blocker' => sprintf(
-                    'Pack printed %s by %s · %d %s.',
+                    'Pack #%d prepared %s by %s · %d %s · %s.',
+                    $pack->id,
                     $pack->created_at->format('d M H:i'),
                     $pack->preparedBy?->name ?? 'unknown',
                     $pack->documentCount(),
                     Str::plural('document', $pack->documentCount()),
+                    $pack->printed_at === null
+                        ? 'not marked as printed yet'
+                        : 'printed '.$pack->printed_at->format('d M H:i').' by '.($pack->printedBy?->name ?? 'unknown'),
                 ),
+                'pack_printed' => $pack->printed_at !== null,
                 'action_label' => 'Submit to authority',
                 'action_url' => route('review.show', ['application' => $application->id]),
             ];
@@ -1198,6 +1203,7 @@ class OperationsWorkloadService
             'action_label' => 'Prepare and print pack',
             'action_url' => route('review.show', ['application' => $application->id]),
             'pack_url' => null,
+            'pack_printed' => false,
         ]);
     }
 
@@ -1548,12 +1554,24 @@ class OperationsWorkloadService
             $application->stage === ApplicationStage::ChangesRequested => ['open_app', 'Chase corrections', $openApp, 'Changes requested from dealership'],
             $application->stage === ApplicationStage::Draft => ['open_app', 'Open draft', $openApp, 'Draft not yet submitted'],
             $application->stage === ApplicationStage::AuthorityQuery && $application->authority_query_resolved_at === null => ['open_app', 'Resolve query', $openApp, 'Department raised a query'],
-            $this->isReadyForAuthority($application) => $application->currentSubmissionPack() !== null
-                ? ['submit_authority', 'Submit to authority', $openApp, 'Pack printed, ready to lodge']
-                : ['prepare_pack', 'Prepare pack', $openApp, 'Ready for a submission pack'],
+            $this->isReadyForAuthority($application) => $this->packActionFor($application, $openApp),
             $application->stage === ApplicationStage::Approved => ['open_app', 'Record receipt', $openApp, 'Approved, not physically back yet'],
             $application->stage === ApplicationStage::ReadyForCollection => ['open_handover', 'Record hand-over', route('handovers.create', ['direction' => 'delivery', 'account' => $application->client_account_id, 'application' => $application->id]), 'Back in the office'],
             default => ['open_app', 'Open application', $openApp, null],
+        };
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: string}
+     */
+    private function packActionFor(Application $application, string $openApp): array
+    {
+        $pack = $application->currentSubmissionPack();
+
+        return match (true) {
+            $pack === null => ['prepare_pack', 'Prepare pack', $openApp, 'Ready for a submission pack'],
+            $pack->printed_at === null => ['submit_authority', 'Submit to authority', $openApp, 'Pack prepared, not marked as printed'],
+            default => ['submit_authority', 'Submit to authority', $openApp, 'Pack printed, ready to lodge'],
         };
     }
 

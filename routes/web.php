@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentDownloadController;
 use App\Http\Controllers\HandoverPrintController;
 use App\Http\Controllers\HandoverSignedDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
+use App\Http\Controllers\MarkSubmissionPacksPrintedController;
 use App\Http\Controllers\NatisFormPrintController;
 use App\Http\Controllers\SubmissionPackPrintController;
 use App\Http\Middleware\AbsoluteSessionLifetime;
@@ -86,6 +87,7 @@ Route::middleware(['auth', AbsoluteSessionLifetime::class])->group(function (): 
 
     Route::get('/review', ReviewQueue::class)->name('review.queue');
     Route::get('/review/packs/print', SubmissionPackPrintController::class)->name('review.packs.print');
+    Route::post('/review/packs/printed', MarkSubmissionPacksPrintedController::class)->name('review.packs.printed');
     Route::get('/review/{application}', ReviewWorkspace::class)->name('review.show');
     Route::get('/review/{application}/natis-form', NatisFormEditor::class)->name('review.natis-form');
     Route::get('/review/{application}/natis-form/print', NatisFormPrintController::class)->name('review.natis-form.print');

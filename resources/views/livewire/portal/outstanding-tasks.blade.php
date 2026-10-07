@@ -189,7 +189,7 @@
                                     </button>
                                 @elseif ($allowed && $task['kind'] === 'ready_to_submit')
                                     @if (! empty($task['pack_url']))
-                                        <a href="{{ $task['pack_url'] }}" class="mr-1 inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">Reprint</a>
+                                        <a href="{{ $task['pack_url'] }}" class="mr-1 inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">{{ ! empty($task['pack_printed']) ? 'Reprint' : 'Print' }}</a>
                                     @endif
                                     <button type="button" wire:click="openSubmitModal({{ $task['application']->id }})"
                                         class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"
@@ -289,7 +289,7 @@
                                     </button>
                                 @elseif ($task['kind'] === 'ready_to_submit')
                                     @if (! empty($task['pack_url']))
-                                        <a href="{{ $task['pack_url'] }}" class="inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">Reprint</a>
+                                        <a href="{{ $task['pack_url'] }}" class="inline-flex items-center rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium hover:bg-paper">{{ ! empty($task['pack_printed']) ? 'Reprint' : 'Print' }}</a>
                                     @endif
                                     <button type="button" wire:click="openSubmitModal({{ $task['application']->id }})"
                                         class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium text-white"

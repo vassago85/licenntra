@@ -205,7 +205,7 @@ it('only lets operations prepare packs', function (): void {
         ->toThrow(ValidationException::class);
 });
 
-it('prints the frozen pack for operations and audits the print', function (): void {
+it('shows the frozen pack cover sheet and audits opening it as a preview, not a print', function (): void {
     $application = packReadyApplication($this->dealership);
     $pack = app(PrepareSubmissionPack::class)->handle($application, $this->operations);
 
@@ -214,10 +214,83 @@ it('prints the frozen pack for operations and audits the print', function (): vo
         ->assertOk()
         ->assertSee($application->reference)
         ->assertSee('pack #'.$pack->id)
+        ->assertSee('Submission pack cover sheet')
         ->assertSee('Original NaTIS certificate')
-        ->assertSee('Dealer invoice');
+        ->assertSee('Dealer invoice')
+        ->assertSee('Print separately')
+        ->assertSee('Not marked as printed yet')
+        ->assertSee('Mark pack as printed');
 
-    expect(AuditEvent::query()->where('action', 'submission_pack.printed')->count())->toBe(1);
+    expect(AuditEvent::query()->where('action', 'submission_pack.previewed')->count())->toBe(1)
+        ->and(AuditEvent::query()->where('action', 'submission_pack.printed')->exists())->toBeFalse()
+        ->and($pack->refresh()->printed_at)->toBeNull();
+});
+
+it('records the printout only when operations mark the packs as printed', function (): void {
+    $first = packReadyApplication($this->dealership);
+    $second = packReadyApplication($this->otherDealership);
+    $firstPack = app(PrepareSubmissionPack::class)->handle($first, $this->operations);
+    $secondPack = app(PrepareSubmissionPack::class)->handle($second, $this->operations);
+    $ids = $first->id.','.$second->id;
+
+    $this->actingAs($this->operations)
+        ->post(route('review.packs.printed'), ['ids' => $ids])
+        ->assertRedirect(route('review.packs.print', ['ids' => $ids]))
+        ->assertSessionHas('status', '2 packs marked as printed.');
+
+    expect($firstPack->refresh()->printed_at)->not->toBeNull()
+        ->and($firstPack->printed_by_id)->toBe($this->operations->id)
+        ->and($secondPack->refresh()->printed_at)->not->toBeNull()
+        ->and(AuditEvent::query()->where('action', 'submission_pack.printed')->count())->toBe(2);
+
+    $row = collect($this->workload->tasks(OperationsWorkloadService::TAB_SUBMISSION_PACKS)->items())
+        ->firstWhere(fn (array $task): bool => $task['application']->id === $first->id);
+
+    expect($row['kind'])->toBe('ready_to_submit')
+        ->and($row['pack_printed'])->toBeTrue()
+        ->and($row['blocker'])->toContain('printed')
+        ->and($row['blocker'])->toContain($this->operations->name);
+});
+
+it('shows a prepared pack as not printed on the worklist until it is marked', function (): void {
+    $application = packReadyApplication($this->dealership);
+    app(PrepareSubmissionPack::class)->handle($application, $this->operations);
+
+    $row = collect($this->workload->tasks(OperationsWorkloadService::TAB_SUBMISSION_PACKS)->items())
+        ->firstWhere(fn (array $task): bool => $task['application']->id === $application->id);
+
+    expect($row['kind'])->toBe('ready_to_submit')
+        ->and($row['pack_printed'])->toBeFalse()
+        ->and($row['blocker'])->toContain('prepared')
+        ->and($row['blocker'])->toContain('not marked as printed yet');
+});
+
+it('keeps marking packs as printed away from finance and dealership users', function (): void {
+    $application = packReadyApplication($this->dealership);
+    $pack = app(PrepareSubmissionPack::class)->handle($application, $this->operations);
+
+    $this->actingAs($this->finance)
+        ->post(route('review.packs.printed'), ['ids' => (string) $application->id])
+        ->assertForbidden();
+
+    $this->actingAs($this->dealerUser)
+        ->post(route('review.packs.printed'), ['ids' => (string) $application->id])
+        ->assertForbidden();
+
+    expect($pack->refresh()->printed_at)->toBeNull();
+});
+
+it('refuses to mark a pack as printed once it has been lodged', function (): void {
+    $application = packReadyApplication($this->dealership);
+    $pack = app(PrepareSubmissionPack::class)->handle($application, $this->operations);
+    app(SubmitToAuthority::class)->handle($application, $this->operations, 'DLTC-7', now()->subMinute());
+
+    $this->actingAs($this->operations)
+        ->post(route('review.packs.printed'), ['ids' => (string) $application->id])
+        ->assertRedirect(route('review.packs.print', ['ids' => (string) $application->id]))
+        ->assertSessionHasErrors('pack');
+
+    expect($pack->refresh()->printed_at)->toBeNull();
 });
 
 it('keeps the pack print away from finance and dealership users', function (): void {
@@ -270,7 +343,8 @@ it('prepares and prints the pack from the review workspace', function (): void {
 
     Livewire::actingAs($this->operations)
         ->test(ReviewWorkspace::class, ['application' => $application->refresh()])
-        ->assertSee('Reprint pack')
+        ->assertSee('Print pack')
+        ->assertSee('not marked as printed yet')
         ->set('submitReference', 'DLTC-9001')
         ->call('submitToAuthority')
         ->assertHasNoErrors();
@@ -296,10 +370,44 @@ it('keeps an unresolved department query out of the ready-to-submit list until i
     expect($this->workload->readyForAuthorityApplications()->whereKey($resolved->id)->exists())->toBeTrue()
         ->and($this->workload->authorityQueryApplications()->whereKey($resolved->id)->exists())->toBeFalse();
 
-    $resubmitted = app(SubmitToAuthority::class)->handle($resolved, $this->operations, 'DLTC-2', now());
+    $freshPack = app(PrepareSubmissionPack::class)->handle($resolved, $this->operations);
+    $resubmitted = app(SubmitToAuthority::class)->handle($resolved->refresh(), $this->operations, 'DLTC-2', now());
 
     expect($resubmitted->stage)->toBe(ApplicationStage::SubmittedToAuthority)
-        ->and($resubmitted->submissionPacks()->count())->toBe(2);
+        ->and($resubmitted->submissionPacks()->count())->toBe(2)
+        ->and($freshPack->refresh()->authority_reference)->toBe('DLTC-2');
+});
+
+it('makes operations prepare a fresh pack before recording a resubmission', function (): void {
+    $application = packReadyApplication($this->dealership);
+    $lodged = app(PrepareSubmissionPack::class)->handle($application, $this->operations);
+    app(SubmitToAuthority::class)->handle($application, $this->operations, 'DLTC-1', now()->subDay());
+    $queried = app(TransitionApplication::class)->handle($application->refresh(), ApplicationStage::AuthorityQuery, $this->operations, 'Stamp missing on invoice.');
+    $resolved = app(ResolveAuthorityQuery::class)->handle($queried, $this->operations, 'Stamped invoice attached.');
+
+    expect($resolved->currentSubmissionPack())->toBeNull();
+
+    $row = collect($this->workload->tasks(OperationsWorkloadService::TAB_SUBMISSION_PACKS)->items())
+        ->firstWhere(fn (array $task): bool => $task['application']->id === $resolved->id);
+
+    expect($row['kind'])->toBe('prepare_pack')
+        ->and($row['label'])->toBe('Prepare resubmission pack');
+
+    expect(fn () => app(SubmitToAuthority::class)->handle($resolved, $this->operations, 'DLTC-2', now()))
+        ->toThrow(ValidationException::class, 'Prepare and print the resubmission pack');
+
+    expect($resolved->refresh()->stage)->toBe(ApplicationStage::AuthorityQuery)
+        ->and($resolved->submissionPacks()->count())->toBe(1);
+
+    $fresh = app(PrepareSubmissionPack::class)->handle($resolved, $this->operations);
+
+    expect($fresh->id)->not->toBe($lodged->id)
+        ->and($lodged->refresh()->authority_reference)->toBe('DLTC-1');
+
+    $resubmitted = app(SubmitToAuthority::class)->handle($resolved->refresh(), $this->operations, 'DLTC-2', now());
+
+    expect($resubmitted->stage)->toBe(ApplicationStage::SubmittedToAuthority)
+        ->and($fresh->refresh()->authority_reference)->toBe('DLTC-2');
 });
 
 it('treats approved applications as still out at the department until receipt is recorded', function (): void {

@@ -258,10 +258,15 @@
                             </ul>
                         @elseif ($currentPack)
                             <p class="mt-3 text-xs text-muted">
-                                Pack #{{ $currentPack->id }} printed {{ $currentPack->created_at->format('d M Y H:i') }}
+                                Pack #{{ $currentPack->id }} prepared {{ $currentPack->created_at->format('d M Y H:i') }}
                                 by {{ $currentPack->preparedBy?->name ?? 'unknown' }} · {{ $currentPack->documentCount() }} {{ \Illuminate\Support\Str::plural('document', $currentPack->documentCount()) }}
+                                @if ($currentPack->printed_at)
+                                    · printed {{ $currentPack->printed_at->format('d M Y H:i') }} by {{ $currentPack->printedBy?->name ?? 'unknown' }}
+                                @else
+                                    · <span class="text-amber-800">not marked as printed yet</span>
+                                @endif
                             </p>
-                            <a href="{{ route('review.packs.print', ['ids' => $application->id]) }}" class="mt-2 inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">Reprint pack</a>
+                            <a href="{{ route('review.packs.print', ['ids' => $application->id]) }}" class="mt-2 inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">{{ $currentPack->printed_at ? 'Reprint pack' : 'Print pack' }}</a>
                             <div class="mt-3 space-y-2 border-t border-line pt-3">
                                 <p class="text-xs font-semibold">Lodged with the department</p>
                                 <input wire:model="submitReference" placeholder="Department reference" class="h-8 w-full rounded-md border border-line px-2 text-xs">

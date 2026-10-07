@@ -12,9 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Print view for one or more submission packs (?ids=1,2,3). Each pack
- * renders the versions frozen in its manifest, not whatever was uploaded
- * since, so the printout always matches the audit record.
+ * Cover sheet and index for one or more submission packs (?ids=1,2,3). Each
+ * pack renders the versions frozen in its manifest, not whatever was
+ * uploaded since, so the printout always matches the audit record. Opening
+ * it is audited as a preview only; printing is acknowledged explicitly.
  */
 class SubmissionPackPrintController extends Controller
 {
@@ -30,7 +31,7 @@ class SubmissionPackPrintController extends Controller
 
         $applications = Application::query()
             ->whereIn('id', $ids)
-            ->with(['clientAccount', 'vehicle', 'businessClient', 'titleHolder', 'parties', 'natisFormCheckedBy', 'latestSubmissionPack.preparedBy'])
+            ->with(['clientAccount', 'vehicle', 'businessClient', 'titleHolder', 'parties', 'natisFormCheckedBy', 'latestSubmissionPack.preparedBy', 'latestSubmissionPack.printedBy'])
             ->get()
             ->sortBy(fn (Application $application): int => (int) $ids->search($application->id))
             ->values();
@@ -48,8 +49,8 @@ class SubmissionPackPrintController extends Controller
                 $audit->handle(
                     $request->user(),
                     $application,
-                    'submission_pack.printed',
-                    'Submission pack #'.$pack->id.' opened for printing.',
+                    'submission_pack.previewed',
+                    'Submission pack #'.$pack->id.' preview opened.',
                     null,
                     ['submission_pack_id' => $pack->id],
                 );

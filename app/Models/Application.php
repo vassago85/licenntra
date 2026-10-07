@@ -172,14 +172,16 @@ class Application extends Model
     }
 
     /**
-     * The latest pack, but only while it still lists the current version of
-     * every accepted document. A re-upload or new acceptance makes it stale.
+     * The pack waiting to be lodged: the latest one, but only while it has
+     * not been lodged yet and still lists the current version of every
+     * accepted document. A re-upload, new acceptance or lodgement makes it
+     * stale, so a resubmission always starts from a freshly prepared pack.
      */
     public function currentSubmissionPack(): ?SubmissionPack
     {
         $pack = $this->latestSubmissionPack()->first();
 
-        if ($pack === null) {
+        if ($pack === null || $pack->submitted_at !== null) {
             return null;
         }
 

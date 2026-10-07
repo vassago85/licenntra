@@ -8,12 +8,13 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property array{documents: list<array{document_id: int, label: string, required: bool, version_id: int, original_filename: string, mime: string, size: int, sha256: string, uploaded_at: ?string, requires_original: bool, original_received_at: ?string}>} $manifest
+ * @property Carbon|null $printed_at
  * @property Carbon|null $submitted_at
  */
 class SubmissionPack extends Model
 {
     protected $fillable = [
-        'application_id', 'prepared_by_id', 'manifest', 'submitted_at', 'authority_reference',
+        'application_id', 'prepared_by_id', 'manifest', 'printed_at', 'printed_by_id', 'submitted_at', 'authority_reference',
     ];
 
     public function application(): BelongsTo
@@ -24,6 +25,11 @@ class SubmissionPack extends Model
     public function preparedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'prepared_by_id');
+    }
+
+    public function printedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'printed_by_id');
     }
 
     /**
@@ -46,6 +52,7 @@ class SubmissionPack extends Model
     {
         return [
             'manifest' => 'array',
+            'printed_at' => 'datetime',
             'submitted_at' => 'datetime',
         ];
     }

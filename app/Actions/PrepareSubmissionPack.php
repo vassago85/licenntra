@@ -39,7 +39,7 @@ class PrepareSubmissionPack
 
         $existing = $application->currentSubmissionPack();
 
-        if ($existing !== null && $existing->submitted_at === null) {
+        if ($existing !== null) {
             return $existing;
         }
 

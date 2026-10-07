@@ -1,8 +1,9 @@
 @php
     $title = $packs->count() === 1
-        ? 'Submission pack - '.$packs->first()['application']->reference
-        : 'Submission packs - '.$packs->count().' applications';
+        ? 'Submission pack cover sheet - '.$packs->first()['application']->reference
+        : 'Submission pack cover sheets - '.$packs->count().' applications';
     $pdfCount = $packs->sum(fn (array $entry): int => collect($entry['pack']?->manifest['documents'] ?? [])->where('mime', 'application/pdf')->count());
+    $unprintedCount = $packs->filter(fn (array $entry): bool => $entry['pack'] !== null && $entry['pack']->submitted_at === null && $entry['pack']->printed_at === null)->count();
 @endphp
 
 <x-layouts.print :title="$title" :branding="$branding">
@@ -18,6 +19,7 @@
         .muted { color: #555; }
         .warn { border: 1px solid #e8c777; background: #fff8e6; padding: 8px 10px; border-radius: 4px; margin-top: 12px; font-size: 10.5pt; }
         .print-controls a { margin-right: 8px; font-size: 10pt; }
+        .print-controls form button { margin-left: 6px; }
         .print-only { display: none; }
         @media print {
             .screen-only { display: none !important; }
@@ -29,14 +31,32 @@
 
     <div class="print-controls">
         <a href="{{ route('tasks.outstanding', ['tab' => 'submission_packs']) }}">Back to submission packs</a>
-        <button type="button" onclick="printPage()">Print {{ $packs->count() === 1 ? 'pack' : $packs->count().' packs' }}</button>
+        <button type="button" onclick="printPage()">Print {{ $packs->count() === 1 ? 'cover sheet' : $packs->count().' cover sheets' }}</button>
+        @if ($unprintedCount > 0)
+            <form method="POST" action="{{ route('review.packs.printed') }}" style="display: inline;">
+                @csrf
+                <input type="hidden" name="ids" value="{{ $packs->map(fn (array $entry): int => $entry['application']->id)->implode(',') }}">
+                <button type="submit">Mark {{ $packs->count() === 1 ? 'pack' : 'packs' }} as printed</button>
+            </form>
+        @endif
     </div>
 
-    @if ($pdfCount > 0)
-        <div class="warn screen-only">
-            {{ $pdfCount }} {{ \Illuminate\Support\Str::plural('document', $pdfCount) }} {{ $pdfCount === 1 ? 'is a PDF' : 'are PDFs' }}. Browsers cannot print an embedded PDF as part of this page, so each one has its own <strong>Open PDF to print</strong> link below. Print those and slot them in behind the matching divider page.
-        </div>
+    @if (session('status'))
+        <div class="warn screen-only" style="border-color: #a6d9b0; background: #e8f7ea;">{{ session('status') }}</div>
     @endif
+    @error('pack')
+        <div class="warn screen-only" style="border-color: #e8a3a3; background: #fdecec;">{{ $message }}</div>
+    @enderror
+
+    <div class="warn screen-only">
+        This page prints the cover sheet, document index{{ $packs->contains(fn (array $entry): bool => $entry['natisForm'] !== null) ? ', ALV / RLV' : '' }} and divider pages. It is not the whole pack on its own.
+        @if ($pdfCount > 0)
+            {{ $pdfCount }} uploaded {{ \Illuminate\Support\Str::plural('document', $pdfCount) }} {{ $pdfCount === 1 ? 'is a PDF' : 'are PDFs' }} that browsers cannot include in this print job. Each is marked <strong>Print separately</strong> in the index; open it from its divider page, print it, and file it behind that divider.
+        @endif
+        @if ($unprintedCount > 0)
+            Once everything is on paper, use <strong>Mark {{ $packs->count() === 1 ? 'pack' : 'packs' }} as printed</strong>.
+        @endif
+    </div>
 
     @foreach ($packs as $entry)
         @php
@@ -54,10 +74,19 @@
                     <div class="doc-sub">For lodgement with the {{ $application->province?->label() ?? 'licensing' }} licensing department</div>
                 </div>
                 <div style="text-align: right;">
-                    <div class="doc-title">{{ $application->stage === \App\Enums\ApplicationStage::AuthorityQuery ? 'Resubmission pack' : 'Submission pack' }}</div>
+                    <div class="doc-title">{{ $application->stage === \App\Enums\ApplicationStage::AuthorityQuery ? 'Resubmission pack' : 'Submission pack' }} cover sheet</div>
                     <div class="doc-sub mono">{{ $application->reference }}@if ($pack) · pack #{{ $pack->id }}@endif</div>
                     @if ($pack)
                         <div class="doc-sub">Prepared {{ $pack->created_at->format('d M Y H:i') }} by {{ $pack->preparedBy?->name ?? 'unknown' }}</div>
+                        <div class="doc-sub screen-only">
+                            @if ($pack->submitted_at)
+                                Lodged {{ $pack->submitted_at->format('d M Y H:i') }}@if ($pack->authority_reference) · ref {{ $pack->authority_reference }}@endif
+                            @elseif ($pack->printed_at)
+                                Marked printed {{ $pack->printed_at->format('d M Y H:i') }} by {{ $pack->printedBy?->name ?? 'unknown' }}
+                            @else
+                                Not marked as printed yet
+                            @endif
+                        </div>
                     @endif
                 </div>
             </div>
@@ -106,9 +135,10 @@
                         <tr>
                             <th style="width: 4%;">#</th>
                             <th>Document</th>
-                            <th style="width: 28%;">File (version on record)</th>
-                            <th style="width: 18%;">Original</th>
-                            <th style="width: 9%;">In pack</th>
+                            <th style="width: 26%;">File (version on record)</th>
+                            <th style="width: 16%;">Original</th>
+                            <th style="width: 14%;">Print from</th>
+                            <th style="width: 8%;">In pack</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,10 +160,11 @@
                                         Copy
                                     @endif
                                 </td>
+                                <td>{{ str_starts_with($document['mime'], 'image/') ? 'This print job' : 'Print separately' }}</td>
                                 <td style="text-align: center;"><span class="tick"></span></td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="muted" style="text-align: center;">No accepted documents in this pack.</td></tr>
+                            <tr><td colspan="6" class="muted" style="text-align: center;">No accepted documents in this pack.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
